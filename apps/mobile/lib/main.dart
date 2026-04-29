@@ -1,7 +1,6 @@
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 import 'app_api.dart';
@@ -68,63 +67,6 @@ const _services = [
   ),
 ];
 
-const _initialBookings = [
-  _BookingData(
-    id: 'bk-1001',
-    serviceTitle: 'Deep Cleaning',
-    address: 'Sandton, Johannesburg',
-    schedule: 'Today, 14:00',
-    status: _BookingStatus.requested,
-    paymentMethod: 'Card',
-    amount: 'R450',
-  ),
-  _BookingData(
-    id: 'bk-1002',
-    serviceTitle: 'Urgent Electrical',
-    address: 'Midrand, Johannesburg',
-    schedule: 'Today, ASAP',
-    status: _BookingStatus.enRoute,
-    paymentMethod: 'Cash',
-    amount: 'R780',
-  ),
-  _BookingData(
-    id: 'bk-1003',
-    serviceTitle: 'Handyman Assist',
-    address: 'Rosebank, Johannesburg',
-    schedule: 'Tomorrow, 09:00',
-    status: _BookingStatus.scheduled,
-    paymentMethod: 'Wallet',
-    amount: 'R520',
-  ),
-];
-
-const _initialProviderJobs = [
-  _ProviderJobData(
-    id: 'pj-01',
-    title: 'Sandton apartment clean',
-    timing: 'Today, 14:00',
-    pay: 'R450',
-    distance: '7.2 km',
-    category: 'Cleaning',
-  ),
-  _ProviderJobData(
-    id: 'pj-02',
-    title: 'Midrand geyser repair',
-    timing: 'Today, 15:30',
-    pay: 'R780',
-    distance: '11.0 km',
-    category: 'Electrical',
-  ),
-  _ProviderJobData(
-    id: 'pj-03',
-    title: 'Rosebank office handyman',
-    timing: 'Tomorrow, 09:00',
-    pay: 'R620',
-    distance: '5.6 km',
-    category: 'Handyman',
-  ),
-];
-
 const _walletHistory = [
   _WalletEntryData('Deep Cleaning booking', 'Customer payment received', '+R450', true),
   _WalletEntryData('Provider payout', 'Weekly earnings transfer', '-R1,850', false),
@@ -182,6 +124,8 @@ class _KaziController extends ChangeNotifier {
   ApiUser? currentUser;
   bool providerAvailable = false;
   bool providerProfileMissing = false;
+  String providerVerificationStatus = 'pending';
+  List<ApiProviderDocument> providerDocuments = const [];
 
   List<String> serviceCategories = List<String>.of(_serviceCategories);
   List<_ServiceData> services = List<_ServiceData>.of(_services);
@@ -251,6 +195,8 @@ class _KaziController extends ChangeNotifier {
     currentUser = null;
     providerAvailable = false;
     providerProfileMissing = false;
+    providerVerificationStatus = 'pending';
+    providerDocuments = const [];
     bookings = const [];
     incomingJobs = const [];
     acceptedJobs = const [];
@@ -282,14 +228,20 @@ class _KaziController extends ChangeNotifier {
         try {
           final profile = await api.getMyProviderProfile(session!.accessToken);
           providerAvailable = profile.isAvailable;
+          providerVerificationStatus = profile.verificationStatus;
           providerProfileMissing = false;
+          providerDocuments = await api.listMyProviderDocuments(session!.accessToken);
         } on KaziApiException catch (error) {
           providerAvailable = false;
+          providerVerificationStatus = 'pending';
           providerProfileMissing = error.statusCode == 404;
+          providerDocuments = const [];
         }
       } else {
         providerAvailable = false;
         providerProfileMissing = false;
+        providerVerificationStatus = 'pending';
+        providerDocuments = const [];
         incomingJobs = const [];
         acceptedJobs = const [];
       }
@@ -313,6 +265,33 @@ class _KaziController extends ChangeNotifier {
     );
 
     await refreshAuthenticatedData();
+  }
+
+  Future<ApiProviderDocumentUploadResult> uploadProviderDocument({
+    required String documentType,
+    required PlatformFile file,
+  }) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in as a provider first.');
+    }
+
+    final bytes = file.bytes;
+    if (bytes == null || bytes.isEmpty) {
+      throw const KaziApiException('The selected file could not be read on this device.');
+    }
+
+    final result = await api.uploadProviderDocument(
+      accessToken: session!.accessToken,
+      documentType: documentType,
+      fileBytes: bytes,
+      fileName: file.name,
+    );
+
+    providerDocuments = result.documents;
+    providerVerificationStatus = 'pending';
+    providerProfileMissing = false;
+    notifyListeners();
+    return result;
   }
 
   Future<void> setProviderAvailability(bool value) async {
@@ -909,6 +888,8 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
 
   Future<void> _openBookingSheet(_ServiceData service, {bool scheduledDefault = false}) async {
     final controller = _AppScope.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     if (!controller.isCustomer) {
       await _showAuthSheet(context, initialRole: 'customer');
@@ -1005,9 +986,9 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                 );
 
                                 if (!mounted) return;
-                                Navigator.of(context).pop();
+                                navigator.pop();
                                 setState(() => _lastBookedService = service);
-                                ScaffoldMessenger.of(this.context).showSnackBar(
+                                messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
                                       '${service.title} requested for ${scheduled ? 'tomorrow' : 'immediate dispatch'} via $paymentMethod.',
@@ -1160,6 +1141,7 @@ class _BookingsPageState extends State<_BookingsPage> {
   @override
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     if (!controller.isAuthenticated) {
       return const _AuthRequiredCard(
@@ -1245,7 +1227,7 @@ class _BookingsPageState extends State<_BookingsPage> {
                                   await controller.advanceBooking(booking);
                                 } catch (error) {
                                   if (!mounted) return;
-                                  ScaffoldMessenger.of(context).showSnackBar(
+                                  messenger.showSnackBar(
                                     SnackBar(content: Text(error.toString())),
                                   );
                                 }
@@ -1270,9 +1252,21 @@ class _ProviderHubPage extends StatefulWidget {
 }
 
 class _ProviderHubPageState extends State<_ProviderHubPage> {
+  String _selectedDocumentType = 'national_id';
+  bool _uploadingDocument = false;
+
+  Color _documentStatusColor(String status) {
+    return switch (status) {
+      'approved' => KaziTheme.primaryGreen,
+      'rejected' => const Color(0xFFB42318),
+      _ => KaziTheme.accentGold,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     if (!controller.isProvider) {
       return const _AuthRequiredCard(
@@ -1309,7 +1303,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                             await controller.completeProviderOnboarding();
                           } catch (error) {
                             if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               SnackBar(content: Text(error.toString())),
                             );
                           }
@@ -1317,6 +1311,79 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                         child: const Text('Initialize provider onboarding'),
                       ),
                     ),
+                  if (!controller.providerProfileMissing) ...[
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(_selectedDocumentType),
+                      initialValue: _selectedDocumentType,
+                      decoration: const InputDecoration(
+                        labelText: 'Verification document type',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: const [
+                        DropdownMenuItem(value: 'national_id', child: Text('National ID')),
+                        DropdownMenuItem(value: 'proof_of_address', child: Text('Proof of address')),
+                        DropdownMenuItem(value: 'drivers_license', child: Text('Driver\'s license')),
+                        DropdownMenuItem(value: 'trade_certificate', child: Text('Trade certificate')),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() {
+                          _selectedDocumentType = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton.icon(
+                      onPressed: _uploadingDocument
+                          ? null
+                          : () async {
+                              final picked = await FilePicker.platform.pickFiles(
+                                withData: true,
+                                type: FileType.custom,
+                                allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+                              );
+                              final file = picked?.files.single;
+                              if (file == null) {
+                                return;
+                              }
+
+                              setState(() {
+                                _uploadingDocument = true;
+                              });
+
+                              try {
+                                final result = await controller.uploadProviderDocument(
+                                  documentType: _selectedDocumentType,
+                                  file: file,
+                                );
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text('${result.uploaded.fileName} uploaded for review.')),
+                                );
+                              } catch (error) {
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              } finally {
+                                if (mounted) {
+                                  setState(() {
+                                    _uploadingDocument = false;
+                                  });
+                                }
+                              }
+                            },
+                      icon: _uploadingDocument
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.upload_file_outlined),
+                      label: Text(_uploadingDocument ? 'Uploading document...' : 'Upload verification document'),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Available now'),
@@ -1335,7 +1402,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                               await controller.setProviderAvailability(value);
                             } catch (error) {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text(error.toString())),
                               );
                             }
@@ -1359,16 +1426,70 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                   const SizedBox(height: 14),
                   _InlineStatus(
                     label: 'Verification',
-                    value: controller.providerProfileMissing ? 'Profile missing' : 'Backend linked',
+                    value: controller.providerProfileMissing
+                        ? 'Profile missing'
+                        : controller.providerVerificationStatus.replaceAll('_', ' '),
                   ),
                   const SizedBox(height: 10),
                   _InlineStatus(label: 'Available', value: controller.providerAvailable ? 'Yes' : 'No'),
+                  const SizedBox(height: 10),
+                  _InlineStatus(label: 'Documents', value: '${controller.providerDocuments.length}'),
                   const SizedBox(height: 10),
                   _InlineStatus(label: 'Accepted today', value: '${controller.acceptedJobs.length}'),
                 ],
               ),
             ),
           ),
+          const SizedBox(height: 24),
+          const _SectionHeading(
+            title: 'Verification uploads',
+            subtitle: 'Track the files you have sent for provider review directly from the provider hub.',
+          ),
+          const SizedBox(height: 12),
+          if (controller.providerProfileMissing)
+            const _SurfaceCard(
+              child: Text('Create a provider profile before uploading verification documents.'),
+            )
+          else if (controller.providerDocuments.isEmpty)
+            const _SurfaceCard(
+              child: Text('No verification documents uploaded yet. Upload at least one document to start admin review.'),
+            )
+          else
+            Column(
+              children: controller.providerDocuments
+                  .map(
+                    (document) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SurfaceCard(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.description_outlined, color: KaziTheme.primaryGreen),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    document.documentType.replaceAll('_', ' ').toUpperCase(),
+                                    style: const TextStyle(fontWeight: FontWeight.w800),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(document.fileName, style: const TextStyle(height: 1.4)),
+                                ],
+                              ),
+                            ),
+                            _StatusPill(
+                              label: document.status.replaceAll('_', ' '),
+                              color: _documentStatusColor(document.status),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
           const SizedBox(height: 24),
           const _SectionHeading(
             title: 'Incoming jobs',
@@ -1388,12 +1509,12 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                             try {
                               await controller.acceptJob(job);
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text('${job.title} accepted and added to today\'s queue.')),
                               );
                             } catch (error) {
                               if (!mounted) return;
-                              ScaffoldMessenger.of(context).showSnackBar(
+                              messenger.showSnackBar(
                                 SnackBar(content: Text(error.toString())),
                               );
                             }

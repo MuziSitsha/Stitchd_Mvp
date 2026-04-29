@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
+
 class KaziApiException implements Exception {
   const KaziApiException(this.message, {this.statusCode});
 
@@ -165,6 +167,18 @@ class KaziApiClient {
     return ApiProviderProfile.fromJson(payload);
   }
 
+  Future<List<ApiProviderDocument>> listMyProviderDocuments(String accessToken) async {
+    final payload = await _request(
+      'GET',
+      '/providers/me/documents',
+      accessToken: accessToken,
+    ) as Map<String, dynamic>;
+    final items = payload['documents'] as List<dynamic>? ?? const [];
+    return items
+        .map((item) => ApiProviderDocument.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<ApiProviderProfile> onboardProvider({
     required String accessToken,
     String? bio,
@@ -196,6 +210,39 @@ class KaziApiClient {
       body: {'isAvailable': isAvailable},
     ) as Map<String, dynamic>;
     return ApiProviderProfile.fromJson(payload);
+  }
+
+  Future<ApiProviderDocumentUploadResult> uploadProviderDocument({
+    required String accessToken,
+    required String documentType,
+    required List<int> fileBytes,
+    required String fileName,
+  }) async {
+    final uri = Uri.parse('$baseUrl/providers/me/documents/upload');
+    final request = http.MultipartRequest('POST', uri)
+      ..headers[HttpHeaders.authorizationHeader] = 'Bearer $accessToken'
+      ..headers[HttpHeaders.acceptHeader] = 'application/json'
+      ..fields['documentType'] = documentType
+      ..files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: fileName));
+
+    try {
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
+      final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
+
+      if (response.statusCode >= 400) {
+        throw KaziApiException(
+          _extractMessage(decoded) ?? 'Upload failed with status ${response.statusCode}',
+          statusCode: response.statusCode,
+        );
+      }
+
+      return ApiProviderDocumentUploadResult.fromJson(decoded as Map<String, dynamic>);
+    } on TimeoutException {
+      throw const KaziApiException('The provider document upload timed out.');
+    } on SocketException {
+      throw KaziApiException('Could not reach KAZI API at $baseUrl.');
+    }
   }
 
   Future<dynamic> _request(
@@ -432,15 +479,64 @@ class ApiProviderProfile {
   const ApiProviderProfile({
     required this.isAvailable,
     required this.verificationStatus,
+    required this.documentsSubmitted,
   });
 
   final bool isAvailable;
   final String verificationStatus;
+  final bool documentsSubmitted;
 
   factory ApiProviderProfile.fromJson(Map<String, dynamic> json) {
     return ApiProviderProfile(
       isAvailable: json['isAvailable'] as bool? ?? false,
       verificationStatus: json['verificationStatus'] as String? ?? 'pending',
+      documentsSubmitted: json['documentsSubmitted'] as bool? ?? false,
+    );
+  }
+}
+
+class ApiProviderDocument {
+  const ApiProviderDocument({
+    required this.id,
+    required this.documentType,
+    required this.fileName,
+    required this.status,
+    required this.fileUrl,
+  });
+
+  final String id;
+  final String documentType;
+  final String fileName;
+  final String status;
+  final String? fileUrl;
+
+  factory ApiProviderDocument.fromJson(Map<String, dynamic> json) {
+    return ApiProviderDocument(
+      id: json['id'] as String,
+      documentType: json['documentType'] as String? ?? 'document',
+      fileName: json['fileName'] as String? ?? 'file',
+      status: json['status'] as String? ?? 'submitted',
+      fileUrl: json['fileUrl'] as String?,
+    );
+  }
+}
+
+class ApiProviderDocumentUploadResult {
+  const ApiProviderDocumentUploadResult({
+    required this.uploaded,
+    required this.documents,
+  });
+
+  final ApiProviderDocument uploaded;
+  final List<ApiProviderDocument> documents;
+
+  factory ApiProviderDocumentUploadResult.fromJson(Map<String, dynamic> json) {
+    final documents = json['documents'] as List<dynamic>? ?? const [];
+    return ApiProviderDocumentUploadResult(
+      uploaded: ApiProviderDocument.fromJson(json['uploaded'] as Map<String, dynamic>),
+      documents: documents
+          .map((item) => ApiProviderDocument.fromJson(item as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
