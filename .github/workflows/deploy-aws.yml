@@ -1,0 +1,66 @@
+name: Deploy KAZI API to AWS
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - '.github/workflows/deploy-aws.yml'
+      - 'infra/aws/**'
+      - 'package.json'
+      - 'yarn.lock'
+
+jobs:
+  deploy-api:
+    name: Build and Deploy API
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push API image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: ${{ secrets.AWS_ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -f apps/api/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
+
+      - name: Render ECS task definition
+        env:
+          AWS_ECS_TASK_FAMILY: ${{ secrets.AWS_ECS_TASK_FAMILY }}
+          AWS_ECS_EXECUTION_ROLE_ARN: ${{ secrets.AWS_ECS_EXECUTION_ROLE_ARN }}
+          AWS_ECS_TASK_ROLE_ARN: ${{ secrets.AWS_ECS_TASK_ROLE_ARN }}
+          AWS_LOG_GROUP: ${{ secrets.AWS_LOG_GROUP }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          IMAGE_URI: ${{ env.IMAGE_URI }}
+        run: |
+          sed \
+            -e "s|__AWS_ECS_TASK_FAMILY__|$AWS_ECS_TASK_FAMILY|g" \
+            -e "s|__AWS_ECS_EXECUTION_ROLE_ARN__|$AWS_ECS_EXECUTION_ROLE_ARN|g" \
+            -e "s|__AWS_ECS_TASK_ROLE_ARN__|$AWS_ECS_TASK_ROLE_ARN|g" \
+            -e "s|__AWS_LOG_GROUP__|$AWS_LOG_GROUP|g" \
+            -e "s|__AWS_REGION__|$AWS_REGION|g" \
+            -e "s|__IMAGE_URI__|$IMAGE_URI|g" \
+            infra/aws/ecs-task-definition.template.json > infra/aws/ecs-task-definition.json
+
+      - name: Deploy ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: infra/aws/ecs-task-definition.json
+          service: ${{ secrets.AWS_ECS_SERVICE }}
+          cluster: ${{ secrets.AWS_ECS_CLUSTER }}
+          wait-for-service-stability: true

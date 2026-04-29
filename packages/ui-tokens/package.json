@@ -1,0 +1,7 @@
+{
+  "name": "@kazi/ui-tokens",
+  "version": "1.0.0",
+  "private": true,
+  "description": "KAZI Springbok brand tokens",
+  "main": "springbok.tokens.json"
+}

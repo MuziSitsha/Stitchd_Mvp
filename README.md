@@ -1,27 +1,30 @@
-# KAZI Platform 🟢🟡
+# KAZI Platform
 
-> On-Demand Services Platform for South Africa — Uber for Home Services
+> AWS-hosted on-demand services MVP for South Africa
 
-Built with Flutter · NestJS · PostgreSQL (Supabase) · Railway · Vercel
+Built for client requirements with Flutter · NestJS · PostgreSQL · AWS
 
 ---
 
-## Project Structure
+## Current Foundation
 
 ```
 kazi/
 ├── apps/
 │   ├── api/          # NestJS backend API
-│   ├── admin/        # React admin dashboard (Vite + Tailwind)
-│   └── mobile/       # Flutter apps (customer + provider)
-├── packages/
-│   ├── shared-types/ # Shared TypeScript types across apps
-│   └── ui-tokens/    # Design system tokens (colours, spacing)
+│   ├── admin/        # React admin dashboard foundation
+│   └── mobile/       # Flutter customer/provider app foundation
 ├── .github/
-│   └── workflows/    # CI/CD (GitHub Actions)
-├── railway.toml      # Railway deployment config
+│   └── workflows/    # CI and deployment workflows
+├── docs/             # Delivery and architecture docs
+├── packages/
+│   └── ui-tokens/    # Springbok design tokens
+├── infra/
+│   └── aws/          # AWS deployment templates
 └── package.json      # Monorepo root
 ```
+
+The repository now contains the backend foundation, an admin dashboard scaffold, a Flutter mobile scaffold, AWS deployment workflow scaffolding, and shared Springbok design tokens.
 
 ---
 
@@ -43,7 +46,7 @@ yarn install
 ### 2. Environment setup
 ```bash
 cp apps/api/.env.example apps/api/.env.local
-# Fill in your Supabase DATABASE_URL and other keys
+# Fill in your PostgreSQL DATABASE_URL and other keys
 ```
 
 ### 3. Local database (Docker)
@@ -65,18 +68,41 @@ yarn dev:admin
 
 ---
 
-## Infrastructure (MVP Stack — ~R865/month)
+## Delivery Plan
+
+### Target stack
+- Mobile apps: Flutter
+- Backend API: NestJS
+- Database: PostgreSQL
+- Hosting: AWS
+
+### Delivery phases
+1. Backend foundation and auth
+2. Booking engine, provider onboarding, and service catalogue
+3. Payments, wallet, reviews, promos, and notifications
+4. Flutter customer/provider apps and admin dashboard
+5. Hardening, analytics, QA, and launch readiness
+
+### Timeline estimate
+- Foundation and core backend: 3 to 4 weeks
+- Mobile apps and admin dashboard: 4 to 6 weeks
+- Payments, realtime, analytics, and QA: 3 to 4 weeks
+- Total MVP target: 10 to 14 weeks
+
+### AWS MVP cost estimate
 
 | Service | Provider | Cost/mo | Purpose |
 |---------|----------|---------|---------|
-| API Hosting | Railway.app | ~R190 | NestJS + Redis |
-| Database | Supabase Pro | ~R475 | PostgreSQL + Auth + Storage |
-| Admin Hosting | Vercel | Free | React dashboard |
-| File Storage | Cloudflare R2 | R0–80 | Documents & images |
+| API compute | AWS ECS Fargate or App Runner | ~R1,200–3,000 | NestJS API |
+| Database | AWS RDS PostgreSQL | ~R1,000–2,500 | Primary relational database |
+| Redis | AWS ElastiCache Redis | ~R700–1,500 | Jobs, throttling, caching |
+| File storage | AWS S3 | ~R100–400 | Documents and images |
+| Admin hosting | AWS Amplify or S3 + CloudFront | ~R100–500 | Admin dashboard |
+| CDN and traffic | AWS CloudFront | ~R150–800 | Static delivery and caching |
 | Push Notifications | Firebase FCM | Free | Mobile push |
 | SMS OTP | Clickatell | ~R200 | SA phone verification |
 
-> Migrate to AWS af-south-1 when you hit 5,000+ active users/month.
+Expected AWS MVP operating range: roughly R3,450 to R8,900 per month, depending on traffic and whether you run one or two API tasks.
 
 ---
 
@@ -85,13 +111,13 @@ yarn dev:admin
 See `apps/api/.env.example` for all required variables.
 
 ### Key services to configure:
-- **Supabase** — `DATABASE_URL` from Supabase Dashboard > Settings > Database
-- **Railway** — Provides `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` automatically
+- **AWS RDS PostgreSQL** — `DATABASE_URL`
+- **AWS ElastiCache Redis** — `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **Clickatell** — SA SMS provider for OTP verification
 - **Firebase** — Push notifications (FCM)
 - **Peach Payments** — SA card processing
 - **Google Maps** — Live provider tracking
-- **Cloudflare R2** — Document uploads (ID verification, etc.)
+- **AWS S3** — Document uploads (ID verification, etc.)
 
 ---
 
@@ -116,17 +142,22 @@ See `apps/api/.env.example` for all required variables.
 
 ## Deployment
 
-### GitHub Secrets required
+Production target is AWS in `af-south-1`, fronted by CloudFront and an ALB. The exact topology is documented in [docs/aws-architecture.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\aws-architecture.md).
+
+### GitHub Secrets required for AWS CI/CD
 ```
-RAILWAY_TOKEN          # From Railway dashboard
-VERCEL_TOKEN           # From Vercel dashboard
-VERCEL_ORG_ID          # From Vercel
-VERCEL_PROJECT_ID      # From Vercel
-TEST_DATABASE_URL      # Separate test DB on Supabase
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_REGION
+AWS_ECR_REPOSITORY
+AWS_ECS_CLUSTER
+AWS_ECS_SERVICE
+AWS_ECS_TASK_DEFINITION
+TEST_DATABASE_URL      # Separate PostgreSQL test database
 ```
 
 ### Branch strategy
-- `main` → auto-deploys to production (Railway + Vercel)
+- `main` → production release branch
 - `develop` → staging environment
 - `feature/*` → PR to develop
 
@@ -135,11 +166,24 @@ TEST_DATABASE_URL      # Separate test DB on Supabase
 ## Springbok Colour Palette
 
 ```
-Primary Green:  #006B3F  (Springbok dark green)
+Primary Green:  #006B3C  (Springbok dark green)
 Accent Gold:    #FFB81C  (Springbok gold/amber)
 White:          #FFFFFF  (Predominantly white backgrounds)
 Dark:           #111111  (Text)
+Light Surface:  #F6F7F4  (Warm white surface)
 ```
+
+### Brand rules
+- Predominantly white UI surfaces
+- Green used for primary actions, headers, trust signals, and states
+- Gold reserved for accent moments, highlights, badges, and CTAs
+- Avoid dark-mode-first layouts and avoid generic purple SaaS palettes
+- Use the shared token package in [packages/ui-tokens](c:\Users\nkazi\OneDrive\Desktop\kazi\packages\ui-tokens) as the source of truth
+
+## AWS Reference Docs
+
+- [docs/aws-architecture.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\aws-architecture.md)
+- [docs/client-delivery-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-delivery-plan.md)
 
 ---
 

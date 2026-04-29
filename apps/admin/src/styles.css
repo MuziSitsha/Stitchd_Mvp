@@ -1,0 +1,98 @@
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 28, 0.18), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f6f7f4 100%);
+  color: var(--kazi-color-text);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.shell {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 48px 24px 72px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.8fr 0.8fr;
+  gap: 24px;
+  align-items: end;
+  margin-bottom: 32px;
+}
+
+.eyebrow {
+  color: var(--kazi-color-primary-green);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.hero h1 {
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 0.98;
+  margin: 0 0 16px;
+}
+
+.lede {
+  max-width: 700px;
+  color: var(--kazi-color-muted-text);
+  font-size: 1.05rem;
+}
+
+.heroBadge {
+  justify-self: end;
+  padding: 18px 20px;
+  background: var(--kazi-color-primary-green);
+  color: var(--kazi-color-white);
+  border-radius: var(--kazi-radius-lg);
+  box-shadow: var(--kazi-shadow-soft);
+  font-weight: 700;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.card {
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--kazi-color-border);
+  border-radius: var(--kazi-radius-lg);
+  box-shadow: var(--kazi-shadow-soft);
+}
+
+.card span {
+  display: block;
+  color: var(--kazi-color-muted-text);
+  margin-bottom: 12px;
+}
+
+.card strong {
+  display: block;
+  color: var(--kazi-color-primary-green);
+  font-size: 1.65rem;
+  margin-bottom: 8px;
+}
+
+.card p {
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .hero,
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .heroBadge {
+    justify-self: start;
+  }
+}

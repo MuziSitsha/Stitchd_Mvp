@@ -1,0 +1,27 @@
+{
+  "brand": {
+    "primaryGreen": "#006B3C",
+    "accentGold": "#FFB81C",
+    "white": "#FFFFFF",
+    "surface": "#F6F7F4",
+    "text": "#111111",
+    "mutedText": "#4F5B53",
+    "border": "#D9DED8",
+    "success": "#1F7A45",
+    "warning": "#D89B00"
+  },
+  "semantics": {
+    "pageBackground": "#FFFFFF",
+    "cardBackground": "#F6F7F4",
+    "primaryActionBackground": "#006B3C",
+    "primaryActionText": "#FFFFFF",
+    "accentActionBackground": "#FFB81C",
+    "accentActionText": "#111111"
+  },
+  "layout": {
+    "radiusSm": "8px",
+    "radiusMd": "14px",
+    "radiusLg": "22px",
+    "shadowSoft": "0 12px 32px rgba(17, 17, 17, 0.08)"
+  }
+}

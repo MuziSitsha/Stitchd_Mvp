@@ -17,6 +17,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { WalletModule } from './modules/wallet/wallet.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { PromosModule } from './modules/promos/promos.module';
+import { AppController } from './app.controller';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 
@@ -80,5 +81,6 @@ import databaseConfig from './config/database.config';
     ReviewsModule,
     PromosModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
