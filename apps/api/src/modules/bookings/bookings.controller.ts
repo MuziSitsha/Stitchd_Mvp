@@ -13,6 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { UpdateBookingLocationDto } from './dto/update-booking-location.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
 @ApiTags('bookings')
@@ -54,6 +55,19 @@ export class BookingsController {
     @Body() dto: UpdateBookingStatusDto,
   ) {
     return this.bookingsService.updateStatus(id, req.user.id, dto.status);
+  }
+
+  @Patch(':id/tracking')
+  @ApiOperation({ summary: 'Update the provider live location for an active booking' })
+  updateProviderLocation(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: UpdateBookingLocationDto,
+  ) {
+    return this.bookingsService.updateProviderLocation(id, req.user.id, {
+      latitude: dto.latitude,
+      longitude: dto.longitude,
+    });
   }
 
   @Patch(':id/cancel')

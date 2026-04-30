@@ -84,6 +84,15 @@ export class BookingEntity {
   @Column({ nullable: true })
   customerAddress: string;
 
+  @Column('decimal', { precision: 10, scale: 8, nullable: true })
+  providerCurrentLat: number;
+
+  @Column('decimal', { precision: 11, scale: 8, nullable: true })
+  providerCurrentLng: number;
+
+  @Column({ nullable: true })
+  providerLocationUpdatedAt: Date;
+
   // Pricing (in ZAR cents to avoid float issues)
   @Column({ default: 0 })
   quotedPriceCents: number;

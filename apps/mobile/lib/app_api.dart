@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class KaziApiException implements Exception {
@@ -25,7 +25,11 @@ class KaziApiClient {
       return override;
     }
 
-    if (Platform.isAndroid) {
+    if (kIsWeb) {
+      return 'http://127.0.0.1:3001/api/v1';
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3001/api/v1';
     }
 
@@ -158,6 +162,24 @@ class KaziApiClient {
     return ApiBooking.fromJson(payload);
   }
 
+  Future<ApiBooking> updateBookingTracking({
+    required String accessToken,
+    required String bookingId,
+    required double latitude,
+    required double longitude,
+  }) async {
+    final payload = await _request(
+      'PATCH',
+      '/bookings/$bookingId/tracking',
+      accessToken: accessToken,
+      body: {
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    ) as Map<String, dynamic>;
+    return ApiBooking.fromJson(payload);
+  }
+
   Future<void> createReview({
     required String accessToken,
     required String bookingId,
@@ -251,8 +273,8 @@ class KaziApiClient {
   }) async {
     final uri = Uri.parse('$baseUrl/providers/me/documents/upload');
     final request = http.MultipartRequest('POST', uri)
-      ..headers[HttpHeaders.authorizationHeader] = 'Bearer $accessToken'
-      ..headers[HttpHeaders.acceptHeader] = 'application/json'
+      ..headers['Authorization'] = 'Bearer $accessToken'
+      ..headers['Accept'] = 'application/json'
       ..fields['documentType'] = documentType
       ..files.add(http.MultipartFile.fromBytes('file', fileBytes, filename: fileName));
 
@@ -271,7 +293,7 @@ class KaziApiClient {
       return ApiProviderDocumentUploadResult.fromJson(decoded as Map<String, dynamic>);
     } on TimeoutException {
       throw const KaziApiException('The provider document upload timed out.');
-    } on SocketException {
+    } on http.ClientException {
       throw KaziApiException('Could not reach KAZI API at $baseUrl.');
     }
   }
@@ -284,37 +306,39 @@ class KaziApiClient {
     Map<String, String>? queryParameters,
   }) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: queryParameters);
-    final client = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    final headers = <String, String>{'Accept': 'application/json'};
+    if (accessToken != null) {
+      headers['Authorization'] = 'Bearer $accessToken';
+    }
+    if (body != null) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     try {
-      final request = await client.openUrl(method, uri);
-      request.headers.set(HttpHeaders.acceptHeader, 'application/json');
-      if (accessToken != null) {
-        request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $accessToken');
-      }
+      final request = http.Request(method, uri)..headers.addAll(headers);
       if (body != null) {
-        request.headers.contentType = ContentType.json;
-        request.write(jsonEncode(body));
+        request.body = jsonEncode(body);
       }
 
-      final response = await request.close().timeout(const Duration(seconds: 15));
-      final responseText = await response.transform(utf8.decoder).join();
+      final client = http.Client();
+      final response = await client.send(request).timeout(const Duration(seconds: 15));
+      final materialized = await http.Response.fromStream(response);
+      client.close();
+      final responseText = materialized.body;
       final decoded = responseText.isEmpty ? null : jsonDecode(responseText);
 
-      if (response.statusCode >= 400) {
+      if (materialized.statusCode >= 400) {
         throw KaziApiException(
-          _extractMessage(decoded) ?? 'Request failed with status ${response.statusCode}',
-          statusCode: response.statusCode,
+          _extractMessage(decoded) ?? 'Request failed with status ${materialized.statusCode}',
+          statusCode: materialized.statusCode,
         );
       }
 
       return decoded;
     } on TimeoutException {
       throw const KaziApiException('The API request timed out.');
-    } on SocketException {
+    } on http.ClientException {
       throw KaziApiException('Could not reach KAZI API at $baseUrl.');
-    } finally {
-      client.close(force: true);
     }
   }
 
@@ -463,6 +487,9 @@ class ApiBooking {
     required this.quotedPriceCents,
     required this.finalPriceCents,
     required this.customerAddress,
+    required this.providerCurrentLat,
+    required this.providerCurrentLng,
+    required this.providerLocationUpdatedAt,
     required this.isRated,
     required this.createdAt,
     required this.scheduledAt,
@@ -479,6 +506,9 @@ class ApiBooking {
   final int quotedPriceCents;
   final int finalPriceCents;
   final String? customerAddress;
+  final double? providerCurrentLat;
+  final double? providerCurrentLng;
+  final DateTime? providerLocationUpdatedAt;
   final bool isRated;
   final DateTime? createdAt;
   final DateTime? scheduledAt;
@@ -498,6 +528,9 @@ class ApiBooking {
       quotedPriceCents: (json['quotedPriceCents'] as num?)?.toInt() ?? 0,
       finalPriceCents: (json['finalPriceCents'] as num?)?.toInt() ?? 0,
       customerAddress: json['customerAddress'] as String?,
+      providerCurrentLat: (json['providerCurrentLat'] as num?)?.toDouble(),
+      providerCurrentLng: (json['providerCurrentLng'] as num?)?.toDouble(),
+      providerLocationUpdatedAt: _parseDate(json['providerLocationUpdatedAt']),
       isRated: json['isRated'] as bool? ?? false,
       createdAt: _parseDate(json['createdAt']),
       scheduledAt: _parseDate(json['scheduledAt']),

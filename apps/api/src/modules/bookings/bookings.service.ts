@@ -117,6 +117,27 @@ export class BookingsService {
     return this.bookingsRepository.save(booking);
   }
 
+  async updateProviderLocation(
+    bookingId: string,
+    providerId: string,
+    coords: { latitude: number; longitude: number },
+  ) {
+    const booking = await this.bookingsRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.providerId !== providerId) {
+      throw new ForbiddenException('Only the assigned provider can share live tracking for this booking');
+    }
+
+    if ([BookingStatus.CANCELLED, BookingStatus.COMPLETED].includes(booking.status)) {
+      throw new BadRequestException('Live tracking is only available for active bookings');
+    }
+
+    booking.providerCurrentLat = coords.latitude;
+    booking.providerCurrentLng = coords.longitude;
+    booking.providerLocationUpdatedAt = new Date();
+    return this.bookingsRepository.save(booking);
+  }
+
   async cancelBooking(bookingId: string, actorId: string, reason: string) {
     const booking = await this.bookingsRepository.findOne({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');

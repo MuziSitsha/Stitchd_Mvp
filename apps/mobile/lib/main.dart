@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_api.dart';
@@ -420,6 +422,55 @@ class _KaziController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateLiveLocation(_BookingData booking) async {
+    if (session == null || !isProvider) {
+      throw const KaziApiException('Sign in as the assigned provider to share live tracking.');
+    }
+
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      throw const KaziApiException('Enable device location services before sharing live tracking.');
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      throw const KaziApiException('Location permission is required to share live tracking.');
+    }
+
+    final position = await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+    );
+
+    await api.updateBookingTracking(
+      accessToken: session!.accessToken,
+      bookingId: booking.id,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+
+    await refreshAuthenticatedData();
+  }
+
+  Future<void> openTrackingMap(_BookingData booking) async {
+    final latitude = booking.providerCurrentLat;
+    final longitude = booking.providerCurrentLng;
+    if (latitude == null || longitude == null) {
+      throw const KaziApiException('This booking does not have a live provider location yet.');
+    }
+
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)}',
+    );
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      throw const KaziApiException('Could not open the live tracking map.');
+    }
+  }
+
   _ServiceData _mapService(ApiService service) {
     final category = service.category ?? _categoriesById[service.categoryId];
     return _ServiceData(
@@ -452,6 +503,9 @@ class _KaziController extends ChangeNotifier {
       paymentMethod: booking.paymentMethod.toUpperCase(),
       paymentStatus: booking.paymentStatus.toUpperCase(),
       amount: _formatCurrencyFromCents(booking.displayPriceCents),
+      providerCurrentLat: booking.providerCurrentLat,
+      providerCurrentLng: booking.providerCurrentLng,
+      providerLocationUpdatedAt: booking.providerLocationUpdatedAt,
       isRated: booking.isRated,
     );
   }
@@ -1181,6 +1235,38 @@ class _BookingsPage extends StatefulWidget {
 
 class _BookingsPageState extends State<_BookingsPage> {
   String _filter = 'All';
+  Timer? _trackingPoller;
+
+  @override
+  void initState() {
+    super.initState();
+    _trackingPoller = Timer.periodic(const Duration(seconds: 12), (_) => _refreshTrackingSnapshot());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _refreshTrackingSnapshot());
+  }
+
+  @override
+  void dispose() {
+    _trackingPoller?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _refreshTrackingSnapshot() async {
+    if (!mounted) return;
+    final controller = _AppScope.of(context);
+    if (!controller.isAuthenticated || controller.isRefreshing) return;
+    final hasTrackableBookings = controller.bookings.any((booking) => booking.supportsLiveTracking);
+    if (!hasTrackableBookings) return;
+    try {
+      await controller.refreshAuthenticatedData();
+    } catch (_) {
+      // Keep the polling loop lightweight; explicit actions surface errors.
+    }
+  }
 
   Future<void> _openReviewSheet(_BookingData booking) async {
     final controller = _AppScope.of(context);
@@ -1401,6 +1487,38 @@ class _BookingsPageState extends State<_BookingsPage> {
                                 }
                               }
                             : null,
+                        onTrack: controller.isProvider && booking.supportsLiveTracking
+                            ? () async {
+                                try {
+                                  await controller.updateLiveLocation(booking);
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Live provider location updated.')),
+                                  );
+                                } catch (error) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
+                              }
+                            : controller.isCustomer && booking.hasLiveTracking
+                                ? () async {
+                                    try {
+                                      await controller.openTrackingMap(booking);
+                                    } catch (error) {
+                                      if (!mounted) return;
+                                      messenger.showSnackBar(
+                                        SnackBar(content: Text(error.toString())),
+                                      );
+                                    }
+                                  }
+                                : null,
+                        trackActionLabel: controller.isProvider
+                            ? 'Update live location'
+                            : booking.hasLiveTracking
+                                ? 'Open live map'
+                                : null,
                       ),
                     ),
                   )
@@ -2024,12 +2142,16 @@ class _BookingWorkflowCard extends StatelessWidget {
     required this.onAdvance,
     this.onReview,
     this.onPayNow,
+    this.onTrack,
+    this.trackActionLabel,
   });
 
   final _BookingData booking;
   final VoidCallback? onAdvance;
   final VoidCallback? onReview;
   final VoidCallback? onPayNow;
+  final VoidCallback? onTrack;
+  final String? trackActionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -2056,6 +2178,13 @@ class _BookingWorkflowCard extends StatelessWidget {
           _InlineStatus(label: 'Payment status', value: booking.paymentStatus),
           const SizedBox(height: 10),
           _InlineStatus(label: 'Amount', value: booking.amount),
+          if (booking.supportsLiveTracking) ...[
+            const SizedBox(height: 10),
+            _InlineStatus(
+              label: 'Live tracking',
+              value: booking.trackingSummary,
+            ),
+          ],
           const SizedBox(height: 16),
           LinearProgressIndicator(
             value: booking.status.progress,
@@ -2077,6 +2206,11 @@ class _BookingWorkflowCard extends StatelessWidget {
                   OutlinedButton(
                     onPressed: onPayNow,
                     child: const Text('Pay now'),
+                  ),
+                if (onTrack != null && trackActionLabel != null)
+                  OutlinedButton(
+                    onPressed: onTrack,
+                    child: Text(trackActionLabel!),
                   ),
                 if (onReview != null)
                   OutlinedButton(
@@ -2440,6 +2574,9 @@ class _BookingData {
     required this.paymentMethod,
     required this.paymentStatus,
     required this.amount,
+    required this.providerCurrentLat,
+    required this.providerCurrentLng,
+    required this.providerLocationUpdatedAt,
     required this.isRated,
   });
 
@@ -2451,10 +2588,32 @@ class _BookingData {
   final String paymentMethod;
   final String paymentStatus;
   final String amount;
+  final double? providerCurrentLat;
+  final double? providerCurrentLng;
+  final DateTime? providerLocationUpdatedAt;
   final bool isRated;
 
   bool get canPayOnline =>
       (paymentMethod == 'CARD' || paymentMethod == 'EFT') && paymentStatus != 'PAID' && status != _BookingStatus.cancelled;
+
+  bool get supportsLiveTracking =>
+      status == _BookingStatus.matched || status == _BookingStatus.enRoute;
+
+  bool get hasLiveTracking => providerCurrentLat != null && providerCurrentLng != null;
+
+  String get trackingSummary {
+    if (!supportsLiveTracking) {
+      return 'Tracking available after provider assignment';
+    }
+    if (!hasLiveTracking) {
+      return 'Waiting for provider location update';
+    }
+    final updatedAt = providerLocationUpdatedAt;
+    final freshness = updatedAt == null
+        ? 'just now'
+        : '${DateTime.now().difference(updatedAt).inMinutes.clamp(0, 120)} min ago';
+    return '${providerCurrentLat!.toStringAsFixed(5)}, ${providerCurrentLng!.toStringAsFixed(5)} • $freshness';
+  }
 
   _BookingData copyWith({_BookingStatus? status, bool? isRated}) {
     return _BookingData(
@@ -2466,6 +2625,9 @@ class _BookingData {
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
       amount: amount,
+      providerCurrentLat: providerCurrentLat,
+      providerCurrentLng: providerCurrentLng,
+      providerLocationUpdatedAt: providerLocationUpdatedAt,
       isRated: isRated ?? this.isRated,
     );
   }
