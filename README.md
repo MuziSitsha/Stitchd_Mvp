@@ -209,6 +209,7 @@ Light Surface:  #F6F7F4  (Warm white surface)
 
 - [docs/aws-architecture.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\aws-architecture.md)
 - [docs/client-delivery-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-delivery-plan.md)
+- [docs/client-go-live-checklist.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-go-live-checklist.md)
 
 ---
 
