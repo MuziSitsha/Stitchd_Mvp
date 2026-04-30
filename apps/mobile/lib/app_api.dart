@@ -68,6 +68,67 @@ class KaziApiClient {
     return ApiUser.fromJson(payload);
   }
 
+  Future<List<ApiPromo>> listActivePromos(String accessToken) async {
+    final payload = await _request(
+      'GET',
+      '/promos/active',
+      accessToken: accessToken,
+    ) as List<dynamic>;
+    return payload
+        .map((item) => ApiPromo.fromJson(item as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<ApiReferralSummary> getReferralSummary(String accessToken) async {
+    final payload = await _request(
+      'GET',
+      '/promos/referral-summary',
+      accessToken: accessToken,
+    ) as Map<String, dynamic>;
+    return ApiReferralSummary.fromJson(payload);
+  }
+
+  Future<ApiReferralSummary> redeemReferralCode({
+    required String accessToken,
+    required String referralCode,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/promos/referral/redeem',
+      accessToken: accessToken,
+      body: {'referralCode': referralCode},
+    ) as Map<String, dynamic>;
+    return ApiReferralSummary.fromJson(payload);
+  }
+
+  Future<ApiNotificationFeed> listNotifications(String accessToken) async {
+    final payload = await _request(
+      'GET',
+      '/notifications/mine',
+      accessToken: accessToken,
+    ) as Map<String, dynamic>;
+    return ApiNotificationFeed.fromJson(payload);
+  }
+
+  Future<void> markNotificationRead({
+    required String accessToken,
+    required String notificationId,
+  }) async {
+    await _request(
+      'PATCH',
+      '/notifications/$notificationId/read',
+      accessToken: accessToken,
+    );
+  }
+
+  Future<void> markAllNotificationsRead(String accessToken) async {
+    await _request(
+      'PATCH',
+      '/notifications/mine/read-all',
+      accessToken: accessToken,
+    );
+  }
+
   Future<List<ApiServiceCategory>> listCategories() async {
     final payload = await _request('GET', '/services/categories') as List<dynamic>;
     return payload
@@ -95,6 +156,7 @@ class KaziApiClient {
     String? scheduledAt,
     String? customerAddress,
     String? customerNotes,
+    String? promoCode,
     required int quotedPriceCents,
     required String paymentMethod,
   }) async {
@@ -109,6 +171,7 @@ class KaziApiClient {
         'scheduledAt': scheduledAt,
         'customerAddress': customerAddress,
         'customerNotes': customerNotes,
+        'promoCode': promoCode,
         'quotedPriceCents': quotedPriceCents,
         'paymentMethod': paymentMethod,
       },
@@ -209,6 +272,45 @@ class KaziApiClient {
       body: {},
     ) as Map<String, dynamic>;
     return ApiHostedCheckout.fromJson(payload);
+  }
+
+  Future<ApiChatThread> getBookingChatThread({
+    required String accessToken,
+    required String bookingId,
+  }) async {
+    final payload = await _request(
+      'GET',
+      '/chat/bookings/$bookingId/thread',
+      accessToken: accessToken,
+    ) as Map<String, dynamic>;
+    return ApiChatThread.fromJson(payload);
+  }
+
+  Future<ApiChatMessage> sendBookingChatMessage({
+    required String accessToken,
+    required String bookingId,
+    required String message,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/chat/bookings/$bookingId/messages',
+      accessToken: accessToken,
+      body: {'message': message},
+    ) as Map<String, dynamic>;
+    return ApiChatMessage.fromJson(payload);
+  }
+
+  Future<ApiBookingCall> startBookingCall({
+    required String accessToken,
+    required String bookingId,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/chat/bookings/$bookingId/call',
+      accessToken: accessToken,
+      body: {},
+    ) as Map<String, dynamic>;
+    return ApiBookingCall.fromJson(payload);
   }
 
   Future<ApiProviderProfile> getMyProviderProfile(String accessToken) async {
@@ -639,6 +741,220 @@ class ApiHostedCheckout {
       checkoutId: json['checkoutId'] as String?,
       checkoutUrl: json['checkoutUrl'] as String?,
       amountCents: (json['amountCents'] as num?)?.toInt(),
+    );
+  }
+}
+
+class ApiNotificationFeed {
+  const ApiNotificationFeed({
+    required this.unreadCount,
+    required this.items,
+  });
+
+  final int unreadCount;
+  final List<ApiNotification> items;
+
+  factory ApiNotificationFeed.fromJson(Map<String, dynamic> json) {
+    final items = json['items'] as List<dynamic>? ?? const [];
+    return ApiNotificationFeed(
+      unreadCount: (json['unreadCount'] as num?)?.toInt() ?? 0,
+      items: items
+          .map((item) => ApiNotification.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class ApiNotification {
+  const ApiNotification({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.type,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final String type;
+  final bool isRead;
+  final DateTime? createdAt;
+
+  factory ApiNotification.fromJson(Map<String, dynamic> json) {
+    return ApiNotification(
+      id: json['id'] as String,
+      title: json['title'] as String? ?? 'Notification',
+      body: json['body'] as String? ?? '',
+      type: json['type'] as String? ?? 'general',
+      isRead: json['isRead'] as bool? ?? false,
+      createdAt: ApiBooking._parseDate(json['createdAt']),
+    );
+  }
+}
+
+class ApiPromo {
+  const ApiPromo({
+    required this.id,
+    required this.code,
+    required this.title,
+    required this.description,
+    required this.discountType,
+    required this.discountValue,
+    required this.minBookingAmountCents,
+  });
+
+  final String id;
+  final String code;
+  final String title;
+  final String? description;
+  final String discountType;
+  final int discountValue;
+  final int minBookingAmountCents;
+
+  factory ApiPromo.fromJson(Map<String, dynamic> json) {
+    return ApiPromo(
+      id: json['id'] as String,
+      code: json['code'] as String? ?? '',
+      title: json['title'] as String? ?? 'Promo',
+      description: json['description'] as String?,
+      discountType: json['discountType'] as String? ?? 'flat',
+      discountValue: (json['discountValue'] as num?)?.toInt() ?? 0,
+      minBookingAmountCents: (json['minBookingAmountCents'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class ApiReferralSummary {
+  const ApiReferralSummary({
+    required this.referralCode,
+    required this.referredByCode,
+    required this.referralsCount,
+    required this.rewardPerReferralCents,
+    required this.referralEarningsCents,
+  });
+
+  final String? referralCode;
+  final String? referredByCode;
+  final int referralsCount;
+  final int rewardPerReferralCents;
+  final int referralEarningsCents;
+
+  factory ApiReferralSummary.fromJson(Map<String, dynamic> json) {
+    return ApiReferralSummary(
+      referralCode: json['referralCode'] as String?,
+      referredByCode: json['referredByCode'] as String?,
+      referralsCount: (json['referralsCount'] as num?)?.toInt() ?? 0,
+      rewardPerReferralCents: (json['rewardPerReferralCents'] as num?)?.toInt() ?? 0,
+      referralEarningsCents: (json['referralEarningsCents'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class ApiChatThread {
+  const ApiChatThread({
+    required this.bookingId,
+    required this.bookingRef,
+    required this.participant,
+    required this.messages,
+  });
+
+  final String bookingId;
+  final String bookingRef;
+  final ApiChatParticipant participant;
+  final List<ApiChatMessage> messages;
+
+  factory ApiChatThread.fromJson(Map<String, dynamic> json) {
+    final items = json['messages'] as List<dynamic>? ?? const [];
+    return ApiChatThread(
+      bookingId: json['bookingId'] as String,
+      bookingRef: json['bookingRef'] as String? ?? '',
+      participant: ApiChatParticipant.fromJson(json['participant'] as Map<String, dynamic>),
+      messages: items
+          .map((item) => ApiChatMessage.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}
+
+class ApiChatParticipant {
+  const ApiChatParticipant({
+    required this.id,
+    required this.displayName,
+    required this.phone,
+  });
+
+  final String id;
+  final String displayName;
+  final String phone;
+
+  factory ApiChatParticipant.fromJson(Map<String, dynamic> json) {
+    return ApiChatParticipant(
+      id: json['id'] as String,
+      displayName: json['displayName'] as String? ?? 'Participant',
+      phone: json['phone'] as String? ?? '',
+    );
+  }
+}
+
+class ApiChatMessage {
+  const ApiChatMessage({
+    required this.id,
+    required this.bookingId,
+    required this.senderId,
+    required this.recipientId,
+    required this.messageType,
+    required this.message,
+    required this.callStatus,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String bookingId;
+  final String senderId;
+  final String recipientId;
+  final String messageType;
+  final String message;
+  final String? callStatus;
+  final DateTime? createdAt;
+
+  factory ApiChatMessage.fromJson(Map<String, dynamic> json) {
+    return ApiChatMessage(
+      id: json['id'] as String,
+      bookingId: json['bookingId'] as String? ?? '',
+      senderId: json['senderId'] as String? ?? '',
+      recipientId: json['recipientId'] as String? ?? '',
+      messageType: json['messageType'] as String? ?? 'text',
+      message: json['message'] as String? ?? '',
+      callStatus: json['callStatus'] as String?,
+      createdAt: ApiBooking._parseDate(json['createdAt']),
+    );
+  }
+}
+
+class ApiBookingCall {
+  const ApiBookingCall({
+    required this.bookingId,
+    required this.bookingRef,
+    required this.participantName,
+    required this.participantPhone,
+    required this.callLogId,
+  });
+
+  final String bookingId;
+  final String bookingRef;
+  final String participantName;
+  final String participantPhone;
+  final String callLogId;
+
+  factory ApiBookingCall.fromJson(Map<String, dynamic> json) {
+    return ApiBookingCall(
+      bookingId: json['bookingId'] as String,
+      bookingRef: json['bookingRef'] as String? ?? '',
+      participantName: json['participantName'] as String? ?? 'Participant',
+      participantPhone: json['participantPhone'] as String? ?? '',
+      callLogId: json['callLogId'] as String? ?? '',
     );
   }
 }

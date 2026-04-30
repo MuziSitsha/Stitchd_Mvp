@@ -133,6 +133,9 @@ class _KaziController extends ChangeNotifier {
   List<String> serviceCategories = List<String>.of(_serviceCategories);
   List<_ServiceData> services = List<_ServiceData>.of(_services);
   List<_BookingData> bookings = const [];
+  List<_NotificationData> notifications = const [];
+  List<ApiPromo> activePromos = const [];
+  ApiReferralSummary? referralSummary;
   List<_ProviderJobData> incomingJobs = const [];
   List<_ProviderJobData> acceptedJobs = const [];
   List<_WalletEntryData> walletHistory = List<_WalletEntryData>.of(_walletHistory);
@@ -145,6 +148,7 @@ class _KaziController extends ChangeNotifier {
   bool get isProvider => currentUser?.role == 'provider';
   String get apiBaseUrl => api.baseUrl;
   bool get hasLiveCatalog => _liveServicesById.isNotEmpty;
+  int get unreadNotifications => notifications.where((item) => !item.isRead).length;
 
   Future<void> bootstrap() async {
     await loadPublicCatalog();
@@ -201,6 +205,9 @@ class _KaziController extends ChangeNotifier {
     providerVerificationStatus = 'pending';
     providerDocuments = const [];
     bookings = const [];
+    notifications = const [];
+    activePromos = const [];
+    referralSummary = null;
     incomingJobs = const [];
     acceptedJobs = const [];
     walletHistory = List<_WalletEntryData>.of(_walletHistory);
@@ -216,7 +223,11 @@ class _KaziController extends ChangeNotifier {
     try {
       currentUser = await api.getMe(session!.accessToken);
       final liveBookings = await api.listMyBookings(session!.accessToken);
+      final notificationFeed = await api.listNotifications(session!.accessToken);
+      activePromos = await api.listActivePromos(session!.accessToken);
+      referralSummary = await api.getReferralSummary(session!.accessToken);
       bookings = liveBookings.map(_mapBooking).toList();
+      notifications = notificationFeed.items.map(_mapNotification).toList();
 
       if (isProvider) {
         final providerBookings = liveBookings
@@ -369,6 +380,7 @@ class _KaziController extends ChangeNotifier {
     required String customerAddress,
     required String customerNotes,
     required String paymentMethod,
+    String? promoCode,
   }) async {
     if (session == null || !isCustomer) {
       throw const KaziApiException('Sign in as a customer to create a booking.');
@@ -393,6 +405,7 @@ class _KaziController extends ChangeNotifier {
       scheduledAt: scheduledAt?.toIso8601String(),
       customerAddress: customerAddress,
       customerNotes: customerNotes.isEmpty ? null : customerNotes,
+      promoCode: promoCode?.trim().isEmpty == true ? null : promoCode?.trim(),
       quotedPriceCents: liveService.basePriceCents,
       paymentMethod: paymentMethod.toLowerCase(),
     );
@@ -471,6 +484,91 @@ class _KaziController extends ChangeNotifier {
     }
   }
 
+  Future<void> markNotificationRead(String notificationId) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to manage notifications.');
+    }
+
+    await api.markNotificationRead(
+      accessToken: session!.accessToken,
+      notificationId: notificationId,
+    );
+
+    notifications = notifications
+        .map(
+          (item) => item.id == notificationId
+              ? item.copyWith(isRead: true)
+              : item,
+        )
+        .toList(growable: false);
+    notifyListeners();
+  }
+
+  Future<void> markAllNotificationsRead() async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to manage notifications.');
+    }
+
+    await api.markAllNotificationsRead(session!.accessToken);
+    notifications = notifications
+        .map((item) => item.copyWith(isRead: true))
+        .toList(growable: false);
+    notifyListeners();
+  }
+
+  Future<ApiReferralSummary> redeemReferralCode(String referralCode) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to redeem a referral code.');
+    }
+
+    final summary = await api.redeemReferralCode(
+      accessToken: session!.accessToken,
+      referralCode: referralCode.trim(),
+    );
+    referralSummary = summary;
+    currentUser = await api.getMe(session!.accessToken);
+    walletHistory = _buildWalletHistory();
+    notifyListeners();
+    return summary;
+  }
+
+  Future<ApiChatThread> getBookingThread(String bookingId) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to open booking chat.');
+    }
+
+    return api.getBookingChatThread(
+      accessToken: session!.accessToken,
+      bookingId: bookingId,
+    );
+  }
+
+  Future<ApiChatMessage> sendBookingMessage({
+    required String bookingId,
+    required String message,
+  }) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to send booking messages.');
+    }
+
+    return api.sendBookingChatMessage(
+      accessToken: session!.accessToken,
+      bookingId: bookingId,
+      message: message,
+    );
+  }
+
+  Future<ApiBookingCall> startBookingCall(String bookingId) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to call through a booking.');
+    }
+
+    return api.startBookingCall(
+      accessToken: session!.accessToken,
+      bookingId: bookingId,
+    );
+  }
+
   _ServiceData _mapService(ApiService service) {
     final category = service.category ?? _categoriesById[service.categoryId];
     return _ServiceData(
@@ -507,6 +605,17 @@ class _KaziController extends ChangeNotifier {
       providerCurrentLng: booking.providerCurrentLng,
       providerLocationUpdatedAt: booking.providerLocationUpdatedAt,
       isRated: booking.isRated,
+    );
+  }
+
+  _NotificationData _mapNotification(ApiNotification notification) {
+    return _NotificationData(
+      id: notification.id,
+      title: notification.title,
+      body: notification.body,
+      type: notification.type,
+      isRead: notification.isRead,
+      createdAt: notification.createdAt,
     );
   }
 
@@ -752,6 +861,15 @@ class KaziShell extends StatefulWidget {
 class _KaziShellState extends State<KaziShell> {
   int _selectedIndex = 0;
 
+  Future<void> _openNotifications() {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => const _NotificationsSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
@@ -814,7 +932,28 @@ class _KaziShellState extends State<KaziShell> {
                 onPressed: controller.refreshAuthenticatedData,
                 icon: const Icon(Icons.refresh_outlined),
               ),
-              IconButton(onPressed: () {}, icon: const Icon(Icons.notifications_none_outlined)),
+              IconButton(
+                onPressed: controller.isAuthenticated ? _openNotifications : () => _showAuthSheet(context),
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications_none_outlined),
+                    if (controller.unreadNotifications > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFD62828),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               if (controller.isAuthenticated)
                 IconButton(
                   onPressed: controller.signOut,
@@ -998,6 +1137,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
 
     final addressController = TextEditingController(text: 'Sandton, Johannesburg');
     final notesController = TextEditingController();
+    final promoController = TextEditingController();
     var scheduled = scheduledDefault;
     var paymentMethod = 'Card';
     var submitting = false;
@@ -1043,6 +1183,31 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                       ),
                     ),
                     const SizedBox(height: 16),
+                    TextField(
+                      controller: promoController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Promo code',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    if (controller.activePromos.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: controller.activePromos
+                            .take(4)
+                            .map(
+                              (promo) => ActionChip(
+                                label: Text(promo.code),
+                                onPressed: () => setModalState(() => promoController.text = promo.code),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Schedule for later'),
@@ -1081,6 +1246,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                   customerAddress: addressController.text.trim(),
                                   customerNotes: notesController.text.trim(),
                                   paymentMethod: paymentMethod,
+                                  promoCode: promoController.text.trim(),
                                 );
 
                                 if (!mounted) return;
@@ -1118,6 +1284,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
 
     addressController.dispose();
     notesController.dispose();
+    promoController.dispose();
   }
 
   @override
@@ -1236,6 +1403,31 @@ class _BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<_BookingsPage> {
   String _filter = 'All';
   Timer? _trackingPoller;
+
+  Future<void> _openChatSheet(_BookingData booking) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _BookingChatSheet(booking: booking),
+    );
+  }
+
+  Future<void> _startCall(_BookingData booking) async {
+    final controller = _AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final call = await controller.startBookingCall(booking.id);
+      final launched = await launchUrl(Uri.parse('tel:${call.participantPhone}'));
+      if (!launched) {
+        throw const KaziApiException('Could not open the phone dialer on this device.');
+      }
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 
   @override
   void initState() {
@@ -1487,6 +1679,12 @@ class _BookingsPageState extends State<_BookingsPage> {
                                 }
                               }
                             : null,
+                        onMessage: () async {
+                          await _openChatSheet(booking);
+                        },
+                        onCall: () async {
+                          await _startCall(booking);
+                        },
                         onTrack: controller.isProvider && booking.supportsLiveTracking
                             ? () async {
                                 try {
@@ -1846,6 +2044,14 @@ class _WalletPage extends StatefulWidget {
 
 class _WalletPageState extends State<_WalletPage> {
   String _ledgerView = 'Customer';
+  final TextEditingController _referralCodeController = TextEditingController();
+  bool _redeemingReferral = false;
+
+  @override
+  void dispose() {
+    _referralCodeController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1860,6 +2066,8 @@ class _WalletPageState extends State<_WalletPage> {
     }
 
     final history = controller.walletHistory;
+    final referralSummary = controller.referralSummary;
+    final activePromos = controller.activePromos;
     final credits = history.where((entry) => entry.isCredit).length;
     final debits = history.length - credits;
     final balanceValue = _ledgerView == 'Customer'
@@ -1935,9 +2143,78 @@ class _WalletPageState extends State<_WalletPage> {
                   const SizedBox(height: 14),
                   const _InlineStatus(label: 'Next payout', value: 'Friday, 16:00'),
                   const SizedBox(height: 10),
-                  const _InlineStatus(label: 'Promo pool', value: 'R180'),
+                  _InlineStatus(
+                    label: 'Promo pool',
+                    value: activePromos.isEmpty ? 'No active promos' : '${activePromos.length} active offers',
+                  ),
                   const SizedBox(height: 10),
                   _InlineStatus(label: 'Current view', value: _ledgerView),
+                  if (referralSummary != null) ...[
+                    const SizedBox(height: 18),
+                    _InlineStatus(label: 'Your referral code', value: referralSummary.referralCode ?? 'Unavailable'),
+                    const SizedBox(height: 10),
+                    _InlineStatus(
+                      label: 'Referral rewards',
+                      value: _formatCurrencyFromCents(referralSummary.referralEarningsCents),
+                    ),
+                    const SizedBox(height: 10),
+                    _InlineStatus(
+                      label: 'Reward per signup',
+                      value: _formatCurrencyFromCents(referralSummary.rewardPerReferralCents),
+                    ),
+                    const SizedBox(height: 10),
+                    _InlineStatus(label: 'Successful invites', value: '${referralSummary.referralsCount}'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _referralCodeController,
+                      textCapitalization: TextCapitalization.characters,
+                      decoration: const InputDecoration(
+                        labelText: 'Redeem referral code',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: _redeemingReferral || referralSummary.referredByCode != null
+                          ? null
+                          : () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              setState(() => _redeemingReferral = true);
+                              try {
+                                await controller.redeemReferralCode(_referralCodeController.text);
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Referral reward applied successfully.')),
+                                );
+                              } catch (error) {
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _redeemingReferral = false);
+                                }
+                              }
+                            },
+                      child: Text(
+                        referralSummary.referredByCode != null
+                            ? 'Referral already redeemed'
+                            : (_redeemingReferral ? 'Applying...' : 'Redeem referral code'),
+                      ),
+                    ),
+                  ],
+                  if (activePromos.isNotEmpty) ...[
+                    const SizedBox(height: 18),
+                    const Text('Active promos', style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 10),
+                    ...activePromos.take(3).map(
+                      (promo) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text('${promo.code} • ${promo.title}'),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2050,6 +2327,152 @@ class _AuthRequiredCard extends StatelessWidget {
   }
 }
 
+class _NotificationsSheet extends StatelessWidget {
+  const _NotificationsSheet();
+
+  String _formatTimestamp(DateTime? createdAt) {
+    if (createdAt == null) {
+      return 'Just now';
+    }
+
+    final difference = DateTime.now().difference(createdAt);
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes} min ago';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours} hr ago';
+    }
+    return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
+  }
+
+  IconData _iconForNotification(String type) {
+    if (type.contains('cancel')) return Icons.event_busy_outlined;
+    if (type.contains('complete')) return Icons.task_alt_outlined;
+    if (type.contains('accept') || type.contains('assigned')) return Icons.person_pin_circle_outlined;
+    if (type.contains('route') || type.contains('arrived')) return Icons.near_me_outlined;
+    return Icons.notifications_active_outlined;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _AppScope.of(context);
+    final notifications = controller.notifications;
+    final messenger = ScaffoldMessenger.of(context);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Notifications', style: Theme.of(context).textTheme.headlineSmall),
+                      const SizedBox(height: 4),
+                      Text('${controller.unreadNotifications} unread updates'),
+                    ],
+                  ),
+                ),
+                TextButton(
+                  onPressed: controller.unreadNotifications == 0
+                      ? null
+                      : () async {
+                          try {
+                            await controller.markAllNotificationsRead();
+                          } catch (error) {
+                            messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+                          }
+                        },
+                  child: const Text('Mark all read'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: notifications.isEmpty
+                  ? const _SurfaceCard(
+                      child: Text('Notifications from bookings and service progress will appear here.'),
+                    )
+                  : ListView.separated(
+                      shrinkWrap: true,
+                      itemCount: notifications.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final item = notifications[index];
+                        return _SurfaceCard(
+                          child: InkWell(
+                            onTap: item.isRead
+                                ? null
+                                : () async {
+                                    try {
+                                      await controller.markNotificationRead(item.id);
+                                    } catch (error) {
+                                      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+                                    }
+                                  },
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: item.isRead ? KaziTheme.surface : const Color(0xFFE6F4EC),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(
+                                    _iconForNotification(item.type),
+                                    color: item.isRead ? const Color(0xFF5A675F) : KaziTheme.primaryGreen,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.title,
+                                              style: TextStyle(
+                                                fontWeight: item.isRead ? FontWeight.w600 : FontWeight.w800,
+                                              ),
+                                            ),
+                                          ),
+                                          Text(
+                                            _formatTimestamp(item.createdAt),
+                                            style: Theme.of(context).textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(item.body, style: const TextStyle(height: 1.4)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ServiceFlowCard extends StatelessWidget {
   const _ServiceFlowCard({
     required this.data,
@@ -2142,6 +2565,8 @@ class _BookingWorkflowCard extends StatelessWidget {
     required this.onAdvance,
     this.onReview,
     this.onPayNow,
+    this.onMessage,
+    this.onCall,
     this.onTrack,
     this.trackActionLabel,
   });
@@ -2150,6 +2575,8 @@ class _BookingWorkflowCard extends StatelessWidget {
   final VoidCallback? onAdvance;
   final VoidCallback? onReview;
   final VoidCallback? onPayNow;
+  final VoidCallback? onMessage;
+  final VoidCallback? onCall;
   final VoidCallback? onTrack;
   final String? trackActionLabel;
 
@@ -2196,7 +2623,7 @@ class _BookingWorkflowCard extends StatelessWidget {
             onPressed: onAdvance,
             child: Text(onAdvance == null ? 'Booking completed' : booking.status.nextActionLabel),
           ),
-          if (onReview != null || onPayNow != null) ...[
+          if (onReview != null || onPayNow != null || onMessage != null || onCall != null || onTrack != null) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -2206,6 +2633,16 @@ class _BookingWorkflowCard extends StatelessWidget {
                   OutlinedButton(
                     onPressed: onPayNow,
                     child: const Text('Pay now'),
+                  ),
+                if (onMessage != null)
+                  OutlinedButton(
+                    onPressed: onMessage,
+                    child: const Text('Message'),
+                  ),
+                if (onCall != null)
+                  OutlinedButton(
+                    onPressed: onCall,
+                    child: const Text('Call'),
                   ),
                 if (onTrack != null && trackActionLabel != null)
                   OutlinedButton(
@@ -2221,6 +2658,206 @@ class _BookingWorkflowCard extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _BookingChatSheet extends StatefulWidget {
+  const _BookingChatSheet({required this.booking});
+
+  final _BookingData booking;
+
+  @override
+  State<_BookingChatSheet> createState() => _BookingChatSheetState();
+}
+
+class _BookingChatSheetState extends State<_BookingChatSheet> {
+  final TextEditingController _messageController = TextEditingController();
+  ApiChatThread? _thread;
+  bool _loading = true;
+  bool _sending = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadThread();
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadThread() async {
+    final controller = _AppScope.of(context);
+    try {
+      final thread = await controller.getBookingThread(widget.booking.id);
+      if (!mounted) return;
+      setState(() {
+        _thread = thread;
+        _loading = false;
+        _error = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = error.toString();
+      });
+    }
+  }
+
+  String _formatMessageTime(DateTime? value) {
+    if (value == null) return 'Now';
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
+
+  Future<void> _send() async {
+    final controller = _AppScope.of(context);
+    final text = _messageController.text.trim();
+    if (text.isEmpty) {
+      return;
+    }
+
+    setState(() => _sending = true);
+    try {
+      final message = await controller.sendBookingMessage(
+        bookingId: widget.booking.id,
+        message: text,
+      );
+      if (!mounted) return;
+      setState(() {
+        _thread = ApiChatThread(
+          bookingId: _thread!.bookingId,
+          bookingRef: _thread!.bookingRef,
+          participant: _thread!.participant,
+          messages: [..._thread!.messages, message],
+        );
+        _messageController.clear();
+      });
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _sending = false);
+      }
+    }
+  }
+
+  Future<void> _callParticipant() async {
+    final controller = _AppScope.of(context);
+    try {
+      final call = await controller.startBookingCall(widget.booking.id);
+      final launched = await launchUrl(Uri.parse('tel:${call.participantPhone}'));
+      if (!launched) {
+        throw const KaziApiException('Could not open the phone dialer on this device.');
+      }
+      await _loadThread();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(20, 8, 20, MediaQuery.viewInsetsOf(context).bottom + 20),
+        child: _loading
+            ? const SizedBox(height: 240, child: Center(child: CircularProgressIndicator()))
+            : _error != null
+                ? _SurfaceCard(child: Text(_error!))
+                : Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _thread!.participant.displayName,
+                                  style: Theme.of(context).textTheme.headlineSmall,
+                                ),
+                                const SizedBox(height: 4),
+                                Text('Booking ${_thread!.bookingRef}'),
+                              ],
+                            ),
+                          ),
+                          OutlinedButton(
+                            onPressed: _callParticipant,
+                            child: const Text('Call'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Flexible(
+                        child: _thread!.messages.isEmpty
+                            ? const _SurfaceCard(
+                                child: Text('Start the conversation with booking updates or arrival instructions.'),
+                              )
+                            : ListView.separated(
+                                shrinkWrap: true,
+                                itemCount: _thread!.messages.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  final message = _thread!.messages[index];
+                                  final isSystemCall = message.messageType == 'call_log';
+                                  return _SurfaceCard(
+                                    backgroundColor: isSystemCall ? const Color(0xFFFFF4D6) : KaziTheme.surface,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              isSystemCall ? 'Call activity' : 'Message',
+                                              style: const TextStyle(fontWeight: FontWeight.w700),
+                                            ),
+                                            const Spacer(),
+                                            Text(_formatMessageTime(message.createdAt)),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(message.message),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _messageController,
+                              minLines: 1,
+                              maxLines: 4,
+                              decoration: const InputDecoration(
+                                labelText: 'Booking message',
+                                border: OutlineInputBorder(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          FilledButton(
+                            onPressed: _sending ? null : _send,
+                            child: Text(_sending ? 'Sending...' : 'Send'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
       ),
     );
   }
@@ -2629,6 +3266,35 @@ class _BookingData {
       providerCurrentLng: providerCurrentLng,
       providerLocationUpdatedAt: providerLocationUpdatedAt,
       isRated: isRated ?? this.isRated,
+    );
+  }
+}
+
+class _NotificationData {
+  const _NotificationData({
+    required this.id,
+    required this.title,
+    required this.body,
+    required this.type,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  final String id;
+  final String title;
+  final String body;
+  final String type;
+  final bool isRead;
+  final DateTime? createdAt;
+
+  _NotificationData copyWith({bool? isRead}) {
+    return _NotificationData(
+      id: id,
+      title: title,
+      body: body,
+      type: type,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt,
     );
   }
 }

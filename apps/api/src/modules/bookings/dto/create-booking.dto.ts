@@ -60,4 +60,10 @@ export class CreateBookingDto {
   @IsString()
   @MaxLength(500)
   customerNotes?: string;
+
+  @ApiPropertyOptional({ example: 'WELCOME100' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  promoCode?: string;
 }

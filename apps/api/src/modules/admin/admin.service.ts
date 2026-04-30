@@ -200,8 +200,11 @@ export class AdminService {
   }
 
   private async ensureSettings() {
-    const existing = await this.settingsRepository.findOne({ order: { createdAt: 'ASC' } });
-    if (existing) return existing;
+    const existing = await this.settingsRepository.find({
+      order: { createdAt: 'ASC' },
+      take: 1,
+    });
+    if (existing.length > 0) return existing[0];
 
     const defaultCommissionRate = this.configService.get<number>('app.defaultCommissionRate') ?? 0.15;
     const created = this.settingsRepository.create({ defaultCommissionRate });

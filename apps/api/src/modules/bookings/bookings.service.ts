@@ -7,7 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { AdminService } from '../admin/admin.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { PaymentsService } from '../payments/payments.service';
+import { PromosService } from '../promos/promos.service';
 import { UserEntity, UserRole } from '../users/entities/user.entity';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { BookingEntity, BookingStatus, PaymentStatus } from './entities/booking.entity';
@@ -20,23 +22,52 @@ export class BookingsService {
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
     private readonly adminService: AdminService,
+    private readonly notificationsService: NotificationsService,
     private readonly paymentsService: PaymentsService,
+    private readonly promosService: PromosService,
   ) {}
 
   async createBooking(customerId: string, dto: CreateBookingDto) {
     const commissionRate = await this.adminService.getEffectiveCommissionRate();
+    const promoPreview = dto.promoCode
+      ? await this.promosService.previewPromoForBooking(customerId, dto.promoCode, dto.quotedPriceCents)
+      : null;
+    const discountCents = promoPreview?.discountCents ?? 0;
+    const finalPriceCents = dto.quotedPriceCents - discountCents;
+    const commissionCents = Math.round(finalPriceCents * commissionRate);
 
     const booking = this.bookingsRepository.create({
       ...dto,
       customerId,
       bookingRef: this.generateBookingRef(),
-      finalPriceCents: dto.quotedPriceCents,
-      commissionCents: Math.round(dto.quotedPriceCents * commissionRate),
-      providerEarningsCents: dto.quotedPriceCents - Math.round(dto.quotedPriceCents * commissionRate),
+      promoCode: promoPreview?.promo.code ?? null,
+      discountCents,
+      finalPriceCents,
+      commissionCents,
+      providerEarningsCents: finalPriceCents - commissionCents,
       scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : null,
     });
 
-    return this.bookingsRepository.save(booking);
+    const savedBooking = await this.bookingsRepository.save(booking);
+
+    if (promoPreview) {
+      await this.promosService.consumePromoForBooking({
+        userId: customerId,
+        bookingId: savedBooking.id,
+        promoId: promoPreview.promo.id,
+        discountCents,
+      });
+    }
+
+    await this.notificationsService.createNotification({
+      userId: customerId,
+      title: 'Booking requested',
+      body: `Your ${savedBooking.bookingRef} request has been placed and is waiting for a provider.`,
+      type: 'booking_created',
+      payload: { bookingId: savedBooking.id, bookingRef: savedBooking.bookingRef },
+    });
+
+    return savedBooking;
   }
 
   async listMyBookings(userId: string, role: UserRole) {
@@ -75,7 +106,25 @@ export class BookingsService {
     booking.providerId = providerId;
     booking.status = BookingStatus.ACCEPTED;
     booking.acceptedAt = new Date();
-    return this.bookingsRepository.save(booking);
+    const savedBooking = await this.bookingsRepository.save(booking);
+
+    await this.notificationsService.createNotification({
+      userId: booking.customerId,
+      title: 'Provider assigned',
+      body: `A provider accepted booking ${booking.bookingRef}. They can now share live updates.`,
+      type: 'booking_accepted',
+      payload: { bookingId: booking.id, bookingRef: booking.bookingRef },
+    });
+
+    await this.notificationsService.createNotification({
+      userId: providerId,
+      title: 'Booking accepted',
+      body: `You are now assigned to booking ${booking.bookingRef}.`,
+      type: 'provider_booking_assigned',
+      payload: { bookingId: booking.id, bookingRef: booking.bookingRef },
+    });
+
+    return savedBooking;
   }
 
   async updateStatus(bookingId: string, providerId: string, status: BookingStatus) {
@@ -114,7 +163,20 @@ export class BookingsService {
         break;
     }
 
-    return this.bookingsRepository.save(booking);
+    const savedBooking = await this.bookingsRepository.save(booking);
+
+    const customerMessage = this.getCustomerNotificationForStatus(savedBooking.status, savedBooking.bookingRef);
+    if (customerMessage != null) {
+      await this.notificationsService.createNotification({
+        userId: savedBooking.customerId,
+        title: customerMessage.title,
+        body: customerMessage.body,
+        type: customerMessage.type,
+        payload: { bookingId: savedBooking.id, bookingRef: savedBooking.bookingRef },
+      });
+    }
+
+    return savedBooking;
   }
 
   async updateProviderLocation(
@@ -155,11 +217,55 @@ export class BookingsService {
     booking.cancelledAt = new Date();
     booking.cancelReason = reason;
     booking.cancelledBy = actorId;
-    return this.bookingsRepository.save(booking);
+    const savedBooking = await this.bookingsRepository.save(booking);
+    const otherPartyId = booking.customerId === actorId ? booking.providerId : booking.customerId;
+
+    if (otherPartyId) {
+      await this.notificationsService.createNotification({
+        userId: otherPartyId,
+        title: 'Booking cancelled',
+        body: `Booking ${booking.bookingRef} was cancelled. Reason: ${reason}`,
+        type: 'booking_cancelled',
+        payload: { bookingId: booking.id, bookingRef: booking.bookingRef },
+      });
+    }
+
+    return savedBooking;
   }
 
   private generateBookingRef() {
     const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
     return `KZ-${Date.now()}-${suffix}`;
+  }
+
+  private getCustomerNotificationForStatus(status: BookingStatus, bookingRef: string) {
+    switch (status) {
+      case BookingStatus.EN_ROUTE:
+        return {
+          title: 'Provider is en route',
+          body: `Your provider is on the way for booking ${bookingRef}.`,
+          type: 'booking_en_route',
+        };
+      case BookingStatus.ARRIVED:
+        return {
+          title: 'Provider has arrived',
+          body: `Your provider has arrived for booking ${bookingRef}.`,
+          type: 'booking_arrived',
+        };
+      case BookingStatus.IN_PROGRESS:
+        return {
+          title: 'Service in progress',
+          body: `Booking ${bookingRef} is now in progress.`,
+          type: 'booking_in_progress',
+        };
+      case BookingStatus.COMPLETED:
+        return {
+          title: 'Booking completed',
+          body: `Booking ${bookingRef} has been completed successfully.`,
+          type: 'booking_completed',
+        };
+      default:
+        return null;
+    }
   }
 }
