@@ -6,6 +6,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { BookingEntity, BookingStatus, PaymentStatus } from '../bookings/entities/booking.entity';
+import { PaymentTransactionEntity } from '../payments/entities/payment-transaction.entity';
 import {
   ProviderDocumentEntity,
   ProviderDocumentStatus,
@@ -14,6 +16,7 @@ import {
   ProviderProfileEntity,
   ProviderVerificationStatus,
 } from '../providers/entities/provider-profile.entity';
+import { ReviewEntity } from '../reviews/entities/review.entity';
 import { UserEntity, UserRole, UserStatus } from '../users/entities/user.entity';
 import { ReviewProviderVerificationDto } from './dto/review-provider-verification.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
@@ -30,6 +33,12 @@ export class AdminService {
     private readonly providerProfilesRepository: Repository<ProviderProfileEntity>,
     @InjectRepository(ProviderDocumentEntity)
     private readonly providerDocumentsRepository: Repository<ProviderDocumentEntity>,
+    @InjectRepository(BookingEntity)
+    private readonly bookingsRepository: Repository<BookingEntity>,
+    @InjectRepository(PaymentTransactionEntity)
+    private readonly paymentsRepository: Repository<PaymentTransactionEntity>,
+    @InjectRepository(ReviewEntity)
+    private readonly reviewsRepository: Repository<ReviewEntity>,
     private readonly configService: ConfigService,
   ) {}
 
@@ -122,6 +131,66 @@ export class AdminService {
       profile,
       documents: await this.providerDocumentsRepository.find({ where: { userId: providerUserId } }),
     };
+  }
+
+  async getDashboardMetrics(actorRole: UserRole) {
+    this.assertAdmin(actorRole);
+
+    const [
+      customerCount,
+      providerCount,
+      pendingVerifications,
+      activeBookings,
+      scheduledBookings,
+      completedBookings,
+      paidTransactions,
+      grossMerchandiseValue,
+      providerPayouts,
+      averageRating,
+    ] = await Promise.all([
+      this.usersRepository.count({ where: { role: UserRole.CUSTOMER } }),
+      this.usersRepository.count({ where: { role: UserRole.PROVIDER } }),
+      this.providerProfilesRepository.count({ where: { verificationStatus: ProviderVerificationStatus.PENDING } }),
+      this.bookingsRepository.count({ where: { status: In([BookingStatus.PENDING, BookingStatus.ACCEPTED, BookingStatus.EN_ROUTE, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS]) } }),
+      this.bookingsRepository.count({ where: { status: BookingStatus.PENDING, type: 'scheduled' as never } }),
+      this.bookingsRepository.count({ where: { status: BookingStatus.COMPLETED } }),
+      this.paymentsRepository.count({ where: { status: PaymentStatus.PAID } }),
+      this.paymentsRepository.createQueryBuilder('payment').select('COALESCE(SUM(payment.amountCents), 0)', 'sum').getRawOne<{ sum: string }>(),
+      this.paymentsRepository.createQueryBuilder('payment').select('COALESCE(SUM(payment.providerEarningsCents), 0)', 'sum').where('payment.status = :status', { status: PaymentStatus.PAID }).getRawOne<{ sum: string }>(),
+      this.reviewsRepository.createQueryBuilder('review').select('COALESCE(AVG(review.rating), 0)', 'avg').getRawOne<{ avg: string }>(),
+    ]);
+
+    return {
+      customerCount,
+      providerCount,
+      pendingVerifications,
+      activeBookings,
+      scheduledBookings,
+      completedBookings,
+      paidTransactions,
+      grossMerchandiseValueCents: Number(grossMerchandiseValue?.sum || 0),
+      providerPayoutsCents: Number(providerPayouts?.sum || 0),
+      averageRating: Number(Number(averageRating?.avg || 0).toFixed(2)),
+    };
+  }
+
+  async listRecentPayments(actorRole: UserRole) {
+    this.assertAdmin(actorRole);
+
+    const payments = await this.paymentsRepository.find({
+      order: { updatedAt: 'DESC' },
+      take: 10,
+    });
+
+    const bookings = payments.length === 0
+      ? []
+      : await this.bookingsRepository.find({ where: { id: In(payments.map((payment) => payment.bookingId)) } });
+    const bookingsById = new Map(bookings.map((booking) => [booking.id, booking]));
+
+    return payments.map((payment) => ({
+      ...payment,
+      bookingRef: bookingsById.get(payment.bookingId)?.bookingRef,
+    }));
   }
 
   private assertAdmin(role: UserRole) {

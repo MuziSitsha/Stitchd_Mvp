@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'app_api.dart';
 import 'theme/kazi_theme.dart';
@@ -341,6 +342,25 @@ class _KaziController extends ChangeNotifier {
     await refreshAuthenticatedData();
   }
 
+  Future<void> submitReview({
+    required _BookingData booking,
+    required int rating,
+    String? comment,
+  }) async {
+    if (session == null || !isCustomer) {
+      throw const KaziApiException('Sign in as a customer to leave a review.');
+    }
+
+    await api.createReview(
+      accessToken: session!.accessToken,
+      bookingId: booking.id,
+      rating: rating,
+      comment: comment,
+    );
+
+    await refreshAuthenticatedData();
+  }
+
   Future<void> createBooking({
     required _ServiceData service,
     required bool scheduled,
@@ -378,6 +398,28 @@ class _KaziController extends ChangeNotifier {
     await refreshAuthenticatedData();
   }
 
+  Future<void> openHostedPayment(_BookingData booking) async {
+    if (session == null || !isCustomer) {
+      throw const KaziApiException('Sign in as a customer to pay for a booking.');
+    }
+
+    final checkout = await api.createHostedCheckout(
+      accessToken: session!.accessToken,
+      bookingId: booking.id,
+    );
+
+    final checkoutUrl = checkout.checkoutUrl;
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw const KaziApiException('No hosted checkout URL was returned for this booking.');
+    }
+
+    final uri = Uri.parse(checkoutUrl);
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
+      throw KaziApiException('Could not open the payment link: $checkoutUrl');
+    }
+  }
+
   _ServiceData _mapService(ApiService service) {
     final category = service.category ?? _categoriesById[service.categoryId];
     return _ServiceData(
@@ -408,7 +450,9 @@ class _KaziController extends ChangeNotifier {
       ),
       status: _mapBookingStatus(booking),
       paymentMethod: booking.paymentMethod.toUpperCase(),
+      paymentStatus: booking.paymentStatus.toUpperCase(),
       amount: _formatCurrencyFromCents(booking.displayPriceCents),
+      isRated: booking.isRated,
     );
   }
 
@@ -1138,6 +1182,107 @@ class _BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<_BookingsPage> {
   String _filter = 'All';
 
+  Future<void> _openReviewSheet(_BookingData booking) async {
+    final controller = _AppScope.of(context);
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final commentController = TextEditingController();
+    var rating = 5;
+    var submitting = false;
+    String? error;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                8,
+                20,
+                MediaQuery.viewInsetsOf(context).bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Rate ${booking.serviceTitle}', style: Theme.of(context).textTheme.headlineSmall),
+                    const SizedBox(height: 12),
+                    const Text('How was your provider experience?'),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: List.generate(
+                        5,
+                        (index) {
+                          final value = index + 1;
+                          return ChoiceChip(
+                            label: Text('$value star${value == 1 ? '' : 's'}'),
+                            selected: rating == value,
+                            onSelected: (_) => setModalState(() => rating = value),
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: const InputDecoration(
+                        labelText: 'Review note',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    FilledButton(
+                      onPressed: submitting
+                          ? null
+                          : () async {
+                              setModalState(() {
+                                submitting = true;
+                                error = null;
+                              });
+
+                              try {
+                                await controller.submitReview(
+                                  booking: booking,
+                                  rating: rating,
+                                  comment: commentController.text.trim(),
+                                );
+                                if (!mounted) return;
+                                navigator.pop();
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('Review submitted successfully.')),
+                                );
+                              } catch (err) {
+                                setModalState(() => error = err.toString());
+                              } finally {
+                                if (mounted) {
+                                  setModalState(() => submitting = false);
+                                }
+                              }
+                            },
+                      child: Text(submitting ? 'Submitting...' : 'Submit review'),
+                    ),
+                    if (error != null) ...[
+                      const SizedBox(height: 12),
+                      Text(error!, style: const TextStyle(color: Colors.redAccent)),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
@@ -1225,6 +1370,29 @@ class _BookingsPageState extends State<_BookingsPage> {
                             ? () async {
                                 try {
                                   await controller.advanceBooking(booking);
+                                } catch (error) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
+                              }
+                            : null,
+                        onReview: controller.isCustomer &&
+                                booking.status == _BookingStatus.completed &&
+                                !booking.isRated
+                            ? () async {
+                                await _openReviewSheet(booking);
+                              }
+                            : null,
+                        onPayNow: controller.isCustomer && booking.canPayOnline
+                            ? () async {
+                                try {
+                                  await controller.openHostedPayment(booking);
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    const SnackBar(content: Text('Secure checkout opened in your browser.')),
+                                  );
                                 } catch (error) {
                                   if (!mounted) return;
                                   messenger.showSnackBar(
@@ -1851,10 +2019,17 @@ class _ServiceFlowCard extends StatelessWidget {
 }
 
 class _BookingWorkflowCard extends StatelessWidget {
-  const _BookingWorkflowCard({required this.booking, required this.onAdvance});
+  const _BookingWorkflowCard({
+    required this.booking,
+    required this.onAdvance,
+    this.onReview,
+    this.onPayNow,
+  });
 
   final _BookingData booking;
   final VoidCallback? onAdvance;
+  final VoidCallback? onReview;
+  final VoidCallback? onPayNow;
 
   @override
   Widget build(BuildContext context) {
@@ -1878,6 +2053,8 @@ class _BookingWorkflowCard extends StatelessWidget {
           const SizedBox(height: 10),
           _InlineStatus(label: 'Payment', value: booking.paymentMethod),
           const SizedBox(height: 10),
+          _InlineStatus(label: 'Payment status', value: booking.paymentStatus),
+          const SizedBox(height: 10),
           _InlineStatus(label: 'Amount', value: booking.amount),
           const SizedBox(height: 16),
           LinearProgressIndicator(
@@ -1890,6 +2067,25 @@ class _BookingWorkflowCard extends StatelessWidget {
             onPressed: onAdvance,
             child: Text(onAdvance == null ? 'Booking completed' : booking.status.nextActionLabel),
           ),
+          if (onReview != null || onPayNow != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                if (onPayNow != null)
+                  OutlinedButton(
+                    onPressed: onPayNow,
+                    child: const Text('Pay now'),
+                  ),
+                if (onReview != null)
+                  OutlinedButton(
+                    onPressed: onReview,
+                    child: const Text('Leave review'),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -2242,7 +2438,9 @@ class _BookingData {
     required this.schedule,
     required this.status,
     required this.paymentMethod,
+    required this.paymentStatus,
     required this.amount,
+    required this.isRated,
   });
 
   final String id;
@@ -2251,9 +2449,14 @@ class _BookingData {
   final String schedule;
   final _BookingStatus status;
   final String paymentMethod;
+  final String paymentStatus;
   final String amount;
+  final bool isRated;
 
-  _BookingData copyWith({_BookingStatus? status}) {
+  bool get canPayOnline =>
+      (paymentMethod == 'CARD' || paymentMethod == 'EFT') && paymentStatus != 'PAID' && status != _BookingStatus.cancelled;
+
+  _BookingData copyWith({_BookingStatus? status, bool? isRated}) {
     return _BookingData(
       id: id,
       serviceTitle: serviceTitle,
@@ -2261,7 +2464,9 @@ class _BookingData {
       schedule: schedule,
       status: status ?? this.status,
       paymentMethod: paymentMethod,
+      paymentStatus: paymentStatus,
       amount: amount,
+      isRated: isRated ?? this.isRated,
     );
   }
 }

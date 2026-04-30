@@ -34,12 +34,40 @@ type PendingProvider = {
   documents: ProviderDocument[];
 };
 
+type DashboardMetrics = {
+  customerCount: number;
+  providerCount: number;
+  pendingVerifications: number;
+  activeBookings: number;
+  scheduledBookings: number;
+  completedBookings: number;
+  paidTransactions: number;
+  grossMerchandiseValueCents: number;
+  providerPayoutsCents: number;
+  averageRating: number;
+};
+
+type RecentPayment = {
+  id: string;
+  bookingId: string;
+  bookingRef?: string;
+  paymentMethod: string;
+  status: 'pending' | 'paid' | 'failed' | 'refunded';
+  amountCents: number;
+  commissionCents: number;
+  providerEarningsCents: number;
+  checkoutUrl?: string;
+  updatedAt: string;
+};
+
 const DEFAULT_API_BASE_URL = 'http://localhost:3001/api/v1';
 
 export function App() {
   const [apiBaseUrl, setApiBaseUrl] = useState(() => localStorage.getItem('kazi.admin.apiBaseUrl') || DEFAULT_API_BASE_URL);
   const [token, setToken] = useState(() => localStorage.getItem('kazi.admin.token') || '');
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [pendingProviders, setPendingProviders] = useState<PendingProvider[]>([]);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -47,19 +75,47 @@ export function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  function formatCurrency(cents: number) {
+    return new Intl.NumberFormat('en-ZA', {
+      style: 'currency',
+      currency: 'ZAR',
+      maximumFractionDigits: 0,
+    }).format(cents / 100);
+  }
+
   const stats = useMemo(() => {
-    const pendingCount = pendingProviders.length;
+    const pendingCount = metrics?.pendingVerifications ?? pendingProviders.length;
     const documentCount = pendingProviders.reduce((count, provider) => count + provider.documents.length, 0);
     return [
       { label: 'Pending Reviews', value: String(pendingCount).padStart(2, '0'), detail: 'Provider verification queue' },
       { label: 'Documents Submitted', value: String(documentCount).padStart(2, '0'), detail: 'Files ready for compliance review' },
+      {
+        label: 'Gross Volume',
+        value: metrics ? formatCurrency(metrics.grossMerchandiseValueCents) : '--',
+        detail: 'All payment transactions on record',
+      },
+      {
+        label: 'Provider Payouts',
+        value: metrics ? formatCurrency(metrics.providerPayoutsCents) : '--',
+        detail: 'Paid earnings booked to wallets',
+      },
+      {
+        label: 'Paid Transactions',
+        value: metrics ? String(metrics.paidTransactions).padStart(2, '0') : '--',
+        detail: 'Confirmed card, EFT, wallet, and cash settlements',
+      },
+      {
+        label: 'Avg Rating',
+        value: metrics ? metrics.averageRating.toFixed(1) : '--',
+        detail: 'Marketplace quality signal from reviews',
+      },
       {
         label: 'Commission Rate',
         value: settings ? `${Math.round(settings.defaultCommissionRate * 100)}%` : '--',
         detail: 'Applied to newly created bookings',
       },
     ];
-  }, [pendingProviders, settings]);
+  }, [metrics, pendingProviders, settings]);
 
   useEffect(() => {
     localStorage.setItem('kazi.admin.apiBaseUrl', apiBaseUrl);
@@ -104,13 +160,17 @@ export function App() {
     setStatusMessage('');
 
     try {
-      const [settingsResponse, pendingResponse] = await Promise.all([
+      const [settingsResponse, pendingResponse, metricsResponse, recentPaymentsResponse] = await Promise.all([
         request<PlatformSettings>('/admin/settings'),
         request<PendingProvider[]>('/admin/providers/pending-verification'),
+        request<DashboardMetrics>('/admin/dashboard-metrics'),
+        request<RecentPayment[]>('/admin/payments/recent'),
       ]);
 
       setSettings(settingsResponse);
       setPendingProviders(pendingResponse);
+      setMetrics(metricsResponse);
+      setRecentPayments(recentPaymentsResponse);
       setStatusMessage('Admin console connected.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load admin dashboard.');
@@ -166,8 +226,8 @@ export function App() {
           <p className="eyebrow">KAZI Admin</p>
           <h1>Compliance, commission, and launch control for the South African MVP.</h1>
           <p className="lede">
-            This console now talks to the real admin APIs for platform settings and provider
-            verification review. Use it to control commission policy and clear onboarding queues.
+            This console now runs the operational core of the MVP: platform policy, onboarding review,
+            booking analytics, and payment monitoring for Johannesburg launch readiness.
           </p>
         </div>
         <div className="heroBadge">af-south-1 operations</div>
@@ -276,6 +336,87 @@ export function App() {
             </div>
           ) : (
             <p className="emptyState">Connect with an admin token to load platform settings.</p>
+          )}
+        </article>
+
+        <article className="surfacePanel reviewPanel">
+          <div className="sectionHeader">
+            <div>
+              <p className="eyebrow compact">Marketplace Pulse</p>
+              <h2>Bookings and payments overview</h2>
+            </div>
+            <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading || !token.trim()}>
+              Refresh Metrics
+            </button>
+          </div>
+
+          {metrics ? (
+            <div className="metricsStack">
+              <div className="metricsGrid">
+                <article className="miniMetricCard">
+                  <span>Customers</span>
+                  <strong>{metrics.customerCount}</strong>
+                </article>
+                <article className="miniMetricCard">
+                  <span>Providers</span>
+                  <strong>{metrics.providerCount}</strong>
+                </article>
+                <article className="miniMetricCard">
+                  <span>Active bookings</span>
+                  <strong>{metrics.activeBookings}</strong>
+                </article>
+                <article className="miniMetricCard">
+                  <span>Scheduled</span>
+                  <strong>{metrics.scheduledBookings}</strong>
+                </article>
+                <article className="miniMetricCard">
+                  <span>Completed</span>
+                  <strong>{metrics.completedBookings}</strong>
+                </article>
+                <article className="miniMetricCard">
+                  <span>Average rating</span>
+                  <strong>{metrics.averageRating.toFixed(1)}</strong>
+                </article>
+              </div>
+
+              <div>
+                <div className="sectionHeader compactHeader">
+                  <div>
+                    <p className="eyebrow compact">Payment Feed</p>
+                    <h2>Recent transactions</h2>
+                  </div>
+                </div>
+
+                {recentPayments.length === 0 ? (
+                  <p className="emptyState">No payment transactions have been created yet.</p>
+                ) : (
+                  <div className="paymentFeed">
+                    {recentPayments.map((payment) => (
+                      <article className="paymentRow" key={payment.id}>
+                        <div>
+                          <strong>{payment.bookingRef || payment.bookingId}</strong>
+                          <p>
+                            {payment.paymentMethod.toUpperCase()} • {payment.status.toUpperCase()} • {new Date(payment.updatedAt).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="paymentMeta">
+                          <strong>{formatCurrency(payment.amountCents)}</strong>
+                          <span>Commission {formatCurrency(payment.commissionCents)}</span>
+                          <span>Payout {formatCurrency(payment.providerEarningsCents)}</span>
+                          {payment.checkoutUrl ? (
+                            <a href={payment.checkoutUrl} target="_blank" rel="noreferrer" className="documentLink">
+                              Open checkout
+                            </a>
+                          ) : null}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <p className="emptyState">Connect with an admin token to load booking and payment analytics.</p>
           )}
         </article>
 

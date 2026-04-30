@@ -38,6 +38,18 @@ export class AdminController {
     return this.adminService.listPendingProviderVerifications(req.user.role);
   }
 
+  @Get('dashboard-metrics')
+  @ApiOperation({ summary: 'Get admin dashboard metrics for marketplace operations' })
+  getDashboardMetrics(@Request() req) {
+    return this.adminService.getDashboardMetrics(req.user.role);
+  }
+
+  @Get('payments/recent')
+  @ApiOperation({ summary: 'List recent payment transactions for admin review' })
+  listRecentPayments(@Request() req) {
+    return this.adminService.listRecentPayments(req.user.role);
+  }
+
   @Patch('providers/:providerUserId/verification')
   @ApiOperation({ summary: 'Approve or reject provider verification' })
   reviewProviderVerification(

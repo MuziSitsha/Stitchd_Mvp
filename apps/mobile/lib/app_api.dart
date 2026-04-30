@@ -158,6 +158,37 @@ class KaziApiClient {
     return ApiBooking.fromJson(payload);
   }
 
+  Future<void> createReview({
+    required String accessToken,
+    required String bookingId,
+    required int rating,
+    String? comment,
+  }) async {
+    await _request(
+      'POST',
+      '/reviews',
+      accessToken: accessToken,
+      body: {
+        'bookingId': bookingId,
+        'rating': rating,
+        'comment': comment,
+      },
+    );
+  }
+
+  Future<ApiHostedCheckout> createHostedCheckout({
+    required String accessToken,
+    required String bookingId,
+  }) async {
+    final payload = await _request(
+      'POST',
+      '/payments/bookings/$bookingId/checkout',
+      accessToken: accessToken,
+      body: {},
+    ) as Map<String, dynamic>;
+    return ApiHostedCheckout.fromJson(payload);
+  }
+
   Future<ApiProviderProfile> getMyProviderProfile(String accessToken) async {
     final payload = await _request(
       'GET',
@@ -428,9 +459,11 @@ class ApiBooking {
     required this.type,
     required this.status,
     required this.paymentMethod,
+    required this.paymentStatus,
     required this.quotedPriceCents,
     required this.finalPriceCents,
     required this.customerAddress,
+    required this.isRated,
     required this.createdAt,
     required this.scheduledAt,
   });
@@ -442,9 +475,11 @@ class ApiBooking {
   final String type;
   final String status;
   final String paymentMethod;
+  final String paymentStatus;
   final int quotedPriceCents;
   final int finalPriceCents;
   final String? customerAddress;
+  final bool isRated;
   final DateTime? createdAt;
   final DateTime? scheduledAt;
 
@@ -459,9 +494,11 @@ class ApiBooking {
       type: json['type'] as String,
       status: json['status'] as String,
       paymentMethod: json['paymentMethod'] as String,
+      paymentStatus: json['paymentStatus'] as String? ?? 'pending',
       quotedPriceCents: (json['quotedPriceCents'] as num?)?.toInt() ?? 0,
       finalPriceCents: (json['finalPriceCents'] as num?)?.toInt() ?? 0,
       customerAddress: json['customerAddress'] as String?,
+      isRated: json['isRated'] as bool? ?? false,
       createdAt: _parseDate(json['createdAt']),
       scheduledAt: _parseDate(json['scheduledAt']),
     );
@@ -537,6 +574,38 @@ class ApiProviderDocumentUploadResult {
       documents: documents
           .map((item) => ApiProviderDocument.fromJson(item as Map<String, dynamic>))
           .toList(),
+    );
+  }
+}
+
+class ApiHostedCheckout {
+  const ApiHostedCheckout({
+    required this.bookingId,
+    required this.paymentId,
+    required this.paymentMethod,
+    required this.status,
+    required this.checkoutId,
+    required this.checkoutUrl,
+    required this.amountCents,
+  });
+
+  final String bookingId;
+  final String? paymentId;
+  final String? paymentMethod;
+  final String status;
+  final String? checkoutId;
+  final String? checkoutUrl;
+  final int? amountCents;
+
+  factory ApiHostedCheckout.fromJson(Map<String, dynamic> json) {
+    return ApiHostedCheckout(
+      bookingId: json['bookingId'] as String,
+      paymentId: json['paymentId'] as String?,
+      paymentMethod: json['paymentMethod'] as String?,
+      status: json['status'] as String? ?? 'pending',
+      checkoutId: json['checkoutId'] as String?,
+      checkoutUrl: json['checkoutUrl'] as String?,
+      amountCents: (json['amountCents'] as num?)?.toInt(),
     );
   }
 }

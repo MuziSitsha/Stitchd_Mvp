@@ -6,7 +6,7 @@ Built for client requirements with Flutter · NestJS · PostgreSQL · AWS
 
 ---
 
-## Current Foundation
+## Current MVP Status
 
 ```
 kazi/
@@ -24,7 +24,7 @@ kazi/
 └── package.json      # Monorepo root
 ```
 
-The repository now contains the backend foundation, an admin dashboard scaffold, a Flutter mobile scaffold, AWS deployment workflow scaffolding, and shared Springbok design tokens.
+The repository now contains a working MVP foundation with live booking, provider onboarding, document upload, ratings and reviews, wallet and settlement bookkeeping, hosted online checkout initiation, admin operations, and AWS deployment workflows for the API and admin console.
 
 ---
 
@@ -63,6 +63,11 @@ yarn dev:api
 # Admin dashboard (port 5173)
 yarn dev:admin
 
+# Flutter mobile app
+cd apps/mobile
+flutter pub get
+flutter run
+
 # API docs available at: http://localhost:3001/docs
 ```
 
@@ -79,9 +84,9 @@ yarn dev:admin
 ### Delivery phases
 1. Backend foundation and auth
 2. Booking engine, provider onboarding, and service catalogue
-3. Payments, wallet, reviews, promos, and notifications
-4. Flutter customer/provider apps and admin dashboard
-5. Hardening, analytics, QA, and launch readiness
+3. Payments, wallet, reviews, and admin operations
+4. Flutter customer/provider apps and hosted checkout flow
+5. Remaining realtime modules, launch hardening, and go-live readiness
 
 ### Timeline estimate
 - Foundation and core backend: 3 to 4 weeks
@@ -130,13 +135,25 @@ See `apps/api/.env.example` for all required variables.
 | `providers` | `/api/v1/providers/*` | Provider onboarding & management |
 | `bookings` | `/api/v1/bookings/*` | Booking engine (instant + scheduled) |
 | `services` | `/api/v1/services/*` | Service categories |
-| `payments` | `/api/v1/payments/*` | Peach Payments integration |
-| `chat` | WebSocket | Real-time messaging |
+| `payments` | `/api/v1/payments/*` | Cash settlement, wallet credits, and hosted Peach checkout initiation |
+| `chat` | WebSocket | Real-time messaging foundation |
 | `wallet` | `/api/v1/wallet/*` | Customer wallet & provider earnings |
 | `reviews` | `/api/v1/reviews/*` | Ratings & reviews |
-| `promos` | `/api/v1/promos/*` | Promo codes & referrals |
+| `promos` | `/api/v1/promos/*` | Promo codes & referrals foundation |
 | `admin` | `/api/v1/admin/*` | Admin panel APIs |
-| `notifications` | Internal | Firebase FCM push |
+| `notifications` | Internal | Firebase FCM push foundation |
+
+## What Is Fully Implemented Now
+
+- Customer auth with OTP and role-aware login
+- Provider onboarding, availability, and document verification upload flow
+- Service catalogue with instant and scheduled bookings
+- Wallet balance and provider earnings bookkeeping
+- Ratings and reviews after completed bookings
+- Admin platform settings, provider verification queue, analytics summary, and recent payment feed
+- Hosted online checkout initiation for card and EFT bookings through Peach Payments
+- AWS deployment workflows for the Nest API and the admin dashboard
+- Proprietary source ownership declaration in the root license file
 
 ---
 
@@ -154,6 +171,8 @@ AWS_ECS_CLUSTER
 AWS_ECS_SERVICE
 AWS_ECS_TASK_DEFINITION
 TEST_DATABASE_URL      # Separate PostgreSQL test database
+AWS_ADMIN_S3_BUCKET
+AWS_ADMIN_CLOUDFRONT_DISTRIBUTION_ID
 ```
 
 ### Branch strategy
@@ -198,4 +217,4 @@ Light Surface:  #F6F7F4  (Warm white surface)
 
 ## License
 
-Proprietary — All source code owned by KAZI (Pty) Ltd. All rights reserved.
+See the root [LICENSE](c:\Users\nkazi\OneDrive\Desktop\kazi\LICENSE) file. The repository is proprietary and source ownership remains with KAZI (Pty) Ltd.

@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
+import { InitiateBookingPaymentDto } from './dto/initiate-booking-payment.dto';
 import { SettleBookingPaymentDto } from './dto/settle-booking-payment.dto';
 import { PaymentsService } from './payments.service';
 
@@ -29,6 +30,16 @@ export class PaymentsController {
   @ApiOperation({ summary: 'Get the payment transaction for a booking' })
   getBookingPayment(@Request() req, @Param('bookingId') bookingId: string) {
     return this.paymentsService.getBookingPayment(bookingId, req.user.id, req.user.role);
+  }
+
+  @Post('bookings/:bookingId/checkout')
+  @ApiOperation({ summary: 'Create a hosted Peach checkout session for a card or EFT booking' })
+  initiateHostedCheckout(
+    @Request() req,
+    @Param('bookingId') bookingId: string,
+    @Body() dto: InitiateBookingPaymentDto,
+  ) {
+    return this.paymentsService.initiateHostedCheckout(bookingId, req.user, dto);
   }
 
   @Post('bookings/:bookingId/settle')

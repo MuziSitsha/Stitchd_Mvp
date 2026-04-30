@@ -50,6 +50,12 @@ export class PaymentTransactionEntity {
   @Column({ nullable: true })
   gatewayReference: string;
 
+  @Column({ nullable: true })
+  checkoutId: string;
+
+  @Column({ nullable: true })
+  checkoutUrl: string;
+
   @Column({ type: 'text', nullable: true })
   note: string;
 

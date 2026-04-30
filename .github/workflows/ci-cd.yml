@@ -7,9 +7,8 @@ on:
     branches: [main]
 
 jobs:
-  # ─── Lint & Test ───────────────────────────────────────
-  test:
-    name: Test & Lint
+  test-and-build:
+    name: Validate API, Admin, and Mobile
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,6 +22,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
       - name: Lint API
         run: yarn workspace @kazi/api lint
 
@@ -32,6 +36,20 @@ jobs:
           NODE_ENV: test
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
-  # AWS deployment pipeline intentionally not wired here yet.
-  # The client requirement is AWS hosting, and the target architecture is
-  # documented in docs/aws-architecture.md before CI/CD automation is added.
+      - name: Build API
+        run: yarn workspace @kazi/api build
+
+      - name: Build Admin
+        run: yarn workspace @kazi/admin build
+
+      - name: Install Mobile Dependencies
+        working-directory: apps/mobile
+        run: flutter pub get
+
+      - name: Analyze Mobile
+        working-directory: apps/mobile
+        run: flutter analyze
+
+      - name: Test Mobile
+        working-directory: apps/mobile
+        run: flutter test
