@@ -213,6 +213,8 @@ Light Surface:  #F6F7F4  (Warm white surface)
 - [docs/client-message-template.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-message-template.md)
 - [docs/staging-secrets-checklist.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\staging-secrets-checklist.md)
 - [docs/go-live-test-script.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\go-live-test-script.md)
+- [docs/google-maps-integration-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\google-maps-integration-plan.md)
+- [docs/third-party-account-bootstrap.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\third-party-account-bootstrap.md)
 
 ---
 
