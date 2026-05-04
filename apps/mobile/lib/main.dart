@@ -5,8 +5,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart' as latlng;
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_api.dart';
@@ -25,9 +28,27 @@ const _destinations = [
 
 const _paymentReturnUrl = String.fromEnvironment('KAZI_PAYMENT_RETURN_URL');
 
-const _serviceCategories = ['All', 'Cleaning', 'Electrical', 'Plumbing', 'Handyman'];
+const _serviceCategories = [
+  'All',
+  'Cleaning',
+  'Care',
+  'Laundry',
+  'Wellness',
+  'Repairs',
+  'Mechanics',
+  'Outdoor',
+];
 
 const _services = [
+  _ServiceData(
+    id: 'clean-home',
+    category: 'Cleaning',
+    title: 'Home Cleaning',
+    subtitle: 'Recurring or one-off cleaning for flats, homes, and guest stays.',
+    priceFrom: 'From R399',
+    eta: 'Next slot in 45 min',
+    icon: Icons.cleaning_services_outlined,
+  ),
   _ServiceData(
     id: 'clean-deep',
     category: 'Cleaning',
@@ -38,17 +59,71 @@ const _services = [
     icon: Icons.cleaning_services_outlined,
   ),
   _ServiceData(
-    id: 'clean-office',
+    id: 'clean-move',
     category: 'Cleaning',
-    title: 'Office Refresh',
-    subtitle: 'Flexible teams for recurring office cleans.',
-    priceFrom: 'From R650',
-    eta: 'Scheduled slots',
-    icon: Icons.business_center_outlined,
+    title: 'Maid Service',
+    subtitle: 'Flexible housekeeping support for regular visits, family routines, and hosted stays.',
+    priceFrom: 'From R320',
+    eta: 'Morning and afternoon slots',
+    icon: Icons.cleaning_services_outlined,
+  ),
+  _ServiceData(
+    id: 'laundry-dry-cleaning',
+    category: 'Laundry',
+    title: 'Laundry and Dry Cleaning',
+    subtitle: 'Wash, fold, ironing, and premium garment care with pickup options.',
+    priceFrom: 'From R189',
+    eta: 'Pickup today',
+    icon: Icons.local_laundry_service_outlined,
+  ),
+  _ServiceData(
+    id: 'babysitting',
+    category: 'Care',
+    title: 'Babysitting',
+    subtitle: 'Trusted childcare support for evenings, weekends, and planned cover.',
+    priceFrom: 'From R220/hr',
+    eta: 'Book ahead or same day',
+    icon: Icons.child_care_outlined,
+  ),
+  _ServiceData(
+    id: 'pet-care',
+    category: 'Care',
+    title: 'Pet Care',
+    subtitle: 'Pet sitting, walks, feeding visits, and basic grooming support.',
+    priceFrom: 'From R180',
+    eta: 'Available today',
+    icon: Icons.pets_outlined,
+  ),
+  _ServiceData(
+    id: 'womens-salon',
+    category: 'Wellness',
+    title: 'Salon at Home',
+    subtitle: 'Hair, nails, makeup, and beauty appointments delivered to your door.',
+    priceFrom: 'From R350',
+    eta: 'Afternoon openings',
+    icon: Icons.content_cut_outlined,
+  ),
+  _ServiceData(
+    id: 'spa-massage',
+    category: 'Wellness',
+    title: 'Spa and Massage',
+    subtitle: 'Relaxation and recovery treatments with at-home therapist visits.',
+    priceFrom: 'From R540',
+    eta: 'Evening slots open',
+    icon: Icons.spa_outlined,
+  ),
+  _ServiceData(
+    id: 'mechanic-mobile',
+    category: 'Mechanics',
+    title: 'Book a Mechanic',
+    subtitle: 'Diagnostics, batteries, minor roadside fixes, and inspections.',
+    priceFrom: 'From R690',
+    eta: '16 min avg arrival',
+    icon: Icons.car_repair_outlined,
   ),
   _ServiceData(
     id: 'electrical-urgent',
-    category: 'Electrical',
+    category: 'Repairs',
     title: 'Urgent Electrical',
     subtitle: 'Faults, trips, fittings, and assessments.',
     priceFrom: 'From R780',
@@ -57,7 +132,7 @@ const _services = [
   ),
   _ServiceData(
     id: 'plumbing-fix',
-    category: 'Plumbing',
+    category: 'Repairs',
     title: 'Leak and Pipe Fix',
     subtitle: 'Repairs, replacements, and diagnostics.',
     priceFrom: 'From R720',
@@ -66,12 +141,57 @@ const _services = [
   ),
   _ServiceData(
     id: 'handyman-home',
-    category: 'Handyman',
+    category: 'Repairs',
     title: 'Handyman Assist',
     subtitle: 'Assembly, patching, hanging, and repairs.',
     priceFrom: 'From R520',
     eta: 'Same-day availability',
     icon: Icons.handyman_outlined,
+  ),
+  _ServiceData(
+    id: 'appliance-repair',
+    category: 'Repairs',
+    title: 'Appliance Repair',
+    subtitle: 'Fridges, ovens, washing machines, and same-day fault finding.',
+    priceFrom: 'From R640',
+    eta: 'Today before 18:00',
+    icon: Icons.kitchen_outlined,
+  ),
+  _ServiceData(
+    id: 'ac-cleaning',
+    category: 'Cleaning',
+    title: 'AC Cleaning',
+    subtitle: 'Aircon unit cleaning, filter refreshes, and seasonal maintenance.',
+    priceFrom: 'From R430',
+    eta: 'Tomorrow morning',
+    icon: Icons.ac_unit_outlined,
+  ),
+  _ServiceData(
+    id: 'furniture-cleaning',
+    category: 'Cleaning',
+    title: 'Furniture Cleaning',
+    subtitle: 'Sofas, mattresses, carpets, and upholstery refresh services.',
+    priceFrom: 'From R520',
+    eta: 'Booked today',
+    icon: Icons.weekend_outlined,
+  ),
+  _ServiceData(
+    id: 'garden-outdoor',
+    category: 'Outdoor',
+    title: 'Garden and Outdoor',
+    subtitle: 'Yard cleanups, trimming, pressure washing, and outdoor resets.',
+    priceFrom: 'From R580',
+    eta: 'Next slot today',
+    icon: Icons.yard_outlined,
+  ),
+  _ServiceData(
+    id: 'pest-control',
+    category: 'Outdoor',
+    title: 'Pest Control',
+    subtitle: 'Fast treatment visits for homes, flats, and small businesses.',
+    priceFrom: 'From R760',
+    eta: 'Booked in under 1 hour',
+    icon: Icons.pest_control_outlined,
   ),
 ];
 
@@ -129,11 +249,39 @@ String _formatPaymentStatusLabel(String value) {
   }
 }
 
+String _normalizeCatalogValue(String value) {
+  return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+}
+
+bool _catalogStringsOverlap(String left, String right) {
+  if (left.isEmpty || right.isEmpty) {
+    return false;
+  }
+
+  if (left == right || left.contains(right) || right.contains(left)) {
+    return true;
+  }
+
+  final leftWords = left.split(' ').where((word) => word.length > 2).toSet();
+  final rightWords = right.split(' ').where((word) => word.length > 2).toSet();
+  final sharedWords = leftWords.intersection(rightWords);
+  return sharedWords.length >= 2;
+}
+
 IconData _iconForCategory(String label) {
   final key = label.toLowerCase();
   if (key.contains('clean')) return Icons.cleaning_services_outlined;
+  if (key.contains('laundry') || key.contains('dry')) return Icons.local_laundry_service_outlined;
+  if (key.contains('care') || key.contains('baby')) return Icons.child_care_outlined;
+  if (key.contains('pet')) return Icons.pets_outlined;
+  if (key.contains('salon') || key.contains('spa') || key.contains('wellness')) return Icons.spa_outlined;
+  if (key.contains('repair')) return Icons.home_repair_service_outlined;
+  if (key.contains('mechanic') || key.contains('car')) return Icons.car_repair_outlined;
   if (key.contains('electric')) return Icons.electrical_services_outlined;
   if (key.contains('plumb')) return Icons.plumbing_outlined;
+  if (key.contains('appliance') || key.contains('kitchen')) return Icons.kitchen_outlined;
+  if (key.contains('garden') || key.contains('outdoor')) return Icons.yard_outlined;
+  if (key.contains('pest')) return Icons.pest_control_outlined;
   if (key.contains('hand')) return Icons.handyman_outlined;
   return Icons.home_repair_service_outlined;
 }
@@ -233,6 +381,7 @@ class _KaziController extends ChangeNotifier {
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   String? _devicePushToken;
   String? _syncedPushToken;
+  bool _providerTrackingPermissionRequested = false;
 
   final Map<String, ApiService> _liveServicesById = {};
   final Map<String, ApiServiceCategory> _categoriesById = {};
@@ -263,13 +412,8 @@ class _KaziController extends ChangeNotifier {
         ..clear()
         ..addEntries(liveServices.map((service) => MapEntry(service.id, service)));
 
-      if (categories.isNotEmpty) {
-        serviceCategories = ['All', ...categories.map((category) => category.name)];
-      }
-
-      if (liveServices.isNotEmpty) {
-        services = liveServices.map(_mapService).toList();
-      }
+      serviceCategories = _mergeCategoryNames(categories);
+      services = _mergeCatalogServices(liveServices);
     } catch (_) {
       serviceCategories = List<String>.of(_serviceCategories);
       services = List<_ServiceData>.of(_services);
@@ -308,6 +452,7 @@ class _KaziController extends ChangeNotifier {
     acceptedJobs = const [];
     walletHistory = List<_WalletEntryData>.of(_walletHistory);
     _syncedPushToken = null;
+    _providerTrackingPermissionRequested = false;
     notifyListeners();
   }
 
@@ -428,6 +573,19 @@ class _KaziController extends ChangeNotifier {
     await refreshAuthenticatedData();
   }
 
+  Future<void> declineJob(_ProviderJobData job, {String? reason}) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in as a provider first.');
+    }
+
+    await api.declineBooking(
+      accessToken: session!.accessToken,
+      bookingId: job.id,
+      reason: reason ?? 'Provider declined this job.',
+    );
+    await refreshAuthenticatedData();
+  }
+
   Future<void> advanceBooking(_BookingData booking) async {
     if (session == null) {
       throw const KaziApiException('Sign in as a provider first.');
@@ -435,7 +593,9 @@ class _KaziController extends ChangeNotifier {
 
     final nextStatus = switch (booking.status) {
       _BookingStatus.matched => 'en_route',
-      _BookingStatus.enRoute => 'completed',
+      _BookingStatus.enRoute => 'arrived',
+      _BookingStatus.arrived => 'in_progress',
+      _BookingStatus.inProgress => 'completed',
       _BookingStatus.scheduled => 'pending',
       _ => null,
     };
@@ -458,8 +618,8 @@ class _KaziController extends ChangeNotifier {
     required int rating,
     String? comment,
   }) async {
-    if (session == null || !isCustomer) {
-      throw const KaziApiException('Sign in as a customer to leave a review.');
+    if (session == null) {
+      throw const KaziApiException('Sign in to leave a review.');
     }
 
     await api.createReview(
@@ -472,6 +632,19 @@ class _KaziController extends ChangeNotifier {
     await refreshAuthenticatedData();
   }
 
+  Future<void> cancelBooking(_BookingData booking, {required String reason}) async {
+    if (session == null) {
+      throw const KaziApiException('Sign in first to cancel a booking.');
+    }
+
+    await api.cancelBooking(
+      accessToken: session!.accessToken,
+      bookingId: booking.id,
+      reason: reason,
+    );
+    await refreshAuthenticatedData();
+  }
+
   Future<void> createBooking({
     required _ServiceData service,
     required bool scheduled,
@@ -479,21 +652,23 @@ class _KaziController extends ChangeNotifier {
     required String customerNotes,
     required String paymentMethod,
     String? promoCode,
+    Position? customerPosition,
   }) async {
     if (session == null || !isCustomer) {
       throw const KaziApiException('Sign in as a customer to create a booking.');
     }
 
-    final liveService = _liveServicesById[service.id];
+    final liveService = _resolveLiveService(service);
     if (liveService == null) {
       throw const KaziApiException(
-        'This service is not yet available from the live API catalog. Add service records in the backend first.',
+        'This service card is visible in the marketplace, but it is not connected to a live backend service yet.',
       );
     }
 
     final scheduledAt = scheduled
         ? DateTime.now().add(const Duration(days: 1)).copyWith(hour: 9, minute: 0)
         : null;
+    final resolvedCustomerPosition = customerPosition ?? await _tryGetCurrentPosition();
 
     await api.createBooking(
       accessToken: session!.accessToken,
@@ -501,6 +676,8 @@ class _KaziController extends ChangeNotifier {
       serviceId: liveService.id,
       type: scheduled ? 'scheduled' : 'instant',
       scheduledAt: scheduledAt?.toIso8601String(),
+      customerLat: resolvedCustomerPosition?.latitude,
+      customerLng: resolvedCustomerPosition?.longitude,
       customerAddress: customerAddress,
       customerNotes: customerNotes.isEmpty ? null : customerNotes,
       promoCode: promoCode?.trim().isEmpty == true ? null : promoCode?.trim(),
@@ -509,6 +686,51 @@ class _KaziController extends ChangeNotifier {
     );
 
     await refreshAuthenticatedData();
+  }
+
+  Future<Position?> resolveCurrentBookingPosition({bool requestPermissionIfNeeded = true}) {
+    return _tryGetCurrentPosition(requestPermissionIfNeeded: requestPermissionIfNeeded);
+  }
+
+  Future<String?> resolveCurrentBookingAddress(Position? position) async {
+    if (position == null) {
+      return null;
+    }
+
+    try {
+      final placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      if (placemarks.isEmpty) {
+        return null;
+      }
+
+      return _formatPlacemarkAddress(placemarks.first);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<Position?> _tryGetCurrentPosition({bool requestPermissionIfNeeded = true}) async {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return null;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied && requestPermissionIfNeeded) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+      return null;
+    }
+
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> openHostedPayment(_BookingData booking) async {
@@ -541,32 +763,63 @@ class _KaziController extends ChangeNotifier {
       throw const KaziApiException('Sign in as the assigned provider to share live tracking.');
     }
 
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      throw const KaziApiException('Enable device location services before sharing live tracking.');
-    }
-
-    var permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-
-    if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+    final position = await _tryGetCurrentPosition();
+    _providerTrackingPermissionRequested = true;
+    if (position == null) {
       throw const KaziApiException('Location permission is required to share live tracking.');
     }
 
-    final position = await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-    );
-
-    await api.updateBookingTracking(
+    final updatedBooking = await api.updateBookingTracking(
       accessToken: session!.accessToken,
       bookingId: booking.id,
       latitude: position.latitude,
       longitude: position.longitude,
     );
 
-    await refreshAuthenticatedData();
+    _replaceBooking(updatedBooking);
+  }
+
+  Future<void> syncProviderTrackingForActiveBookings() async {
+    if (session == null || !isProvider) {
+      return;
+    }
+
+    _BookingData? activeBooking;
+    for (final booking in bookings) {
+      if (booking.supportsLiveTracking) {
+        activeBooking = booking;
+        break;
+      }
+    }
+
+    if (activeBooking == null) {
+      return;
+    }
+
+    final position = await _tryGetCurrentPosition(
+      requestPermissionIfNeeded: !_providerTrackingPermissionRequested,
+    );
+    _providerTrackingPermissionRequested = true;
+    if (position == null) {
+      return;
+    }
+
+    final updatedBooking = await api.updateBookingTracking(
+      accessToken: session!.accessToken,
+      bookingId: activeBooking.id,
+      latitude: position.latitude,
+      longitude: position.longitude,
+    );
+
+    _replaceBooking(updatedBooking);
+  }
+
+  void _replaceBooking(ApiBooking booking) {
+    final updatedBooking = _mapBooking(booking);
+    bookings = bookings
+        .map((item) => item.id == booking.id ? updatedBooking : item)
+        .toList(growable: false);
+    notifyListeners();
   }
 
   Future<void> openTrackingMap(_BookingData booking) async {
@@ -576,9 +829,13 @@ class _KaziController extends ChangeNotifier {
       throw const KaziApiException('This booking does not have a live provider location yet.');
     }
 
-    final uri = Uri.parse(
-      'https://www.google.com/maps/search/?api=1&query=${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)}',
-    );
+    final uri = booking.customerLat != null && booking.customerLng != null
+        ? Uri.parse(
+            'https://www.google.com/maps/dir/?api=1&origin=${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)}&destination=${booking.customerLat!.toStringAsFixed(6)},${booking.customerLng!.toStringAsFixed(6)}&travelmode=driving',
+          )
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=${latitude.toStringAsFixed(6)},${longitude.toStringAsFixed(6)}',
+          );
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) {
       throw const KaziApiException('Could not open the live tracking map.');
@@ -759,6 +1016,88 @@ class _KaziController extends ChangeNotifier {
     );
   }
 
+  List<String> _mergeCategoryNames(List<ApiServiceCategory> categories) {
+    final merged = <String>{
+      ..._serviceCategories.where((category) => category != 'All'),
+    };
+
+    for (final category in categories) {
+      if (category.name.trim().isNotEmpty) {
+        merged.add(category.name.trim());
+      }
+    }
+
+    return ['All', ...merged];
+  }
+
+  List<_ServiceData> _mergeCatalogServices(List<ApiService> liveServices) {
+    final liveCatalog = liveServices.map(_mapService).toList(growable: false);
+    final matchedLiveIds = <String>{};
+    final merged = <_ServiceData>[];
+
+    for (final curated in _services) {
+      _ServiceData resolved = curated;
+
+      for (final live in liveCatalog) {
+        if (matchedLiveIds.contains(live.id)) {
+          continue;
+        }
+
+        final similarTitle = _catalogStringsOverlap(
+          _normalizeCatalogValue(live.title),
+          _normalizeCatalogValue(curated.title),
+        );
+
+        if (similarTitle) {
+          resolved = live;
+          matchedLiveIds.add(live.id);
+          break;
+        }
+      }
+
+      merged.add(resolved);
+    }
+
+    for (final live in liveCatalog) {
+      if (!matchedLiveIds.contains(live.id)) {
+        merged.add(live);
+      }
+    }
+
+    return merged;
+  }
+
+  ApiService? _resolveLiveService(_ServiceData service) {
+    final directMatch = _liveServicesById[service.id];
+    if (directMatch != null) {
+      return directMatch;
+    }
+
+    final normalizedTitle = _normalizeCatalogValue(service.title);
+    final normalizedCategory = _normalizeCatalogValue(service.category);
+    final categoryMatches = <ApiService>[];
+
+    for (final live in _liveServicesById.values) {
+      final category = live.category ?? _categoriesById[live.categoryId];
+      final liveTitle = _normalizeCatalogValue(live.name);
+      final liveCategory = _normalizeCatalogValue(category?.name ?? '');
+
+      if (_catalogStringsOverlap(liveTitle, normalizedTitle)) {
+        return live;
+      }
+
+      if (liveCategory == normalizedCategory) {
+        categoryMatches.add(live);
+      }
+    }
+
+    if (categoryMatches.length == 1) {
+      return categoryMatches.first;
+    }
+
+    return null;
+  }
+
   _BookingData _mapBooking(ApiBooking booking) {
     final liveService = _liveServicesById[booking.serviceId];
     final title = liveService?.name ?? 'Service booking';
@@ -774,10 +1113,14 @@ class _KaziController extends ChangeNotifier {
       paymentMethod: booking.paymentMethod.toUpperCase(),
       paymentStatus: booking.paymentStatus.toUpperCase(),
       amount: _formatCurrencyFromCents(booking.displayPriceCents),
+      customerLat: booking.customerLat,
+      customerLng: booking.customerLng,
       providerCurrentLat: booking.providerCurrentLat,
       providerCurrentLng: booking.providerCurrentLng,
       providerLocationUpdatedAt: booking.providerLocationUpdatedAt,
       isRated: booking.isRated,
+      customerHasRated: booking.customerHasRated,
+      providerHasRated: booking.providerHasRated,
     );
   }
 
@@ -812,8 +1155,8 @@ class _KaziController extends ChangeNotifier {
       'pending' => booking.type == 'scheduled' ? _BookingStatus.scheduled : _BookingStatus.requested,
       'accepted' => _BookingStatus.matched,
       'en_route' => _BookingStatus.enRoute,
-      'arrived' => _BookingStatus.enRoute,
-      'in_progress' => _BookingStatus.enRoute,
+      'arrived' => _BookingStatus.arrived,
+      'in_progress' => _BookingStatus.inProgress,
       'completed' => _BookingStatus.completed,
       'cancelled' => _BookingStatus.cancelled,
       'disputed' => _BookingStatus.cancelled,
@@ -845,6 +1188,218 @@ Future<void> _showAuthSheet(BuildContext context, {String initialRole = 'custome
     showDragHandle: true,
     builder: (context) => _AuthSheet(initialRole: initialRole),
   );
+}
+
+Future<String?> _showReasonSheet(
+  BuildContext context, {
+  required String title,
+  required String subtitle,
+  required String confirmLabel,
+  required List<_ActionReasonOption> options,
+}) {
+  final otherController = TextEditingController();
+  String? selectedValue = options.firstOrNull?.value;
+
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setModalState) {
+          final selectedOption = options.where((option) => option.value == selectedValue).firstOrNull;
+          final requiresCustomReason = selectedOption?.requiresCustomReason ?? false;
+          final canSubmit = selectedOption != null && (!requiresCustomReason || otherController.text.trim().isNotEmpty);
+
+          return Padding(
+            padding: EdgeInsets.fromLTRB(
+              20,
+              8,
+              20,
+              MediaQuery.viewInsetsOf(context).bottom + 20,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                  const SizedBox(height: 10),
+                  Text(subtitle, style: const TextStyle(height: 1.45)),
+                  const SizedBox(height: 16),
+                  ...options.map(
+                    (option) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () {
+                          setModalState(() {
+                            selectedValue = option.value;
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: selectedValue == option.value ? const Color(0xFFE6F4EC) : KaziTheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: selectedValue == option.value ? KaziTheme.primaryGreen : KaziTheme.border,
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                selectedValue == option.value
+                                    ? Icons.radio_button_checked
+                                    : Icons.radio_button_off,
+                                color: selectedValue == option.value
+                                    ? KaziTheme.primaryGreen
+                                    : const Color(0xFF6B756E),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(option.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                    if (option.subtitle != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(option.subtitle!, style: const TextStyle(height: 1.4, color: Color(0xFF4F5B53))),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (requiresCustomReason) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: otherController,
+                      maxLines: 3,
+                      onChanged: (_) => setModalState(() {}),
+                      decoration: const InputDecoration(
+                        labelText: 'Add your reason',
+                        hintText: 'Give a short reason for the cancellation',
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: canSubmit
+                        ? () {
+                            final result = requiresCustomReason
+                                ? otherController.text.trim()
+                                : selectedOption.label;
+                            Navigator.of(context).pop(result);
+                          }
+                        : null,
+                    child: Text(confirmLabel),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  ).whenComplete(otherController.dispose);
+}
+
+const List<_ActionReasonOption> _customerCancellationReasons = [
+  _ActionReasonOption(
+    value: 'slow_arrival',
+    label: 'Driver took too long to arrive',
+    subtitle: 'Use this when the provider is delayed or the ETA no longer works for you.',
+  ),
+  _ActionReasonOption(
+    value: 'not_moving',
+    label: 'Driver is not getting closer',
+    subtitle: 'Good for trips where live tracking is stalled or progress looks off.',
+  ),
+  _ActionReasonOption(
+    value: 'mistake',
+    label: 'Booked by mistake',
+  ),
+  _ActionReasonOption(
+    value: 'change_details',
+    label: 'Need to change address or booking details',
+  ),
+  _ActionReasonOption(
+    value: 'no_longer_needed',
+    label: 'I no longer need this service',
+  ),
+  _ActionReasonOption(
+    value: 'other',
+    label: 'Other',
+    requiresCustomReason: true,
+  ),
+];
+
+const List<_ActionReasonOption> _providerDeclineReasons = [
+  _ActionReasonOption(
+    value: 'too_far',
+    label: 'Pickup is too far away',
+  ),
+  _ActionReasonOption(
+    value: 'running_late',
+    label: 'Running late on another trip',
+  ),
+  _ActionReasonOption(
+    value: 'vehicle_issue',
+    label: 'Vehicle or equipment issue',
+  ),
+  _ActionReasonOption(
+    value: 'details_missing',
+    label: 'Not enough job details',
+  ),
+  _ActionReasonOption(
+    value: 'other',
+    label: 'Other',
+    requiresCustomReason: true,
+  ),
+];
+
+const List<_ActionReasonOption> _providerCancellationReasons = [
+  _ActionReasonOption(
+    value: 'customer_unreachable',
+    label: 'Customer is unreachable',
+  ),
+  _ActionReasonOption(
+    value: 'delay',
+    label: 'Traffic or delay is too severe',
+  ),
+  _ActionReasonOption(
+    value: 'vehicle_issue',
+    label: 'Vehicle or equipment issue',
+  ),
+  _ActionReasonOption(
+    value: 'emergency',
+    label: 'Emergency or safety issue',
+  ),
+  _ActionReasonOption(
+    value: 'other',
+    label: 'Other',
+    requiresCustomReason: true,
+  ),
+];
+
+class _ActionReasonOption {
+  const _ActionReasonOption({
+    required this.value,
+    required this.label,
+    this.subtitle,
+    this.requiresCustomReason = false,
+  });
+
+  final String value;
+  final String label;
+  final String? subtitle;
+  final bool requiresCustomReason;
 }
 
 class _AuthSheet extends StatefulWidget {
@@ -1293,7 +1848,44 @@ class _CustomerHomePage extends StatefulWidget {
 class _CustomerHomePageState extends State<_CustomerHomePage> {
   String _selectedCategory = _serviceCategories.first;
   String _searchQuery = '';
-  _ServiceData? _lastBookedService;
+  late final PageController _featuredServicesController;
+  Timer? _featuredServicesTicker;
+  int _featuredServiceIndex = 0;
+
+  void _openCustomerSignIn() {
+    _showAuthSheet(context, initialRole: 'customer');
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _featuredServicesController = PageController(viewportFraction: 0.88);
+    _featuredServicesTicker = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_featuredServicesController.hasClients) {
+        return;
+      }
+
+      final services = _AppScope.of(context).services.take(6).toList(growable: false);
+      if (services.length < 2) {
+        return;
+      }
+
+      final nextIndex = (_featuredServiceIndex + 1) % services.length;
+      _featuredServicesController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+      setState(() => _featuredServiceIndex = nextIndex);
+    });
+  }
+
+  @override
+  void dispose() {
+    _featuredServicesTicker?.cancel();
+    _featuredServicesController.dispose();
+    super.dispose();
+  }
 
   List<_ServiceData> get _filteredServices {
     final controller = _AppScope.of(context);
@@ -1320,12 +1912,25 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
       }
     }
 
-    final addressController = TextEditingController(text: 'Sandton, Johannesburg');
+    final addressController = TextEditingController();
     final notesController = TextEditingController();
     final promoController = TextEditingController();
+    var bookingPosition = await controller.resolveCurrentBookingPosition();
+    var usingCurrentLocation = bookingPosition != null;
+    if (bookingPosition != null) {
+      final detectedAddress = await controller.resolveCurrentBookingAddress(bookingPosition);
+      if (!mounted) {
+        return;
+      }
+      addressController.text = detectedAddress ?? _formatPinnedLocationLabel(bookingPosition);
+    }
+    if (!mounted) {
+      return;
+    }
     var scheduled = scheduledDefault;
     var paymentMethod = 'Card';
     var submitting = false;
+    var refreshingLocation = false;
     String? error;
 
     await showModalBottomSheet<void>(
@@ -1353,9 +1958,96 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                     const SizedBox(height: 20),
                     TextField(
                       controller: addressController,
+                      onChanged: (_) {
+                        if (usingCurrentLocation) {
+                          setModalState(() => usingCurrentLocation = false);
+                        }
+                      },
                       decoration: const InputDecoration(
-                        labelText: 'Service address',
+                        labelText: 'Pickup or service address',
+                        hintText: 'Use current location or type an address',
                         border: OutlineInputBorder(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F1E8),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: const Color(0xFFD7CFBE)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.my_location_outlined, size: 18, color: Color(0xFF1A231D)),
+                              const SizedBox(width: 8),
+                              Text(
+                                bookingPosition != null
+                                    ? (usingCurrentLocation ? 'Using your current location' : 'Current location available')
+                                    : 'Location pin missing',
+                                style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1A231D)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            bookingPosition != null
+                                ? (usingCurrentLocation
+                                    ? 'Pinned to your phone location. You can still type a different address below.'
+                                    : 'You switched to a typed address. Tap below if you want to reuse your current pin.')
+                                : 'Add your street address or capture your current position so the provider can route to you.',
+                          ),
+                          if (bookingPosition != null) ...[
+                            const SizedBox(height: 6),
+                            Builder(
+                              builder: (context) {
+                                final pinnedPosition = bookingPosition!;
+                                return Text(
+                                  '${pinnedPosition.latitude.toStringAsFixed(5)}, ${pinnedPosition.longitude.toStringAsFixed(5)}',
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                );
+                              },
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          OutlinedButton.icon(
+                            onPressed: submitting || refreshingLocation
+                                ? null
+                                : () async {
+                                    setModalState(() {
+                                      refreshingLocation = true;
+                                      error = null;
+                                    });
+                                    final resolvedPosition = await controller.resolveCurrentBookingPosition();
+                                    final resolvedAddress = await controller.resolveCurrentBookingAddress(resolvedPosition);
+                                    if (!mounted) return;
+                                    setModalState(() {
+                                      bookingPosition = resolvedPosition;
+                                      usingCurrentLocation = resolvedPosition != null;
+                                      if (resolvedPosition != null) {
+                                        addressController.text =
+                                            resolvedAddress ?? _formatPinnedLocationLabel(resolvedPosition);
+                                        addressController.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: addressController.text.length),
+                                        );
+                                      }
+                                      refreshingLocation = false;
+                                    });
+                                  },
+                            icon: const Icon(Icons.gps_fixed),
+                            label: Text(
+                              refreshingLocation
+                                  ? 'Detecting location...'
+                                  : bookingPosition != null
+                                      ? 'Refresh current location'
+                                      : 'Use my current location',
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -1425,18 +2117,28 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                               });
 
                               try {
+                                final trimmedAddress = addressController.text.trim();
+                                final bookingPositionForSubmit = usingCurrentLocation ? bookingPosition : null;
+                                if (trimmedAddress.isEmpty && bookingPositionForSubmit == null) {
+                                  throw const KaziApiException(
+                                    'Add your service address or enable your current location before requesting a provider.',
+                                  );
+                                }
+
                                 await controller.createBooking(
                                   service: service,
                                   scheduled: scheduled,
-                                  customerAddress: addressController.text.trim(),
+                                  customerAddress: trimmedAddress.isEmpty && bookingPositionForSubmit != null
+                                      ? _formatPinnedLocationLabel(bookingPositionForSubmit)
+                                      : trimmedAddress,
                                   customerNotes: notesController.text.trim(),
                                   paymentMethod: paymentMethod,
                                   promoCode: promoController.text.trim(),
+                                  customerPosition: bookingPositionForSubmit,
                                 );
 
                                 if (!mounted) return;
                                 navigator.pop();
-                                setState(() => _lastBookedService = service);
                                 messenger.showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -1477,76 +2179,120 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
     final controller = _AppScope.of(context);
     final services = _filteredServices;
     final categoryOptions = controller.serviceCategories;
+    final featuredServices = controller.services.take(6).toList(growable: false);
 
     if (!categoryOptions.contains(_selectedCategory)) {
       _selectedCategory = categoryOptions.first;
     }
 
+    if (featuredServices.isNotEmpty && _featuredServiceIndex >= featuredServices.length) {
+      _featuredServiceIndex = 0;
+    }
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AdaptiveSplit(
-            primary: _HeroCard(
-              title: 'Book a verified pro in Johannesburg with fast, clear service flow.',
-              body:
-                  'Choose a category, request help now or schedule ahead, and keep every booking update, message, and payment in one place.',
-              primaryLabel: 'Book now',
-              secondaryLabel: 'Schedule service',
-              onPrimaryPressed: services.isEmpty ? () {} : () => _openBookingSheet(services.first),
-              onSecondaryPressed: services.isEmpty ? () {} : () => _openBookingSheet(services.first, scheduledDefault: true),
+          _MarketplaceHeroCard(
+            title: 'Book trusted services with us.',
+            body:
+                'Browse mechanics, cleaners, plumbers, and more in a lighter premium layout, then track the provider live all the way to your door.',
+            primaryLabel: 'Book now',
+            secondaryLabel: 'Schedule later',
+            locationLabel: 'Johannesburg',
+            serviceBadges: controller.services.take(6).map((service) => service.title).toList(growable: false),
+            onPrimaryPressed: controller.services.isEmpty ? () {} : () => _openBookingSheet(controller.services.first),
+            onSecondaryPressed: controller.services.isEmpty
+                ? () {}
+                : () => _openBookingSheet(controller.services.first, scheduledDefault: true),
+            tertiaryLabel: controller.isAuthenticated ? null : 'Sign in',
+            onTertiaryPressed: controller.isAuthenticated ? null : _openCustomerSignIn,
+            authHint: controller.isAuthenticated ? null : 'Sign in securely with your mobile number to manage bookings, tracking, payments, and service updates.',
+          ),
+          const SizedBox(height: 28),
+          if (featuredServices.isNotEmpty) ...[
+            const _SectionHeading(
+              title: 'Popular services this week',
+              subtitle: 'A rotating yellow carousel that keeps the full marketplace visible at a glance.',
             ),
-            secondary: _SurfaceCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Booking state', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 14),
-                  const _InlineStatus(label: 'Coverage', value: 'Johannesburg, Sandton, Midrand and surrounds'),
-                  const SizedBox(height: 10),
-                  _InlineStatus(label: 'Signed in as', value: controller.currentUser?.role ?? 'Guest'),
-                  const SizedBox(height: 10),
-                  _InlineStatus(
-                    label: 'Last booked service',
-                    value: _lastBookedService?.title ?? 'None yet',
-                  ),
-                ],
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 300,
+              child: PageView.builder(
+                controller: _featuredServicesController,
+                itemCount: featuredServices.length,
+                onPageChanged: (index) => setState(() => _featuredServiceIndex = index),
+                itemBuilder: (context, index) {
+                  final service = featuredServices[index];
+                  return Padding(
+                    padding: EdgeInsets.only(right: index == featuredServices.length - 1 ? 0 : 12),
+                    child: _FeaturedServiceCard(
+                      data: service,
+                      onBook: () => _openBookingSheet(service),
+                      onSchedule: () => _openBookingSheet(service, scheduledDefault: true),
+                    ),
+                  );
+                },
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          const _SectionHeading(
-            title: 'Browse services',
-            subtitle: 'Filter, search, and launch the booking flow from any screen size.',
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            onChanged: (value) => setState(() => _searchQuery = value),
-            decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.search),
-              hintText: 'Search cleaning, plumbing, or urgent help',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: categoryOptions
-                .map(
-                  (category) => ChoiceChip(
-                    label: Text(category),
-                    selected: _selectedCategory == category,
-                    onSelected: (_) => setState(() => _selectedCategory = category),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                featuredServices.length,
+                (index) => AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: _featuredServiceIndex == index ? 28 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: _featuredServiceIndex == index ? KaziTheme.accentGold : const Color(0xFFE0D2A6),
+                    borderRadius: BorderRadius.circular(999),
                   ),
-                )
-                .toList(),
+                ),
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+          const _SectionHeading(
+            title: 'Browse all services',
+            subtitle: 'Search the full marketplace and open the same booking flow without changing backend behaviour.',
+          ),
+          const SizedBox(height: 12),
+          _SurfaceCard(
+            backgroundColor: Colors.white,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search),
+                    hintText: 'Search mechanics, cleaning, plumbing, or appliance repair',
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: categoryOptions
+                      .map(
+                        (category) => ChoiceChip(
+                          label: Text(category),
+                          selected: _selectedCategory == category,
+                          onSelected: (_) => setState(() => _selectedCategory = category),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           if (services.isEmpty)
             const _SurfaceCard(
-              child: Text('No live services available yet. Seed service categories and services in the backend to start real bookings.'),
+              child: Text('No services match this search right now. Try a different keyword or category.'),
             )
           else
             LayoutBuilder(
@@ -1588,6 +2334,43 @@ class _BookingsPage extends StatefulWidget {
 class _BookingsPageState extends State<_BookingsPage> {
   String _filter = 'All';
   Timer? _trackingPoller;
+
+  Future<void> _cancelBookingFlow(
+    _BookingData booking,
+  ) async {
+    final controller = _AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await _showReasonSheet(
+      context,
+      title: controller.isProvider ? 'Cancel this booking?' : 'Why are you cancelling?',
+      subtitle: controller.isProvider
+          ? 'Choose the reason that best matches why this active job should be released.'
+          : 'Choose a rideshare-style reason so the cancellation is clear in the trip record.',
+      confirmLabel: controller.isProvider ? 'Cancel booking' : 'Cancel trip',
+      options: controller.isProvider ? _providerCancellationReasons : _customerCancellationReasons,
+    );
+
+    if (!mounted || reason == null) {
+      return;
+    }
+
+    try {
+      await controller.cancelBooking(booking, reason: reason);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            controller.isProvider
+                ? 'Booking cancelled and removed from the provider queue.'
+                : 'Booking cancelled successfully.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 
   Future<void> _openChatSheet(_BookingData booking) async {
     await showModalBottomSheet<void>(
@@ -1646,7 +2429,11 @@ class _BookingsPageState extends State<_BookingsPage> {
     final hasTrackableBookings = controller.bookings.any((booking) => booking.supportsLiveTracking);
     if (!hasTrackableBookings) return;
     try {
-      await controller.refreshAuthenticatedData();
+      if (controller.isProvider) {
+        await controller.syncProviderTrackingForActiveBookings();
+      } else {
+        await controller.refreshAuthenticatedData();
+      }
     } catch (_) {
       // Keep the polling loop lightweight; explicit actions surface errors.
     }
@@ -1680,9 +2467,18 @@ class _BookingsPageState extends State<_BookingsPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Rate ${booking.serviceTitle}', style: Theme.of(context).textTheme.headlineSmall),
+                    Text(
+                      controller.isProvider
+                          ? 'Rate the customer for ${booking.serviceTitle}'
+                          : 'Rate the provider for ${booking.serviceTitle}',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
                     const SizedBox(height: 12),
-                    const Text('How was your provider experience?'),
+                    Text(
+                      controller.isProvider
+                          ? 'How was the customer experience on this trip?'
+                          : 'How was your provider experience?',
+                    ),
                     const SizedBox(height: 16),
                     Wrap(
                       spacing: 8,
@@ -1703,9 +2499,9 @@ class _BookingsPageState extends State<_BookingsPage> {
                     TextField(
                       controller: commentController,
                       maxLines: 3,
-                      decoration: const InputDecoration(
-                        labelText: 'Review note',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: controller.isProvider ? 'Customer feedback note' : 'Provider feedback note',
+                        border: const OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -1727,7 +2523,13 @@ class _BookingsPageState extends State<_BookingsPage> {
                                 if (!mounted) return;
                                 navigator.pop();
                                 messenger.showSnackBar(
-                                  const SnackBar(content: Text('Review submitted successfully.')),
+                                  SnackBar(
+                                    content: Text(
+                                      controller.isProvider
+                                          ? 'Customer rating submitted successfully.'
+                                          : 'Provider rating submitted successfully.',
+                                    ),
+                                  ),
                                 );
                               } catch (err) {
                                 setModalState(() => error = err.toString());
@@ -1779,9 +2581,36 @@ class _BookingsPageState extends State<_BookingsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeading(
-            title: 'Booking workflow',
-            subtitle: 'Move bookings through the lifecycle and keep the state readable on every screen size.',
+          _SurfaceCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: KaziTheme.softGold,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    controller.isProvider ? 'Provider trip controls' : 'Customer trip controls',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  controller.isProvider
+                      ? 'Accept, route, arrive, start, complete, or cancel from one trip-style view.'
+                      : 'Track the provider, message them, pay, or cancel from one cleaner booking flow.',
+                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  controller.isProvider
+                      ? 'This now behaves more like an Uber driver queue, with clear action states instead of a flat booking list.'
+                      : 'This now behaves more like a rider trip screen, with live status, tracking, and customer-side control actions.',
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           _ResponsiveGrid(
@@ -1848,9 +2677,8 @@ class _BookingsPageState extends State<_BookingsPage> {
                                 }
                               }
                             : null,
-                        onReview: controller.isCustomer &&
-                                booking.status == _BookingStatus.completed &&
-                                !booking.isRated
+                        onReview: booking.status == _BookingStatus.completed &&
+                          booking.needsReviewForRole(controller.isProvider)
                             ? () async {
                                 await _openReviewSheet(booking);
                               }
@@ -1904,10 +2732,15 @@ class _BookingsPageState extends State<_BookingsPage> {
                                     }
                                   }
                                 : null,
+                        onCancel: booking.status != _BookingStatus.completed && booking.status != _BookingStatus.cancelled
+                            ? () async {
+                                await _cancelBookingFlow(booking);
+                              }
+                            : null,
                         trackActionLabel: controller.isProvider
                             ? 'Update live location'
                             : booking.hasLiveTracking
-                                ? 'Open live map'
+                                ? 'Track provider'
                                 : null,
                       ),
                     ),
@@ -1930,6 +2763,44 @@ class _ProviderHubPage extends StatefulWidget {
 class _ProviderHubPageState extends State<_ProviderHubPage> {
   String _selectedDocumentType = 'national_id';
   bool _uploadingDocument = false;
+
+  Future<void> _cancelAcceptedJob(_ProviderJobData job) async {
+    final controller = _AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final booking = controller.bookings.cast<_BookingData?>().firstWhere(
+          (item) => item?.id == job.id,
+          orElse: () => null,
+        );
+
+    if (booking == null) {
+      messenger.showSnackBar(const SnackBar(content: Text('This booking is no longer available.')));
+      return;
+    }
+
+    final reason = await _showReasonSheet(
+      context,
+      title: 'Cancel accepted job?',
+      subtitle: 'Choose the reason that best explains why this assigned job should be released.',
+      confirmLabel: 'Cancel job',
+      options: _providerCancellationReasons,
+    );
+
+    if (!mounted || reason == null) {
+      return;
+    }
+
+    try {
+      await controller.cancelBooking(
+        booking,
+        reason: reason,
+      );
+      if (!mounted) return;
+      messenger.showSnackBar(const SnackBar(content: Text('Job cancelled and released from your queue.')));
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 
   Color _documentStatusColor(String status) {
     return switch (status) {
@@ -1959,41 +2830,57 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
         children: [
           _AdaptiveSplit(
             primary: _SurfaceCard(
-              backgroundColor: KaziTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Provider operations', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: KaziTheme.softGold,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Provider launch desk',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Provider hub with a calmer daily workflow', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05)),
                   const SizedBox(height: 12),
                   const Text(
-                    'Toggle availability, accept work, and keep your active queue visible in a single adaptive layout.',
-                    style: TextStyle(height: 1.5),
+                    'Keep onboarding, document uploads, availability, and incoming jobs in one cleaner workspace that matches the new storefront feel.',
                   ),
                   const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _HeroMetaPill(label: controller.providerAvailable ? 'Available now' : 'Availability paused'),
+                      _HeroMetaPill(label: '${controller.incomingJobs.length} incoming jobs'),
+                      _HeroMetaPill(label: '${controller.acceptedJobs.length} accepted today'),
+                    ],
+                  ),
+                  const SizedBox(height: 22),
                   if (controller.providerProfileMissing)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: FilledButton.tonal(
-                        onPressed: () async {
-                          try {
-                            await controller.completeProviderOnboarding();
-                          } catch (error) {
-                            if (!mounted) return;
-                            messenger.showSnackBar(
-                              SnackBar(content: Text(error.toString())),
-                            );
-                          }
-                        },
-                        child: const Text('Initialize provider onboarding'),
-                      ),
-                    ),
-                  if (!controller.providerProfileMissing) ...[
+                    FilledButton.tonal(
+                      onPressed: () async {
+                        try {
+                          await controller.completeProviderOnboarding();
+                        } catch (error) {
+                          if (!mounted) return;
+                          messenger.showSnackBar(
+                            SnackBar(content: Text(error.toString())),
+                          );
+                        }
+                      },
+                      child: const Text('Initialize provider onboarding'),
+                    )
+                  else ...[
                     DropdownButtonFormField<String>(
                       key: ValueKey(_selectedDocumentType),
                       initialValue: _selectedDocumentType,
                       decoration: const InputDecoration(
                         labelText: 'Verification document type',
-                        border: OutlineInputBorder(),
                       ),
                       items: const [
                         DropdownMenuItem(value: 'national_id', child: Text('National ID')),
@@ -2058,47 +2945,60 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                           : const Icon(Icons.upload_file_outlined),
                       label: Text(_uploadingDocument ? 'Uploading document...' : 'Upload verification document'),
                     ),
-                    const SizedBox(height: 16),
                   ],
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Available now'),
-                    subtitle: Text(
-                      controller.providerProfileMissing
-                          ? 'Create a provider profile first'
-                          : controller.providerAvailable
-                              ? 'Instant jobs enabled'
-                              : 'Paused for new assignments',
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: KaziTheme.surface,
+                      borderRadius: BorderRadius.circular(22),
                     ),
-                    value: controller.providerAvailable,
-                    onChanged: controller.providerProfileMissing
-                        ? null
-                        : (value) async {
-                            try {
-                              await controller.setProviderAvailability(value);
-                            } catch (error) {
-                              if (!mounted) return;
-                              messenger.showSnackBar(
-                                SnackBar(content: Text(error.toString())),
-                              );
-                            }
-                          },
+                    child: SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Available now'),
+                      subtitle: Text(
+                        controller.providerProfileMissing
+                            ? 'Create a provider profile first'
+                            : controller.providerAvailable
+                                ? 'Instant jobs enabled'
+                                : 'Paused for new assignments',
+                      ),
+                      value: controller.providerAvailable,
+                      onChanged: controller.providerProfileMissing
+                          ? null
+                          : (value) async {
+                              try {
+                                await controller.setProviderAvailability(value);
+                              } catch (error) {
+                                if (!mounted) return;
+                                messenger.showSnackBar(
+                                  SnackBar(content: Text(error.toString())),
+                                );
+                              }
+                            },
+                    ),
                   ),
                 ],
               ),
             ),
             secondary: _SurfaceCard(
-              backgroundColor: KaziTheme.primaryGreen,
+              backgroundColor: KaziTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Provider status',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Daily status',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                  const Text('Provider status', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 14),
                   _InlineStatus(
                     label: 'Verification',
@@ -2169,7 +3069,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
           const SizedBox(height: 24),
           const _SectionHeading(
             title: 'Incoming jobs',
-            subtitle: 'Accept work directly from the provider view and keep tablet density without losing mobile clarity.',
+            subtitle: 'Accept work from a cleaner card layout that keeps timing, pay, and distance easy to scan.',
           ),
           const SizedBox(height: 12),
           _ResponsiveGrid(
@@ -2196,6 +3096,30 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                             }
                           }
                         : null,
+                    onDecline: () async {
+                      final reason = await _showReasonSheet(
+                        context,
+                        title: 'Decline this job?',
+                        subtitle: 'Choose the reason that best fits why you are skipping this incoming dispatch.',
+                        confirmLabel: 'Decline job',
+                        options: _providerDeclineReasons,
+                      );
+                      if (!mounted || reason == null) {
+                        return;
+                      }
+                      try {
+                        await controller.declineJob(job, reason: reason);
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('${job.title} declined. We will keep other jobs moving.')),
+                        );
+                      } catch (error) {
+                        if (!mounted) return;
+                        messenger.showSnackBar(
+                          SnackBar(content: Text(error.toString())),
+                        );
+                      }
+                    },
                   ),
                 )
                 .toList(),
@@ -2203,7 +3127,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
           const SizedBox(height: 24),
           const _SectionHeading(
             title: 'Today\'s accepted jobs',
-            subtitle: 'Accepted jobs move into the live queue for the provider.',
+            subtitle: 'Accepted work stays in a lighter queue view built around the same visual language as the customer home.',
           ),
           const SizedBox(height: 12),
           if (controller.acceptedJobs.isEmpty)
@@ -2216,7 +3140,12 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                   .map(
                     (job) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _AcceptedJobTile(job: job),
+                        child: _AcceptedJobTile(
+                          job: job,
+                          onCancel: () async {
+                            await _cancelAcceptedJob(job);
+                          },
+                        ),
                     ),
                   )
                   .toList(),
@@ -2273,23 +3202,84 @@ class _WalletPageState extends State<_WalletPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionHeading(
-            title: 'Wallet and history',
-            subtitle: 'Switch context between customer and provider views while keeping transactions readable on every device size.',
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: ['Customer', 'Provider']
-                .map(
-                  (view) => ChoiceChip(
-                    label: Text(view),
-                    selected: _ledgerView == view,
-                    onSelected: (_) => setState(() => _ledgerView = view),
+          _AdaptiveSplit(
+            primary: _SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: KaziTheme.softGold,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Wallet and rewards',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                    ),
                   ),
-                )
-                .toList(),
+                  const SizedBox(height: 16),
+                  const Text('A cleaner earnings and credits view', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05)),
+                  const SizedBox(height: 12),
+                  Text(
+                    _ledgerView == 'Customer'
+                        ? 'Check available credits, promo rewards, and transaction history without the old dashboard clutter.'
+                        : 'Switch to the provider view to scan earnings and payout context with the same lighter visual rhythm.',
+                  ),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: ['Customer', 'Provider']
+                        .map(
+                          (view) => ChoiceChip(
+                            label: Text(view),
+                            selected: _ledgerView == view,
+                            onSelected: (_) => setState(() => _ledgerView = view),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                  const SizedBox(height: 18),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _HeroMetaPill(label: '$credits credit items'),
+                      _HeroMetaPill(label: '$debits debit items'),
+                      _HeroMetaPill(label: activePromos.isEmpty ? 'No active promos' : '${activePromos.length} active promos'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            secondary: _SurfaceCard(
+              backgroundColor: KaziTheme.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: const Text(
+                      'Balance snapshot',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _InlineStatus(label: 'Current view', value: _ledgerView),
+                  const SizedBox(height: 10),
+                  _InlineStatus(label: 'Available balance', value: balanceValue),
+                  const SizedBox(height: 10),
+                  _InlineStatus(label: 'Referral code', value: referralSummary?.referralCode ?? 'Unavailable'),
+                  const SizedBox(height: 10),
+                  _InlineStatus(label: 'Reward pool', value: activePromos.isEmpty ? 'No promos' : '${activePromos.length} offers'),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 16),
           _ResponsiveGrid(
@@ -2317,21 +3307,22 @@ class _WalletPageState extends State<_WalletPage> {
           const SizedBox(height: 24),
           _AdaptiveSplit(
             primary: _SurfaceCard(
+              backgroundColor: Colors.white,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Transaction history', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const Text('Transaction history', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 14),
                   ...history.map((entry) => _WalletHistoryTile(entry: entry)),
                 ],
               ),
             ),
             secondary: _SurfaceCard(
-              backgroundColor: const Color(0xFFFFF4D6),
+              backgroundColor: KaziTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Payout and promo rules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                  const Text('Payout and promo rules', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 14),
                   const _InlineStatus(label: 'Next payout', value: 'Friday, 16:00'),
                   const SizedBox(height: 10),
@@ -2417,63 +3408,426 @@ class _WalletPageState extends State<_WalletPage> {
   }
 }
 
-class _HeroCard extends StatelessWidget {
-  const _HeroCard({
+class _MarketplaceHeroCard extends StatelessWidget {
+  const _MarketplaceHeroCard({
     required this.title,
     required this.body,
     required this.primaryLabel,
     required this.secondaryLabel,
+    required this.locationLabel,
+    required this.serviceBadges,
     required this.onPrimaryPressed,
     required this.onSecondaryPressed,
+    this.tertiaryLabel,
+    this.onTertiaryPressed,
+    this.authHint,
   });
 
   final String title;
   final String body;
   final String primaryLabel;
   final String secondaryLabel;
+  final String locationLabel;
+  final List<String> serviceBadges;
   final VoidCallback onPrimaryPressed;
   final VoidCallback onSecondaryPressed;
+  final String? tertiaryLabel;
+  final VoidCallback? onTertiaryPressed;
+  final String? authHint;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF006B3C), Color(0xFF0D8C54)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFCF4),
+            Color(0xFFFFF1BF),
+            Color(0xFFFFF9E8),
+          ],
         ),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(color: const Color(0xFFE6D19C)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14003E25),
+            blurRadius: 34,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 840;
+
+          return Flex(
+            direction: wide ? Axis.horizontal : Axis.vertical,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: wide ? 6 : 0,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFE8D5A5)),
+                      ),
+                      child: const Text(
+                        'KAZI HOME SERVICES',
+                        style: TextStyle(
+                          color: KaziTheme.primaryGreen,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.9,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: Text(
+                        title,
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              color: const Color(0xFF113321),
+                              fontSize: 44,
+                              fontWeight: FontWeight.w900,
+                              height: 1.02,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 560),
+                      child: Text(
+                        body,
+                        style: const TextStyle(
+                          color: Color(0xFF4A5C52),
+                          fontSize: 17,
+                          height: 1.65,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: serviceBadges
+                          .map(
+                            (badge) => Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                                border: Border.all(color: const Color(0xFFE4DAB9)),
+                              ),
+                              child: Text(
+                                badge,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF214230),
+                                ),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                    const SizedBox(height: 24),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        FilledButton(onPressed: onPrimaryPressed, child: Text(primaryLabel)),
+                        OutlinedButton(onPressed: onSecondaryPressed, child: Text(secondaryLabel)),
+                        if (tertiaryLabel != null && onTertiaryPressed != null)
+                          TextButton(onPressed: onTertiaryPressed, child: Text(tertiaryLabel!)),
+                      ],
+                    ),
+                    if (authHint != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        authHint!,
+                        style: const TextStyle(
+                          color: Color(0xFF526056),
+                          height: 1.5,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(width: wide ? 20 : 0, height: wide ? 0 : 20),
+              Expanded(
+                flex: wide ? 4 : 0,
+                child: _HeroShowcasePanel(
+                  locationLabel: locationLabel,
+                  serviceBadges: serviceBadges,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeroShowcasePanel extends StatelessWidget {
+  const _HeroShowcasePanel({required this.locationLabel, required this.serviceBadges});
+
+  final String locationLabel;
+  final List<String> serviceBadges;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFFFFC83D),
+            Color(0xFFFFB81C),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(30),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x24A86E00),
+            blurRadius: 26,
+            offset: Offset(0, 18),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(
+          Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(Icons.near_me_outlined, color: KaziTheme.primaryGreen),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Live arrival tracking',
+                      style: TextStyle(
+                        color: Color(0xFF173325),
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$locationLabel coverage with fast dispatch windows.',
+                      style: const TextStyle(
+                        color: Color(0xFF355344),
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const _InlineStatus(label: 'Best for', value: 'Same-day home and vehicle help'),
+          const SizedBox(height: 10),
+          const _InlineStatus(label: 'Booking flow', value: 'Book, track, pay, and rate in one place'),
+          const SizedBox(height: 10),
+          const _InlineStatus(label: 'Availability', value: 'Instant and scheduled visits'),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: serviceBadges
+                .take(4)
+                .map(
+                  (badge) => Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDF8E9),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      badge,
+                      style: const TextStyle(
+                        color: Color(0xFF193625),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturedServiceCard extends StatelessWidget {
+  const _FeaturedServiceCard({
+    required this.data,
+    required this.onBook,
+    required this.onSchedule,
+  });
+
+  final _ServiceData data;
+  final VoidCallback onBook;
+  final VoidCallback onSchedule;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFD56A),
+            Color(0xFFFFBE24),
+            Color(0xFFFFD56A),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: const Color(0xFFD3A118)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x259D6C00),
+            blurRadius: 28,
+            offset: Offset(0, 18),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
               color: Colors.white,
-              fontSize: 30,
-              height: 1.05,
-              fontWeight: FontWeight.w800,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              data.category.toUpperCase(),
+              style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w800, letterSpacing: 0.8),
             ),
           ),
-          const SizedBox(height: 14),
-          Text(body, style: const TextStyle(color: Colors.white70, height: 1.5)),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
+          const SizedBox(height: 16),
+          Row(
             children: [
-              FilledButton(onPressed: onPrimaryPressed, child: Text(primaryLabel)),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: const Color(0x33FFFFFF),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(data.icon, color: const Color(0xFF163524)),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      data.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF163524),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Fast dispatch with live tracking',
+                      style: TextStyle(color: Color(0xFF4E4A2F), fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Text(
+            data.subtitle,
+            style: const TextStyle(color: Color(0xFF4B4A40), height: 1.55),
+          ),
+          const Spacer(),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _HeroMetaPill(label: data.priceFrom, highlighted: true),
+              _HeroMetaPill(label: data.eta),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton(onPressed: onBook, child: const Text('Book now')),
               OutlinedButton(
-                onPressed: onSecondaryPressed,
-                style: OutlinedButton.styleFrom(foregroundColor: Colors.white),
-                child: Text(secondaryLabel),
+                onPressed: onSchedule,
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0x66FFFFFF)),
+                  foregroundColor: const Color(0xFF163524),
+                ),
+                child: const Text('Schedule'),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeroMetaPill extends StatelessWidget {
+  const _HeroMetaPill({required this.label, this.highlighted = false});
+
+  final String label;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: highlighted
+            ? KaziTheme.accentGold
+            : const Color(0xFFFDF8E7),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: highlighted ? const Color(0xFFD3A118) : const Color(0xFFE2D5AB),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          color: highlighted ? KaziTheme.primaryGreen : null,
+        ),
       ),
     );
   }
@@ -2679,6 +4033,7 @@ class _ServiceFlowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
+      backgroundColor: Colors.white,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth < 220;
@@ -2692,28 +4047,52 @@ class _ServiceFlowCard extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: compact ? 40 : 48,
-                height: compact ? 40 : 48,
-                decoration: BoxDecoration(
-                  color: KaziTheme.surface,
-                  borderRadius: BorderRadius.circular(compact ? 14 : 16),
-                ),
-                child: Icon(data.icon, color: KaziTheme.primaryGreen, size: compact ? 20 : 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: compact ? 40 : 48,
+                    height: compact ? 40 : 48,
+                    decoration: BoxDecoration(
+                      color: KaziTheme.softGold,
+                      borderRadius: BorderRadius.circular(compact ? 14 : 16),
+                    ),
+                    child: Icon(data.icon, color: KaziTheme.primaryGreen, size: compact ? 20 : 24),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFF5D6),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      data.category,
+                      style: const TextStyle(
+                        color: KaziTheme.primaryGreen,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               SizedBox(height: compact ? 12 : 16),
               Text(
                 data.title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: compact ? 16 : 18, fontWeight: FontWeight.w700),
+                style: TextStyle(
+                  fontSize: compact ? 16 : 19,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF163524),
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 data.subtitle,
                 maxLines: compact ? 2 : 3,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF4F5B53), height: 1.45),
+                style: const TextStyle(color: Color(0xFF536158), height: 1.5),
               ),
               SizedBox(height: compact ? 12 : 16),
               if (compact)
@@ -2760,6 +4139,7 @@ class _BookingWorkflowCard extends StatelessWidget {
     this.onMessage,
     this.onCall,
     this.onTrack,
+    this.onCancel,
     this.trackActionLabel,
   });
 
@@ -2770,6 +4150,7 @@ class _BookingWorkflowCard extends StatelessWidget {
   final VoidCallback? onMessage;
   final VoidCallback? onCall;
   final VoidCallback? onTrack;
+  final VoidCallback? onCancel;
   final String? trackActionLabel;
 
   @override
@@ -2797,6 +4178,10 @@ class _BookingWorkflowCard extends StatelessWidget {
           _InlineStatus(label: 'Payment status', value: booking.paymentStatusLabel),
           const SizedBox(height: 10),
           _InlineStatus(label: 'Amount', value: booking.amount),
+          if (booking.hasMapPreview) ...[
+            const SizedBox(height: 14),
+            _BookingTrackingMapCard(booking: booking),
+          ],
           if (booking.supportsLiveTracking) ...[
             const SizedBox(height: 10),
             _InlineStatus(
@@ -2815,7 +4200,7 @@ class _BookingWorkflowCard extends StatelessWidget {
             onPressed: onAdvance,
             child: Text(onAdvance == null ? 'Booking completed' : booking.status.nextActionLabel),
           ),
-          if (onReview != null || onPayNow != null || onMessage != null || onCall != null || onTrack != null) ...[
+          if (onReview != null || onPayNow != null || onMessage != null || onCall != null || onTrack != null || onCancel != null) ...[
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -2840,6 +4225,11 @@ class _BookingWorkflowCard extends StatelessWidget {
                   OutlinedButton(
                     onPressed: onTrack,
                     child: Text(trackActionLabel!),
+                  ),
+                if (onCancel != null)
+                  OutlinedButton(
+                    onPressed: onCancel,
+                    child: const Text('Cancel booking'),
                   ),
                 if (onReview != null)
                   OutlinedButton(
@@ -3103,42 +4493,11 @@ class _BookingChatSheetState extends State<_BookingChatSheet> {
 }
 
 class _IncomingJobCard extends StatelessWidget {
-  const _IncomingJobCard({required this.data, required this.onAccept});
+  const _IncomingJobCard({required this.data, required this.onAccept, required this.onDecline});
 
   final _ProviderJobData data;
   final VoidCallback? onAccept;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(data.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 8),
-          Text(data.category, style: const TextStyle(color: Color(0xFF4F5B53))),
-          const SizedBox(height: 10),
-          _InlineStatus(label: 'Timing', value: data.timing),
-          const SizedBox(height: 10),
-          _InlineStatus(label: 'Budget', value: data.pay),
-          const SizedBox(height: 10),
-          _InlineStatus(label: 'Distance', value: data.distance),
-          const Spacer(),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: onAccept,
-            child: Text(onAccept == null ? 'Unavailable' : 'Accept job'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AcceptedJobTile extends StatelessWidget {
-  const _AcceptedJobTile({required this.job});
-
-  final _ProviderJobData job;
+  final VoidCallback? onDecline;
 
   @override
   Widget build(BuildContext context) {
@@ -3147,13 +4506,96 @@ class _AcceptedJobTile extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(job.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(Icons.work_outline, color: KaziTheme.primaryGreen),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(data.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(data.category, style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 10),
+          _InlineStatus(label: 'Timing', value: data.timing),
+          const SizedBox(height: 10),
+          _InlineStatus(label: 'Budget', value: data.pay),
+          const SizedBox(height: 10),
+          _InlineStatus(label: 'Distance', value: data.distance),
+          const Spacer(),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton(
+                onPressed: onAccept,
+                child: Text(onAccept == null ? 'Unavailable' : 'Accept job'),
+              ),
+              OutlinedButton(
+                onPressed: onDecline,
+                child: const Text('Decline'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AcceptedJobTile extends StatelessWidget {
+  const _AcceptedJobTile({required this.job, this.onCancel});
+
+  final _ProviderJobData job;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      backgroundColor: KaziTheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.check_circle_outline, color: KaziTheme.primaryGreen, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(job.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ],
+          ),
           const SizedBox(height: 10),
           _InlineStatus(label: 'Time', value: job.timing),
           const SizedBox(height: 8),
           _InlineStatus(label: 'Pay', value: job.pay),
           const SizedBox(height: 8),
           _InlineStatus(label: 'Distance', value: job.distance),
+          if (onCancel != null) ...[
+            const SizedBox(height: 14),
+            OutlinedButton(
+              onPressed: onCancel,
+              child: const Text('Cancel job'),
+            ),
+          ],
         ],
       ),
     );
@@ -3169,33 +4611,41 @@ class _WalletHistoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: entry.isCredit ? const Color(0xFFE6F5EC) : const Color(0xFFFFECE8),
-            child: Icon(
-              entry.isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-              color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: KaziTheme.surface,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: entry.isCredit ? const Color(0xFFE6F5EC) : const Color(0xFFFFECE8),
+              child: Icon(
+                entry.isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+                color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(entry.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(entry.subtitle, style: const TextStyle(color: Color(0xFF4F5B53))),
-              ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(entry.title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 2),
+                  Text(entry.subtitle, style: const TextStyle(color: Color(0xFF4F5B53))),
+                ],
+              ),
             ),
-          ),
-          Text(
-            entry.amount,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+            Text(
+              entry.amount,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -3352,11 +4802,18 @@ class _WalletStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      backgroundColor: KaziTheme.surface,
+      backgroundColor: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(color: Color(0xFF4F5B53))),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: KaziTheme.softGold,
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(title, style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w700)),
+          ),
           const Spacer(),
           Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
           const SizedBox(height: 8),
@@ -3450,10 +4907,14 @@ class _BookingData {
     required this.paymentMethod,
     required this.paymentStatus,
     required this.amount,
+    required this.customerLat,
+    required this.customerLng,
     required this.providerCurrentLat,
     required this.providerCurrentLng,
     required this.providerLocationUpdatedAt,
     required this.isRated,
+    required this.customerHasRated,
+    required this.providerHasRated,
   });
 
   final String id;
@@ -3464,10 +4925,14 @@ class _BookingData {
   final String paymentMethod;
   final String paymentStatus;
   final String amount;
+  final double? customerLat;
+  final double? customerLng;
   final double? providerCurrentLat;
   final double? providerCurrentLng;
   final DateTime? providerLocationUpdatedAt;
   final bool isRated;
+  final bool customerHasRated;
+  final bool providerHasRated;
 
   bool get canPayOnline =>
       (paymentMethod == 'CARD' || paymentMethod == 'EFT') && paymentStatus != 'PAID' && status != _BookingStatus.cancelled;
@@ -3477,9 +4942,13 @@ class _BookingData {
 
   bool get hasLiveTracking => providerCurrentLat != null && providerCurrentLng != null;
 
-    String get paymentMethodLabel => _formatPaymentMethodLabel(paymentMethod);
+  bool get hasPinnedCustomerLocation => customerLat != null && customerLng != null;
 
-    String get paymentStatusLabel => _formatPaymentStatusLabel(paymentStatus);
+  bool get hasMapPreview => hasPinnedCustomerLocation || hasLiveTracking;
+
+  String get paymentMethodLabel => _formatPaymentMethodLabel(paymentMethod);
+
+  String get paymentStatusLabel => _formatPaymentStatusLabel(paymentStatus);
 
   String get trackingSummary {
     if (!supportsLiveTracking) {
@@ -3492,10 +4961,27 @@ class _BookingData {
     final freshness = updatedAt == null
         ? 'just now'
         : '${DateTime.now().difference(updatedAt).inMinutes.clamp(0, 120)} min ago';
-    return '${providerCurrentLat!.toStringAsFixed(5)}, ${providerCurrentLng!.toStringAsFixed(5)} • $freshness';
+    if (customerLat != null && customerLng != null) {
+      final distanceMeters = Geolocator.distanceBetween(
+        customerLat!,
+        customerLng!,
+        providerCurrentLat!,
+        providerCurrentLng!,
+      );
+      final distanceLabel = _formatDistanceMeters(distanceMeters);
+      return '$distanceLabel • updated $freshness';
+    }
+    return '${providerCurrentLat!.toStringAsFixed(5)}, ${providerCurrentLng!.toStringAsFixed(5)} • updated $freshness';
   }
 
-  _BookingData copyWith({_BookingStatus? status, bool? isRated}) {
+  bool needsReviewForRole(bool isProvider) => isProvider ? !providerHasRated : !customerHasRated;
+
+  _BookingData copyWith({
+    _BookingStatus? status,
+    bool? isRated,
+    bool? customerHasRated,
+    bool? providerHasRated,
+  }) {
     return _BookingData(
       id: id,
       serviceTitle: serviceTitle,
@@ -3505,12 +4991,197 @@ class _BookingData {
       paymentMethod: paymentMethod,
       paymentStatus: paymentStatus,
       amount: amount,
+      customerLat: customerLat,
+      customerLng: customerLng,
       providerCurrentLat: providerCurrentLat,
       providerCurrentLng: providerCurrentLng,
       providerLocationUpdatedAt: providerLocationUpdatedAt,
       isRated: isRated ?? this.isRated,
+      customerHasRated: customerHasRated ?? this.customerHasRated,
+      providerHasRated: providerHasRated ?? this.providerHasRated,
     );
   }
+}
+
+class _BookingTrackingMapCard extends StatelessWidget {
+  const _BookingTrackingMapCard({required this.booking});
+
+  final _BookingData booking;
+
+  @override
+  Widget build(BuildContext context) {
+    final points = <latlng.LatLng>[
+      if (booking.hasPinnedCustomerLocation) latlng.LatLng(booking.customerLat!, booking.customerLng!),
+      if (booking.hasLiveTracking) latlng.LatLng(booking.providerCurrentLat!, booking.providerCurrentLng!),
+    ];
+
+    if (points.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final center = latlng.LatLng(
+      points.map((point) => point.latitude).reduce((total, value) => total + value) / points.length,
+      points.map((point) => point.longitude).reduce((total, value) => total + value) / points.length,
+    );
+
+    final distanceLabel = booking.hasPinnedCustomerLocation && booking.hasLiveTracking
+        ? _formatDistanceMeters(
+            Geolocator.distanceBetween(
+              booking.customerLat!,
+              booking.customerLng!,
+              booking.providerCurrentLat!,
+              booking.providerCurrentLng!,
+            ),
+          )
+        : booking.hasPinnedCustomerLocation
+            ? 'Customer pin confirmed'
+            : 'Provider live position';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F3E8),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD8CFBA)),
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.route_outlined, size: 18, color: Color(0xFF1A231D)),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  distanceLabel,
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1A231D)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 180,
+              child: FlutterMap(
+                options: MapOptions(initialCenter: center, initialZoom: 13.2),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'com.kazi.mobile',
+                  ),
+                  if (booking.hasPinnedCustomerLocation && booking.hasLiveTracking)
+                    PolylineLayer(
+                      polylines: [
+                        Polyline(
+                          points: [
+                            latlng.LatLng(booking.providerCurrentLat!, booking.providerCurrentLng!),
+                            latlng.LatLng(booking.customerLat!, booking.customerLng!),
+                          ],
+                          strokeWidth: 4,
+                          color: const Color(0xFF22543D),
+                        ),
+                      ],
+                    ),
+                  MarkerLayer(
+                    markers: [
+                      if (booking.hasPinnedCustomerLocation)
+                        Marker(
+                          point: latlng.LatLng(booking.customerLat!, booking.customerLng!),
+                          width: 44,
+                          height: 44,
+                          child: const _TrackingMarker(
+                            icon: Icons.home_work_outlined,
+                            backgroundColor: Color(0xFFFAF1D7),
+                            iconColor: Color(0xFF8A5A00),
+                          ),
+                        ),
+                      if (booking.hasLiveTracking)
+                        Marker(
+                          point: latlng.LatLng(booking.providerCurrentLat!, booking.providerCurrentLng!),
+                          width: 44,
+                          height: 44,
+                          child: const _TrackingMarker(
+                            icon: Icons.local_shipping_outlined,
+                            backgroundColor: Color(0xFFDBF3E2),
+                            iconColor: Color(0xFF22543D),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const RichAttributionWidget(
+                    attributions: [
+                      TextSourceAttribution('OpenStreetMap contributors'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            booking.hasLiveTracking
+                ? 'The provider marker updates while the provider keeps the app open on the way to the job.'
+                : 'The customer location is already pinned. The provider marker appears as soon as live sharing starts.',
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrackingMarker extends StatelessWidget {
+  const _TrackingMarker({
+    required this.icon,
+    required this.backgroundColor,
+    required this.iconColor,
+  });
+
+  final IconData icon;
+  final Color backgroundColor;
+  final Color iconColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+        boxShadow: const [
+          BoxShadow(color: Color(0x24000000), blurRadius: 10, offset: Offset(0, 4)),
+        ],
+      ),
+      child: Icon(icon, color: iconColor, size: 22),
+    );
+  }
+}
+
+String _formatDistanceMeters(double distanceMeters) {
+  if (distanceMeters >= 1000) {
+    return '${(distanceMeters / 1000).toStringAsFixed(1)} km away';
+  }
+  return '${distanceMeters.round()} m away';
+}
+
+String _formatPinnedLocationLabel(Position position) {
+  return 'Current location (${position.latitude.toStringAsFixed(5)}, ${position.longitude.toStringAsFixed(5)})';
+}
+
+String _formatPlacemarkAddress(Placemark placemark) {
+  final parts = <String>[
+    if ((placemark.street ?? '').trim().isNotEmpty) placemark.street!.trim(),
+    if ((placemark.subLocality ?? '').trim().isNotEmpty) placemark.subLocality!.trim(),
+    if ((placemark.locality ?? '').trim().isNotEmpty) placemark.locality!.trim(),
+    if ((placemark.administrativeArea ?? '').trim().isNotEmpty) placemark.administrativeArea!.trim(),
+  ];
+
+  if (parts.isEmpty) {
+    return 'Current location';
+  }
+
+  return parts.toSet().join(', ');
 }
 
 class _NotificationData {
@@ -3545,7 +5216,9 @@ class _NotificationData {
 enum _BookingStatus {
   requested('Requested', 0.2, Color(0xFFD89B00), 'Match provider'),
   matched('Matched', 0.45, Color(0xFF006B3C), 'Mark en route'),
-  enRoute('En route', 0.75, Color(0xFF006B3C), 'Complete booking'),
+  enRoute('En route', 0.62, Color(0xFF006B3C), 'Mark arrived'),
+  arrived('Arrived', 0.78, Color(0xFF0B8A4A), 'Start service'),
+  inProgress('In progress', 0.9, Color(0xFF0B8A4A), 'Complete booking'),
   scheduled('Scheduled', 0.15, Color(0xFF2962FF), 'Activate booking'),
   completed('Completed', 1.0, Color(0xFF1F7A45), 'Completed'),
   cancelled('Cancelled', 1.0, Color(0xFF9E9E9E), 'Cancelled');

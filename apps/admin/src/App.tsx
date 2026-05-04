@@ -60,11 +60,33 @@ type RecentPayment = {
   updatedAt: string;
 };
 
-const DEFAULT_API_BASE_URL = 'http://localhost:3001/api/v1';
+type AdminAuthResponse = {
+  accessToken: string;
+  refreshToken: string;
+  user: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+  };
+};
+
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3002/api/v1';
+
+function getInitialApiBaseUrl() {
+  const stored = localStorage.getItem('kazi.admin.apiBaseUrl');
+  if (!stored || stored === 'http://localhost:3001/api/v1' || stored === 'http://127.0.0.1:3001/api/v1') {
+    return DEFAULT_API_BASE_URL;
+  }
+
+  return stored;
+}
 
 export function App() {
-  const [apiBaseUrl, setApiBaseUrl] = useState(() => localStorage.getItem('kazi.admin.apiBaseUrl') || DEFAULT_API_BASE_URL);
+  const [apiBaseUrl, setApiBaseUrl] = useState(getInitialApiBaseUrl);
+  const [email, setEmail] = useState(() => localStorage.getItem('kazi.admin.email') || 'sales@gubudo.com');
+  const [password, setPassword] = useState(() => localStorage.getItem('kazi.admin.password') || 'Merc1985!');
   const [token, setToken] = useState(() => localStorage.getItem('kazi.admin.token') || '');
+  const [adminIdentity, setAdminIdentity] = useState(() => localStorage.getItem('kazi.admin.identity') || '');
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
@@ -74,6 +96,7 @@ export function App() {
   const [savingSettings, setSavingSettings] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [showDeveloperSettings, setShowDeveloperSettings] = useState(false);
 
   function formatCurrency(cents: number) {
     return new Intl.NumberFormat('en-ZA', {
@@ -122,20 +145,32 @@ export function App() {
   }, [apiBaseUrl]);
 
   useEffect(() => {
+    localStorage.setItem('kazi.admin.email', email);
+  }, [email]);
+
+  useEffect(() => {
+    localStorage.setItem('kazi.admin.password', password);
+  }, [password]);
+
+  useEffect(() => {
     localStorage.setItem('kazi.admin.token', token);
   }, [token]);
+
+  useEffect(() => {
+    localStorage.setItem('kazi.admin.identity', adminIdentity);
+  }, [adminIdentity]);
 
   useEffect(() => {
     if (!token.trim()) return;
     void loadDashboard();
   }, []);
 
-  async function request<T>(path: string, init?: RequestInit) {
+  async function request<T>(path: string, init?: RequestInit, accessToken = token) {
     const response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...(init?.headers || {}),
       },
     });
@@ -148,10 +183,39 @@ export function App() {
     return response.json() as Promise<T>;
   }
 
-  async function loadDashboard(event?: FormEvent) {
+  async function loginAdmin(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    setErrorMessage('');
+    setStatusMessage('');
+
+    try {
+      const auth = await request<AdminAuthResponse>(
+        '/auth/admin/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        },
+        '',
+      );
+
+      const identity = auth.user.email || [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ') || 'Admin';
+      setToken(auth.accessToken);
+      setAdminIdentity(identity);
+      setPassword('Merc1985!');
+      await loadDashboard(undefined, auth.accessToken);
+      setStatusMessage(`Signed in as ${identity}.`);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to sign in as admin.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadDashboard(event?: FormEvent, accessToken = token) {
     event?.preventDefault();
-    if (!token.trim()) {
-      setErrorMessage('Paste an admin bearer token before connecting.');
+    if (!accessToken.trim()) {
+      setErrorMessage('Sign in as an admin before loading the dashboard.');
       return;
     }
 
@@ -161,22 +225,34 @@ export function App() {
 
     try {
       const [settingsResponse, pendingResponse, metricsResponse, recentPaymentsResponse] = await Promise.all([
-        request<PlatformSettings>('/admin/settings'),
-        request<PendingProvider[]>('/admin/providers/pending-verification'),
-        request<DashboardMetrics>('/admin/dashboard-metrics'),
-        request<RecentPayment[]>('/admin/payments/recent'),
+        request<PlatformSettings>('/admin/settings', undefined, accessToken),
+        request<PendingProvider[]>('/admin/providers/pending-verification', undefined, accessToken),
+        request<DashboardMetrics>('/admin/dashboard-metrics', undefined, accessToken),
+        request<RecentPayment[]>('/admin/payments/recent', undefined, accessToken),
       ]);
 
       setSettings(settingsResponse);
       setPendingProviders(pendingResponse);
       setMetrics(metricsResponse);
       setRecentPayments(recentPaymentsResponse);
-      setStatusMessage('Admin console connected.');
+      setStatusMessage(adminIdentity ? `Admin console connected as ${adminIdentity}.` : 'Admin console connected.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load admin dashboard.');
     } finally {
       setLoading(false);
     }
+  }
+
+  function signOut() {
+    setToken('');
+    setPassword('Merc1985!');
+    setAdminIdentity('');
+    setSettings(null);
+    setMetrics(null);
+    setRecentPayments([]);
+    setPendingProviders([]);
+    setStatusMessage('Signed out.');
+    setErrorMessage('');
   }
 
   async function saveSettings() {
@@ -222,31 +298,80 @@ export function App() {
   return (
     <main className="shell">
       <section className="hero">
-        <div>
+        <div className="heroContent">
+          <div className="brandLockup">
+            <div className="brandMark">K</div>
+            <div>
+              <strong>KAZI</strong>
+              <span>On-demand services · South Africa</span>
+            </div>
+          </div>
           <p className="eyebrow">KAZI Admin</p>
           <h1>Compliance, commission, and launch control for the South African MVP.</h1>
           <p className="lede">
             This console now runs the operational core of the MVP: platform policy, onboarding review,
             booking analytics, and payment monitoring for Johannesburg launch readiness.
           </p>
+          <div className="heroPills">
+            <span className="heroPill highlight">Johannesburg launch desk</span>
+            <span className="heroPill">Provider compliance</span>
+            <span className="heroPill">Payments monitoring</span>
+          </div>
         </div>
-        <div className="heroBadge">af-south-1 operations</div>
+        <div className="heroBadge">
+          <span>af-south-1</span>
+          <strong>Operations live</strong>
+          <small>Local admin testing is preloaded.</small>
+        </div>
       </section>
 
       <section className="authPanel surfacePanel">
-        <form className="authForm" onSubmit={loadDashboard}>
-          <label>
-            API Base URL
-            <input value={apiBaseUrl} onChange={(event) => setApiBaseUrl(event.target.value)} placeholder={DEFAULT_API_BASE_URL} />
-          </label>
-          <label className="tokenField">
-            Admin Bearer Token
-            <textarea value={token} onChange={(event) => setToken(event.target.value)} rows={3} placeholder="Paste a JWT for an admin user" />
-          </label>
-          <button type="submit" className="primaryButton" disabled={loading}>
-            {loading ? 'Connecting...' : 'Connect Admin Console'}
+        {token ? (
+          <div className="authForm">
+            <label>
+              Signed in as
+              <input value={adminIdentity || email} readOnly />
+            </label>
+            <div className="actionRow">
+              <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading}>
+                {loading ? 'Refreshing...' : 'Refresh Dashboard'}
+              </button>
+              <button type="button" className="primaryButton" onClick={signOut}>
+                Sign out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <form className="authForm" onSubmit={loginAdmin}>
+            <div className="credentialStrip">
+              <span className="credentialChip">sales@gubudo.com</span>
+              <span className="credentialChip">Merc1985!</span>
+            </div>
+            <label>
+              Admin email address
+              <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="sales@gubudo.com" type="email" autoComplete="username" />
+            </label>
+            <label>
+              Password
+              <input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Merc1985!" type="password" autoComplete="current-password" />
+            </label>
+            <p className="authHint">The admin sign-in is filled in for local testing so you can move straight into the console.</p>
+            <button type="submit" className="primaryButton" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign in to Admin'}
+            </button>
+          </form>
+        )}
+        <div className="messageStack">
+          <button type="button" className="secondaryButton" onClick={() => setShowDeveloperSettings((current) => !current)}>
+            {showDeveloperSettings ? 'Hide developer settings' : 'Show developer settings'}
           </button>
-        </form>
+          {showDeveloperSettings ? (
+            <label>
+              API Base URL
+              <input value={apiBaseUrl} onChange={(event) => setApiBaseUrl(event.target.value)} placeholder={DEFAULT_API_BASE_URL} />
+            </label>
+          ) : null}
+        </div>
         <div className="messageStack">
           {statusMessage ? <p className="statusOk">{statusMessage}</p> : null}
           {errorMessage ? <p className="statusError">{errorMessage}</p> : null}
@@ -335,7 +460,7 @@ export function App() {
               </label>
             </div>
           ) : (
-            <p className="emptyState">Connect with an admin token to load platform settings.</p>
+            <p className="emptyState">Sign in as an admin to load platform settings.</p>
           )}
         </article>
 
@@ -416,7 +541,7 @@ export function App() {
               </div>
             </div>
           ) : (
-            <p className="emptyState">Connect with an admin token to load booking and payment analytics.</p>
+            <p className="emptyState">Sign in as an admin to load booking and payment analytics.</p>
           )}
         </article>
 

@@ -23,55 +23,76 @@ export class ReviewsService {
     private readonly providerProfilesRepository: Repository<ProviderProfileEntity>,
   ) {}
 
-  async createReview(customerId: string, dto: CreateReviewDto) {
+  async createReview(userId: string, role: UserRole, dto: CreateReviewDto) {
     const booking = await this.bookingsRepository.findOne({ where: { id: dto.bookingId } });
     if (!booking) throw new NotFoundException('Booking not found');
-    if (booking.customerId != customerId) {
-      throw new ForbiddenException('You can only review your own completed bookings');
-    }
-    if (!booking.providerId) {
-      throw new BadRequestException('This booking has no assigned provider to review');
-    }
     if (booking.status !== BookingStatus.COMPLETED) {
       throw new BadRequestException('Only completed bookings can be reviewed');
     }
-    if (booking.isRated) {
-      throw new BadRequestException('This booking has already been reviewed');
+
+    const isCustomerReviewer = booking.customerId === userId && role === UserRole.CUSTOMER;
+    const isProviderReviewer = booking.providerId === userId && role === UserRole.PROVIDER;
+
+    if (!isCustomerReviewer && !isProviderReviewer) {
+      throw new ForbiddenException('You can only review bookings that you completed yourself');
     }
+
+    if (!booking.providerId) {
+      throw new BadRequestException('This booking has no assigned provider to review');
+    }
+
+    if (isCustomerReviewer && booking.customerHasRated) {
+      throw new BadRequestException('You have already reviewed this provider for this booking');
+    }
+
+    if (isProviderReviewer && booking.providerHasRated) {
+      throw new BadRequestException('You have already reviewed this customer for this booking');
+    }
+
+    const revieweeUserId = isCustomerReviewer ? booking.providerId : booking.customerId;
+    const revieweeRole = isCustomerReviewer ? UserRole.PROVIDER : UserRole.CUSTOMER;
 
     const review = this.reviewsRepository.create({
       bookingId: booking.id,
-      customerId,
+      customerId: booking.customerId,
       providerUserId: booking.providerId,
+      reviewerUserId: userId,
+      reviewerRole: role,
+      revieweeUserId,
+      revieweeRole,
       rating: dto.rating,
       comment: dto.comment?.trim() || null,
     });
     const savedReview = await this.reviewsRepository.save(review);
 
-    booking.isRated = true;
+    if (isCustomerReviewer) {
+      booking.customerHasRated = true;
+      booking.isRated = true;
+    }
+
+    if (isProviderReviewer) {
+      booking.providerHasRated = true;
+    }
+
     await this.bookingsRepository.save(booking);
 
-    await this.refreshProviderReviewStats(booking.providerId);
+    if (revieweeRole === UserRole.PROVIDER) {
+      await this.refreshProviderReviewStats(booking.providerId);
+    }
+
     return savedReview;
   }
 
   async listMyReviews(userId: string, role: UserRole) {
-    if (role === UserRole.PROVIDER) {
-      return this.reviewsRepository.find({
-        where: { providerUserId: userId },
-        order: { createdAt: 'DESC' },
-      });
-    }
-
     return this.reviewsRepository.find({
-      where: { customerId: userId },
+      where: { revieweeUserId: userId, revieweeRole: role },
       order: { createdAt: 'DESC' },
     });
   }
 
   async listProviderReviews(providerUserId: string) {
     return this.reviewsRepository.find({
-      where: { providerUserId },
+      where: { revieweeUserId: providerUserId, revieweeRole: UserRole.PROVIDER },
       order: { createdAt: 'DESC' },
     });
   }
@@ -80,7 +101,9 @@ export class ReviewsService {
     const profile = await this.providerProfilesRepository.findOne({ where: { userId: providerUserId } });
     if (!profile) return;
 
-    const reviews = await this.reviewsRepository.find({ where: { providerUserId } });
+    const reviews = await this.reviewsRepository.find({
+      where: { revieweeUserId: providerUserId, revieweeRole: UserRole.PROVIDER },
+    });
     const completedBookings = await this.bookingsRepository.count({
       where: { providerId: providerUserId, status: BookingStatus.COMPLETED },
     });

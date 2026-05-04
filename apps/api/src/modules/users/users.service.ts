@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserEntity, UserRole } from './entities/user.entity';
+import { UserEntity, UserRole, UserStatus } from './entities/user.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @Injectable()
@@ -21,6 +21,34 @@ export class UsersService {
 
   async findByEmail(email: string): Promise<UserEntity | null> {
     return this.usersRepository.findOne({ where: { email } });
+  }
+
+  async upsertAdminAccount(params: {
+    email: string;
+    phone: string;
+    passwordHash: string;
+    firstName?: string;
+    lastName?: string;
+  }): Promise<UserEntity> {
+    const existing = await this.usersRepository.findOne({
+      where: [{ email: params.email }, { phone: params.phone }],
+    });
+
+    const user = existing ?? this.usersRepository.create();
+    user.email = params.email;
+    user.phone = params.phone;
+    user.passwordHash = params.passwordHash;
+    user.role = UserRole.ADMIN;
+    user.status = UserStatus.ACTIVE;
+    user.isActive = true;
+    user.isPhoneVerified = true;
+    user.isEmailVerified = true;
+    user.firstName = params.firstName ?? user.firstName ?? 'KAZI';
+    user.lastName = params.lastName ?? user.lastName ?? 'Admin';
+    user.preferredLanguage = user.preferredLanguage || 'en';
+    user.referralCode = user.referralCode || this.generateReferralCode();
+
+    return this.usersRepository.save(user);
   }
 
   async createFromPhone(phone: string, role: UserRole = UserRole.CUSTOMER): Promise<UserEntity> {

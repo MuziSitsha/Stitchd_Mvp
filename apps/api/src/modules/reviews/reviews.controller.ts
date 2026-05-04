@@ -14,7 +14,7 @@ export class ReviewsController {
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Create a rating and review for a completed booking' })
   createReview(@Request() req, @Body() dto: CreateReviewDto) {
-    return this.reviewsService.createReview(req.user.id, dto);
+    return this.reviewsService.createReview(req.user.id, req.user.role, dto);
   }
 
   @Get('mine')

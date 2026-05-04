@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { OtpEntity } from './entities/otp.entity';
 import { UsersService } from '../users/users.service';
-import { UserRole } from '../users/entities/user.entity';
+import { UserEntity, UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
@@ -102,13 +102,31 @@ export class AuthService {
     }
 
     const tokens = await this.generateTokens(user.id, user.phone, user.role);
-    return { ...tokens, isNewUser, user };
+    return { ...tokens, isNewUser, user: this.sanitizeUser(user) };
   }
 
   async refreshTokens(userId: string, refreshToken: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new UnauthorizedException();
     return this.generateTokens(user.id, user.phone, user.role);
+  }
+
+  async adminLogin(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    await this.ensureConfiguredAdminAccount(normalizedEmail);
+
+    const user = await this.usersService.findByEmail(normalizedEmail);
+    if (!user || user.role !== UserRole.ADMIN || !user.passwordHash) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Invalid admin credentials');
+    }
+
+    const tokens = await this.generateTokens(user.id, user.phone, user.role);
+    return { ...tokens, user: this.sanitizeUser(user) };
   }
 
   private async generateTokens(userId: string, phone: string, role: string) {
@@ -120,6 +138,28 @@ export class AuthService {
       }),
     ]);
     return { accessToken, refreshToken };
+  }
+
+  private async ensureConfiguredAdminAccount(email: string): Promise<void> {
+    const configuredEmail = this.configService.get<string>('app.adminEmail')?.trim().toLowerCase();
+    const configuredPassword = this.configService.get<string>('app.adminPassword');
+    if (!configuredEmail || !configuredPassword || configuredEmail !== email) {
+      return;
+    }
+
+    const passwordHash = await bcrypt.hash(configuredPassword, 10);
+    await this.usersService.upsertAdminAccount({
+      email: configuredEmail,
+      phone: this.configService.get<string>('app.adminPhone') || '+27820000000',
+      passwordHash,
+      firstName: this.configService.get<string>('app.adminFirstName') || 'KAZI',
+      lastName: this.configService.get<string>('app.adminLastName') || 'Admin',
+    });
+  }
+
+  private sanitizeUser(user: UserEntity) {
+    const { passwordHash, fcmToken, ...safeUser } = user;
+    return safeUser;
   }
 
   // Normalize SA phone numbers to +27 format

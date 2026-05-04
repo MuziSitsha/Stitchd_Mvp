@@ -26,14 +26,14 @@ class KaziApiClient {
     }
 
     if (kIsWeb) {
-      return 'http://127.0.0.1:3001/api/v1';
+      return 'http://127.0.0.1:3002/api/v1';
     }
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3001/api/v1';
     }
 
-    return 'http://127.0.0.1:3001/api/v1';
+    return 'http://127.0.0.1:3002/api/v1';
   }
 
   Future<void> sendOtp(String phone) async {
@@ -166,6 +166,8 @@ class KaziApiClient {
     required String serviceId,
     required String type,
     String? scheduledAt,
+    double? customerLat,
+    double? customerLng,
     String? customerAddress,
     String? customerNotes,
     String? promoCode,
@@ -181,6 +183,8 @@ class KaziApiClient {
         'serviceId': serviceId,
         'type': type,
         'scheduledAt': scheduledAt,
+        'customerLat': customerLat,
+        'customerLng': customerLng,
         'customerAddress': customerAddress,
         'customerNotes': customerNotes,
         'promoCode': promoCode,
@@ -223,6 +227,20 @@ class KaziApiClient {
     return ApiBooking.fromJson(payload);
   }
 
+  Future<ApiBooking> declineBooking({
+    required String accessToken,
+    required String bookingId,
+    required String reason,
+  }) async {
+    final payload = await _request(
+      'PATCH',
+      '/bookings/$bookingId/decline',
+      accessToken: accessToken,
+      body: {'reason': reason},
+    ) as Map<String, dynamic>;
+    return ApiBooking.fromJson(payload);
+  }
+
   Future<ApiBooking> updateBookingStatus({
     required String accessToken,
     required String bookingId,
@@ -251,6 +269,20 @@ class KaziApiClient {
         'latitude': latitude,
         'longitude': longitude,
       },
+    ) as Map<String, dynamic>;
+    return ApiBooking.fromJson(payload);
+  }
+
+  Future<ApiBooking> cancelBooking({
+    required String accessToken,
+    required String bookingId,
+    required String reason,
+  }) async {
+    final payload = await _request(
+      'PATCH',
+      '/bookings/$bookingId/cancel',
+      accessToken: accessToken,
+      body: {'reason': reason},
     ) as Map<String, dynamic>;
     return ApiBooking.fromJson(payload);
   }
@@ -603,11 +635,15 @@ class ApiBooking {
     required this.paymentStatus,
     required this.quotedPriceCents,
     required this.finalPriceCents,
+    required this.customerLat,
+    required this.customerLng,
     required this.customerAddress,
     required this.providerCurrentLat,
     required this.providerCurrentLng,
     required this.providerLocationUpdatedAt,
     required this.isRated,
+    required this.customerHasRated,
+    required this.providerHasRated,
     required this.createdAt,
     required this.scheduledAt,
   });
@@ -622,11 +658,15 @@ class ApiBooking {
   final String paymentStatus;
   final int quotedPriceCents;
   final int finalPriceCents;
+  final double? customerLat;
+  final double? customerLng;
   final String? customerAddress;
   final double? providerCurrentLat;
   final double? providerCurrentLng;
   final DateTime? providerLocationUpdatedAt;
   final bool isRated;
+  final bool customerHasRated;
+  final bool providerHasRated;
   final DateTime? createdAt;
   final DateTime? scheduledAt;
 
@@ -644,11 +684,15 @@ class ApiBooking {
       paymentStatus: json['paymentStatus'] as String? ?? 'pending',
       quotedPriceCents: (json['quotedPriceCents'] as num?)?.toInt() ?? 0,
       finalPriceCents: (json['finalPriceCents'] as num?)?.toInt() ?? 0,
+      customerLat: (json['customerLat'] as num?)?.toDouble(),
+      customerLng: (json['customerLng'] as num?)?.toDouble(),
       customerAddress: json['customerAddress'] as String?,
       providerCurrentLat: (json['providerCurrentLat'] as num?)?.toDouble(),
       providerCurrentLng: (json['providerCurrentLng'] as num?)?.toDouble(),
       providerLocationUpdatedAt: _parseDate(json['providerLocationUpdatedAt']),
       isRated: json['isRated'] as bool? ?? false,
+      customerHasRated: json['customerHasRated'] as bool? ?? (json['isRated'] as bool? ?? false),
+      providerHasRated: json['providerHasRated'] as bool? ?? false,
       createdAt: _parseDate(json['createdAt']),
       scheduledAt: _parseDate(json['scheduledAt']),
     );

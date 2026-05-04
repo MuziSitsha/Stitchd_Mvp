@@ -31,6 +31,10 @@ export class UserEntity {
   email: string;
 
   @Column({ nullable: true })
+  @Exclude()
+  passwordHash: string;
+
+  @Column({ nullable: true })
   firstName: string;
 
   @Column({ nullable: true })

@@ -13,6 +13,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { BookingsService } from './bookings.service';
 import { CancelBookingDto } from './dto/cancel-booking.dto';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import { DeclineBookingDto } from './dto/decline-booking.dto';
 import { UpdateBookingLocationDto } from './dto/update-booking-location.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
@@ -37,14 +38,24 @@ export class BookingsController {
 
   @Get('provider/available')
   @ApiOperation({ summary: 'List open bookings available to providers' })
-  listAvailableBookings() {
-    return this.bookingsService.listAvailableForProviders();
+  listAvailableBookings(@Request() req) {
+    return this.bookingsService.listAvailableForProviders(req.user.id);
   }
 
   @Patch(':id/accept')
   @ApiOperation({ summary: 'Accept an available booking as a provider' })
   acceptBooking(@Request() req, @Param('id') id: string) {
     return this.bookingsService.acceptBooking(id, req.user.id);
+  }
+
+  @Patch(':id/decline')
+  @ApiOperation({ summary: 'Decline an available booking as a provider' })
+  declineBooking(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: DeclineBookingDto,
+  ) {
+    return this.bookingsService.declineBooking(id, req.user.id, dto.reason);
   }
 
   @Patch(':id/status')

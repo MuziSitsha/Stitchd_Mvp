@@ -1,6 +1,7 @@
 import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
+import { AdminLoginDto } from './dto/admin-login.dto';
 import { SendOtpDto } from './dto/send-otp.dto';
 import { VerifyOtpDto } from './dto/verify-otp.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
@@ -33,5 +34,14 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access token' })
   refreshTokens(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshTokens(dto.userId, dto.refreshToken);
+  }
+
+  @Post('admin/login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Authenticate an admin by email and password' })
+  @ApiResponse({ status: 200, description: 'Admin authenticated successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid admin credentials' })
+  adminLogin(@Body() dto: AdminLoginDto) {
+    return this.authService.adminLogin(dto.email, dto.password);
   }
 }

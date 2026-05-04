@@ -1,10 +1,10 @@
 body {
   margin: 0;
-  font-family: "Aptos", "Segoe UI", sans-serif;
+  font-family: "Bahnschrift", "Aptos", "Segoe UI", sans-serif;
   background:
-    radial-gradient(circle at top left, rgba(255, 184, 28, 0.2), transparent 24%),
-    radial-gradient(circle at bottom right, rgba(0, 107, 60, 0.12), transparent 30%),
-    linear-gradient(180deg, #ffffff 0%, #f6f7f4 100%);
+    radial-gradient(circle at 12% 8%, rgba(255, 184, 28, 0.2), transparent 22%),
+    radial-gradient(circle at 88% 12%, rgba(0, 107, 60, 0.14), transparent 26%),
+    linear-gradient(180deg, #f8f7f2 0%, #eef1ea 100%);
   color: var(--kazi-color-text);
 }
 
@@ -24,10 +24,86 @@ body {
   gap: 24px;
   align-items: end;
   margin-bottom: 32px;
+  padding: 32px;
+  border-radius: 36px;
+  color: var(--kazi-color-white);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(255, 255, 255, 0.1), transparent 22%),
+    radial-gradient(circle at 66% 74%, rgba(255, 184, 28, 0.12), transparent 18%),
+    linear-gradient(135deg, #006b3c 0%, #0a7c49 58%, #0e643e 100%);
+  box-shadow: 0 28px 80px rgba(0, 49, 28, 0.28);
+  overflow: hidden;
+  position: relative;
+}
+
+.hero::before,
+.hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.hero::before {
+  width: 420px;
+  height: 420px;
+  right: -140px;
+  top: -170px;
+  background: rgba(255, 184, 28, 0.16);
+}
+
+.hero::after {
+  width: 280px;
+  height: 280px;
+  right: 120px;
+  bottom: -160px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+}
+
+.brandLockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.brandMark {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: var(--kazi-color-accent-gold);
+  color: #0c5a37;
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.brandLockup strong,
+.brandLockup span {
+  display: block;
+}
+
+.brandLockup strong {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.brandLockup span {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 4px;
 }
 
 .eyebrow {
-  color: var(--kazi-color-primary-green);
+  color: rgba(255, 255, 255, 0.74);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -42,18 +118,58 @@ body {
 
 .lede {
   max-width: 700px;
-  color: var(--kazi-color-muted-text);
+  color: rgba(255, 255, 255, 0.84);
   font-size: 1.05rem;
+}
+
+.heroPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.heroPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.08);
+  font-weight: 700;
+}
+
+.heroPill.highlight {
+  background: var(--kazi-color-accent-gold);
+  border-color: transparent;
+  color: #244126;
 }
 
 .heroBadge {
   justify-self: end;
-  padding: 18px 20px;
-  background: linear-gradient(145deg, #006b3c 0%, #0b8f54 100%);
+  align-self: stretch;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--kazi-color-white);
-  border-radius: var(--kazi-radius-lg);
-  box-shadow: var(--kazi-shadow-soft);
-  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 28px;
+  backdrop-filter: blur(10px);
+  position: relative;
+  z-index: 1;
+}
+
+.heroBadge span,
+.heroBadge small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.heroBadge strong {
+  font-size: 1.8rem;
 }
 
 .surfacePanel {
@@ -69,6 +185,7 @@ body {
   grid-template-columns: 1.5fr 0.8fr;
   gap: 18px;
   margin-bottom: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(246, 247, 244, 0.9) 100%);
 }
 
 .authForm {
@@ -81,6 +198,28 @@ body {
   flex-direction: column;
   justify-content: center;
   gap: 12px;
+}
+
+.credentialStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.credentialChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 184, 28, 0.14);
+  color: #705100;
+  font-weight: 800;
+}
+
+.authHint {
+  margin: -2px 0 0;
+  color: var(--kazi-color-muted-text);
+  font-size: 0.95rem;
 }
 
 .statsGrid {
@@ -207,6 +346,7 @@ textarea {
 .primaryButton {
   background: linear-gradient(135deg, #006b3c 0%, #0a8a51 100%);
   color: #ffffff;
+  box-shadow: 0 14px 30px rgba(0, 107, 60, 0.22);
 }
 
 .secondaryButton {

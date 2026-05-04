@@ -84,11 +84,15 @@ export class BookingsService {
     });
   }
 
-  async listAvailableForProviders() {
-    return this.bookingsRepository.find({
+  async listAvailableForProviders(providerId: string) {
+    const bookings = await this.bookingsRepository.find({
       where: { status: BookingStatus.PENDING, providerId: IsNull() },
       order: { createdAt: 'ASC' },
     });
+
+    return bookings.filter(
+      (booking) => !(booking.declinedByProviderIds ?? []).includes(providerId),
+    );
   }
 
   async acceptBooking(bookingId: string, providerId: string) {
@@ -125,6 +129,31 @@ export class BookingsService {
     });
 
     return savedBooking;
+  }
+
+  async declineBooking(bookingId: string, providerId: string, reason: string) {
+    const provider = await this.usersRepository.findOne({ where: { id: providerId } });
+    if (!provider || provider.role !== UserRole.PROVIDER) {
+      throw new ForbiddenException('Only providers can decline bookings');
+    }
+
+    const booking = await this.bookingsRepository.findOne({ where: { id: bookingId } });
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status !== BookingStatus.PENDING || booking.providerId) {
+      throw new ForbiddenException('Booking is no longer available');
+    }
+
+    const declinedByProviderIds = [...(booking.declinedByProviderIds ?? [])];
+    if (!declinedByProviderIds.includes(providerId)) {
+      declinedByProviderIds.push(providerId);
+    }
+
+    booking.declinedByProviderIds = declinedByProviderIds;
+    booking.providerNotes = (booking.providerNotes?.trim().length ?? 0) > 0
+      ? '${booking.providerNotes}\nDeclined by provider ${providerId}: ${reason}'
+      : `Declined by provider ${providerId}: ${reason}`;
+
+    return this.bookingsRepository.save(booking);
   }
 
   async updateStatus(bookingId: string, providerId: string, status: BookingStatus) {

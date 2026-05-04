@@ -152,6 +152,9 @@ export class BookingEntity {
   @Column({ nullable: true })
   cancelledBy: string;
 
+  @Column('simple-array', { nullable: true })
+  declinedByProviderIds: string[];
+
   // Notes
   @Column({ type: 'text', nullable: true })
   customerNotes: string;
@@ -162,6 +165,12 @@ export class BookingEntity {
   // Rating
   @Column({ default: false })
   isRated: boolean;
+
+  @Column({ default: false })
+  customerHasRated: boolean;
+
+  @Column({ default: false })
+  providerHasRated: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
