@@ -28,6 +28,15 @@ The repository contains a working MVP foundation for the customer app, provider 
 
 ---
 
+## Handover Snapshot
+
+- Branch `main` is current and GitHub CI is passing.
+- Customer app, provider flow, admin console, bookings, reviews, wallet accounting, and admin payout-profile settings are in the repository.
+- Current deferred work is the real third-party completion step: payment settlement wiring, real gateway credentials, real push/call credentials, and final AWS rollout.
+- Admin sign-in for the current MVP handover is `sales@gubudo.com` / `Merc1985!`.
+
+See [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md) for the delivery summary, handover checklist, and next actions.
+
 ## Quick Start
 
 ### Prerequisites
@@ -57,7 +66,7 @@ docker-compose up -d
 
 ### 4. Start development
 ```bash
-# Backend API (port 3001)
+# Backend API (port 3002)
 yarn dev:api
 
 # Admin dashboard (port 5173)
@@ -68,7 +77,7 @@ cd apps/mobile
 flutter pub get
 flutter run
 
-# API docs available at: http://localhost:3001/docs
+# API docs available at: http://localhost:3002/docs
 ```
 
 ---
@@ -155,6 +164,7 @@ See `apps/api/.env.example` for all required variables.
 
 ## What Still Needs Final Integration Or Validation
 
+- Real payment settlement wiring from hosted checkout/provider wallet flow into the business payout destination
 - Real Firebase credentials and device-level push validation
 - Real Twilio credentials and live call bridge validation
 - Real Peach credentials and end-to-end hosted payment validation
@@ -214,6 +224,7 @@ Light Surface:  #F6F7F4  (Warm white surface)
 - [docs/staging-secrets-checklist.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\staging-secrets-checklist.md)
 - [docs/go-live-test-script.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\go-live-test-script.md)
 - [docs/google-maps-integration-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\google-maps-integration-plan.md)
+- [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md)
 - [docs/third-party-account-bootstrap.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\third-party-account-bootstrap.md)
 
 ---
