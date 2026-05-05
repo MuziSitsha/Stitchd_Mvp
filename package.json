@@ -12,6 +12,7 @@
     "dev:admin": "yarn workspace @kazi/admin dev",
     "build:api": "yarn workspace @kazi/api build",
     "build:admin": "yarn workspace @kazi/admin build",
+    "preview:mobile:web": "py -3 apps/mobile/tool/preview_web_build.py",
     "lint": "yarn workspaces run lint",
     "test": "yarn workspaces run test",
     "db:migrate": "yarn workspace @kazi/api migration:run",

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:file_picker/file_picker.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart' as latlng;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_api.dart';
@@ -47,88 +49,8 @@ const _services = [
     subtitle: 'Recurring or one-off cleaning for flats, homes, and guest stays.',
     priceFrom: 'From R399',
     eta: 'Next slot in 45 min',
+    imageAsset: 'assets/service-images/home-cleaning.jpg',
     icon: Icons.cleaning_services_outlined,
-  ),
-  _ServiceData(
-    id: 'clean-deep',
-    category: 'Cleaning',
-    title: 'Deep Cleaning',
-    subtitle: 'Apartments, homes, and move-in resets.',
-    priceFrom: 'From R450',
-    eta: '12 min avg arrival',
-    icon: Icons.cleaning_services_outlined,
-  ),
-  _ServiceData(
-    id: 'clean-move',
-    category: 'Cleaning',
-    title: 'Maid Service',
-    subtitle: 'Flexible housekeeping support for regular visits, family routines, and hosted stays.',
-    priceFrom: 'From R320',
-    eta: 'Morning and afternoon slots',
-    icon: Icons.cleaning_services_outlined,
-  ),
-  _ServiceData(
-    id: 'laundry-dry-cleaning',
-    category: 'Laundry',
-    title: 'Laundry and Dry Cleaning',
-    subtitle: 'Wash, fold, ironing, and premium garment care with pickup options.',
-    priceFrom: 'From R189',
-    eta: 'Pickup today',
-    icon: Icons.local_laundry_service_outlined,
-  ),
-  _ServiceData(
-    id: 'babysitting',
-    category: 'Care',
-    title: 'Babysitting',
-    subtitle: 'Trusted childcare support for evenings, weekends, and planned cover.',
-    priceFrom: 'From R220/hr',
-    eta: 'Book ahead or same day',
-    icon: Icons.child_care_outlined,
-  ),
-  _ServiceData(
-    id: 'pet-care',
-    category: 'Care',
-    title: 'Pet Care',
-    subtitle: 'Pet sitting, walks, feeding visits, and basic grooming support.',
-    priceFrom: 'From R180',
-    eta: 'Available today',
-    icon: Icons.pets_outlined,
-  ),
-  _ServiceData(
-    id: 'womens-salon',
-    category: 'Wellness',
-    title: 'Salon at Home',
-    subtitle: 'Hair, nails, makeup, and beauty appointments delivered to your door.',
-    priceFrom: 'From R350',
-    eta: 'Afternoon openings',
-    icon: Icons.content_cut_outlined,
-  ),
-  _ServiceData(
-    id: 'spa-massage',
-    category: 'Wellness',
-    title: 'Spa and Massage',
-    subtitle: 'Relaxation and recovery treatments with at-home therapist visits.',
-    priceFrom: 'From R540',
-    eta: 'Evening slots open',
-    icon: Icons.spa_outlined,
-  ),
-  _ServiceData(
-    id: 'mechanic-mobile',
-    category: 'Mechanics',
-    title: 'Book a Mechanic',
-    subtitle: 'Diagnostics, batteries, minor roadside fixes, and inspections.',
-    priceFrom: 'From R690',
-    eta: '16 min avg arrival',
-    icon: Icons.car_repair_outlined,
-  ),
-  _ServiceData(
-    id: 'electrical-urgent',
-    category: 'Repairs',
-    title: 'Urgent Electrical',
-    subtitle: 'Faults, trips, fittings, and assessments.',
-    priceFrom: 'From R780',
-    eta: '18 min avg arrival',
-    icon: Icons.electrical_services_outlined,
   ),
   _ServiceData(
     id: 'plumbing-fix',
@@ -137,6 +59,7 @@ const _services = [
     subtitle: 'Repairs, replacements, and diagnostics.',
     priceFrom: 'From R720',
     eta: '21 min avg arrival',
+    imageAsset: 'assets/service-images/leak-and-pipe-fix.jpg',
     icon: Icons.plumbing_outlined,
   ),
   _ServiceData(
@@ -146,6 +69,9 @@ const _services = [
     subtitle: 'Assembly, patching, hanging, and repairs.',
     priceFrom: 'From R520',
     eta: 'Same-day availability',
+    imageAsset: 'assets/service-images/handyman-assist.jpg',
+    imageFit: BoxFit.contain,
+    imageAlignment: Alignment.center,
     icon: Icons.handyman_outlined,
   ),
   _ServiceData(
@@ -155,6 +81,7 @@ const _services = [
     subtitle: 'Fridges, ovens, washing machines, and same-day fault finding.',
     priceFrom: 'From R640',
     eta: 'Today before 18:00',
+    imageAsset: 'assets/service-images/appliance-repair.jpg',
     icon: Icons.kitchen_outlined,
   ),
   _ServiceData(
@@ -164,6 +91,7 @@ const _services = [
     subtitle: 'Aircon unit cleaning, filter refreshes, and seasonal maintenance.',
     priceFrom: 'From R430',
     eta: 'Tomorrow morning',
+    imageAsset: 'assets/service-images/ac-cleaning.jpg',
     icon: Icons.ac_unit_outlined,
   ),
   _ServiceData(
@@ -173,6 +101,7 @@ const _services = [
     subtitle: 'Sofas, mattresses, carpets, and upholstery refresh services.',
     priceFrom: 'From R520',
     eta: 'Booked today',
+    imageAsset: 'assets/service-images/furniture-cleaning.jpg',
     icon: Icons.weekend_outlined,
   ),
   _ServiceData(
@@ -182,6 +111,7 @@ const _services = [
     subtitle: 'Yard cleanups, trimming, pressure washing, and outdoor resets.',
     priceFrom: 'From R580',
     eta: 'Next slot today',
+    imageAsset: 'assets/service-images/garden-and-outdoor.jpg',
     icon: Icons.yard_outlined,
   ),
   _ServiceData(
@@ -191,6 +121,7 @@ const _services = [
     subtitle: 'Fast treatment visits for homes, flats, and small businesses.',
     priceFrom: 'From R760',
     eta: 'Booked in under 1 hour',
+    imageAsset: 'assets/service-images/pest-control.jpg',
     icon: Icons.pest_control_outlined,
   ),
 ];
@@ -341,8 +272,10 @@ class _AppScope extends InheritedNotifier<_KaziController> {
   const _AppScope({required _KaziController controller, required super.child})
       : super(notifier: controller);
 
-  static _KaziController of(BuildContext context) {
-    final scope = context.dependOnInheritedWidgetOfExactType<_AppScope>();
+  static _KaziController of(BuildContext context, {bool listen = true}) {
+    final scope = listen
+        ? context.dependOnInheritedWidgetOfExactType<_AppScope>()
+        : context.getElementForInheritedWidgetOfExactType<_AppScope>()?.widget as _AppScope?;
     assert(scope != null, 'No _AppScope found in context');
     return scope!.notifier!;
   }
@@ -350,12 +283,17 @@ class _AppScope extends InheritedNotifier<_KaziController> {
 
 class _KaziController extends ChangeNotifier {
   static const String _configuredPushToken = String.fromEnvironment('KAZI_FCM_TOKEN');
+  static const String _storedSessionKey = 'kazi.mobile.session';
+  static const String _rememberSessionKey = 'kazi.mobile.rememberSession';
+  static const String _rememberIdentifierKey = 'kazi.mobile.rememberIdentifier';
+  static const String _storedIdentifierKey = 'kazi.mobile.identifier';
 
   _KaziController() {
     bootstrap();
   }
 
   final KaziApiClient api = KaziApiClient();
+  SharedPreferences? _preferences;
 
   bool isBootstrapping = true;
   bool isRefreshing = false;
@@ -385,15 +323,26 @@ class _KaziController extends ChangeNotifier {
 
   final Map<String, ApiService> _liveServicesById = {};
   final Map<String, ApiServiceCategory> _categoriesById = {};
+  String _rememberedIdentifier = '';
+  bool _rememberIdentifier = true;
+  bool _rememberSession = true;
 
   bool get isAuthenticated => session != null;
   bool get isCustomer => currentUser?.role == 'customer';
   bool get isProvider => currentUser?.role == 'provider';
+  String get rememberedIdentifier => _rememberedIdentifier;
+  bool get rememberIdentifier => _rememberIdentifier;
+  bool get rememberSession => _rememberSession;
   String get apiBaseUrl => api.baseUrl;
   bool get hasLiveCatalog => _liveServicesById.isNotEmpty;
   int get unreadNotifications => notifications.where((item) => !item.isRead).length;
 
   Future<void> bootstrap() async {
+    _preferences = await SharedPreferences.getInstance();
+    _rememberIdentifier = _preferences?.getBool(_rememberIdentifierKey) ?? true;
+    _rememberSession = _preferences?.getBool(_rememberSessionKey) ?? true;
+    _rememberedIdentifier = _preferences?.getString(_storedIdentifierKey) ?? '';
+    await _restorePersistedSession();
     await _initializePushMessaging();
     await loadPublicCatalog();
     isBootstrapping = false;
@@ -430,9 +379,16 @@ class _KaziController extends ChangeNotifier {
     required String phone,
     required String code,
     required String role,
+    required bool rememberSession,
+    required bool rememberIdentifier,
   }) async {
     session = await api.verifyOtp(phone: phone, code: code, role: role);
     currentUser = session!.user;
+    await _persistAuthState(
+      identifier: phone,
+      rememberSession: rememberSession,
+      rememberIdentifier: rememberIdentifier,
+    );
     await _syncConfiguredPushToken();
     await refreshAuthenticatedData();
   }
@@ -453,6 +409,7 @@ class _KaziController extends ChangeNotifier {
     walletHistory = List<_WalletEntryData>.of(_walletHistory);
     _syncedPushToken = null;
     _providerTrackingPermissionRequested = false;
+    await _preferences?.remove(_storedSessionKey);
     notifyListeners();
   }
 
@@ -507,6 +464,57 @@ class _KaziController extends ChangeNotifier {
     } finally {
       isRefreshing = false;
       notifyListeners();
+    }
+  }
+
+  Future<void> _restorePersistedSession() async {
+    if (_preferences == null || !_rememberSession) {
+      return;
+    }
+
+    final storedSession = _preferences!.getString(_storedSessionKey);
+    if (storedSession == null || storedSession.isEmpty) {
+      return;
+    }
+
+    try {
+      final decoded = jsonDecode(storedSession) as Map<String, dynamic>;
+      session = KaziSession.fromJson(decoded);
+      currentUser = session!.user;
+      await refreshAuthenticatedData();
+    } catch (_) {
+      session = null;
+      currentUser = null;
+      await _preferences!.remove(_storedSessionKey);
+    }
+  }
+
+  Future<void> _persistAuthState({
+    required String identifier,
+    required bool rememberSession,
+    required bool rememberIdentifier,
+  }) async {
+    _rememberSession = rememberSession;
+    _rememberIdentifier = rememberIdentifier;
+    _rememberedIdentifier = rememberIdentifier ? identifier : '';
+
+    if (_preferences == null) {
+      return;
+    }
+
+    await _preferences!.setBool(_rememberSessionKey, rememberSession);
+    await _preferences!.setBool(_rememberIdentifierKey, rememberIdentifier);
+
+    if (_rememberedIdentifier.isEmpty) {
+      await _preferences!.remove(_storedIdentifierKey);
+    } else {
+      await _preferences!.setString(_storedIdentifierKey, _rememberedIdentifier);
+    }
+
+    if (rememberSession && session != null) {
+      await _preferences!.setString(_storedSessionKey, jsonEncode(session!.toJson()));
+    } else {
+      await _preferences!.remove(_storedSessionKey);
     }
   }
 
@@ -1012,8 +1020,61 @@ class _KaziController extends ChangeNotifier {
       eta: service.supportsInstantBooking
           ? '${math.max(12, service.estimatedDurationMinutes ~/ 4)} min avg arrival'
           : 'Scheduled slots',
+      imageAsset: _imageAssetForService(
+        serviceName: service.name,
+        categorySlug: category?.slug,
+        fallbackId: service.id,
+      ),
       icon: _iconForCategory(category?.name ?? service.name),
     );
+  }
+
+  String _imageAssetForService({
+    required String serviceName,
+    String? categorySlug,
+    String? fallbackId,
+  }) {
+    const imageByKey = {
+      'clean-home': 'assets/service-images/home-cleaning.jpg',
+      'clean-deep': 'assets/service-images/deep-cleaning.jpg',
+      'clean-move': 'assets/service-images/maid-service.jpg',
+      'laundry-dry-cleaning': 'assets/service-images/laundry-dry-cleaning.jpg',
+      'babysitting': 'assets/service-images/babysitting.jpg',
+      'pet-care': 'assets/service-images/pet-care.jpg',
+      'womens-salon': 'assets/service-images/salon-at-home.jpg',
+      'spa-massage': 'assets/service-images/spa-and-massage.jpg',
+      'mechanic-mobile': 'assets/service-images/book-a-mechanic.jpg',
+      'electrical-urgent': 'assets/service-images/urgent-electrical.jpg',
+      'plumbing-fix': 'assets/service-images/leak-and-pipe-fix.jpg',
+      'handyman-home': 'assets/service-images/handyman-assist.jpg',
+      'appliance-repair': 'assets/service-images/appliance-repair.jpg',
+      'ac-cleaning': 'assets/service-images/ac-cleaning.jpg',
+      'furniture-cleaning': 'assets/service-images/furniture-cleaning.jpg',
+      'garden-outdoor': 'assets/service-images/garden-and-outdoor.jpg',
+      'pest-control': 'assets/service-images/pest-control.jpg',
+    };
+
+    final normalizedName = _normalizeServiceImageKey(serviceName);
+    final normalizedCategory = categorySlug == null
+        ? null
+        : _normalizeServiceImageKey(categorySlug);
+    final normalizedId = fallbackId == null
+        ? null
+        : _normalizeServiceImageKey(fallbackId);
+
+    return imageByKey[normalizedName] ??
+        imageByKey[normalizedCategory] ??
+        imageByKey[normalizedId] ??
+        'assets/service-images/home-cleaning.jpg';
+  }
+
+  String _normalizeServiceImageKey(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll('&', 'and')
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
   }
 
   List<String> _mergeCategoryNames(List<ApiServiceCategory> categories) {
@@ -1417,13 +1478,20 @@ class _AuthSheetState extends State<_AuthSheet> {
   late String _role;
   bool _otpRequested = false;
   bool _busy = false;
+  bool _rememberSession = true;
+  bool _rememberIdentifier = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _phoneController = TextEditingController(text: '0821234567');
+    final controller = _AppScope.of(context, listen: false);
+    _phoneController = TextEditingController(
+      text: controller.rememberedIdentifier.isNotEmpty ? controller.rememberedIdentifier : '0821234567',
+    );
     _role = widget.initialRole;
+    _rememberSession = controller.rememberSession;
+    _rememberIdentifier = controller.rememberIdentifier;
   }
 
   @override
@@ -1464,6 +1532,8 @@ class _AuthSheetState extends State<_AuthSheet> {
         phone: _phoneController.text.trim(),
         code: _codeController.text.trim(),
         role: _role,
+        rememberSession: _rememberSession,
+        rememberIdentifier: _rememberIdentifier,
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -1511,6 +1581,23 @@ class _AuthSheetState extends State<_AuthSheet> {
                     ),
                   )
                   .toList(),
+            ),
+            const SizedBox(height: 12),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _rememberSession,
+              onChanged: (value) => setState(() => _rememberSession = value ?? true),
+              title: const Text('Stay signed in on this device'),
+              subtitle: const Text('Keep your customer session active so booking does not request OTP again.'),
+            ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _rememberIdentifier,
+              onChanged: (value) => setState(() => _rememberIdentifier = value ?? true),
+              title: const Text('Remember this mobile number'),
+              subtitle: const Text('Prefill your number next time without storing a password.'),
             ),
             if (_otpRequested) ...[
               const SizedBox(height: 16),
@@ -1846,44 +1933,35 @@ class _CustomerHomePage extends StatefulWidget {
 }
 
 class _CustomerHomePageState extends State<_CustomerHomePage> {
+  final GlobalKey _browseServicesSectionKey = GlobalKey();
   String _selectedCategory = _serviceCategories.first;
   String _searchQuery = '';
-  late final PageController _featuredServicesController;
-  Timer? _featuredServicesTicker;
-  int _featuredServiceIndex = 0;
 
   void _openCustomerSignIn() {
     _showAuthSheet(context, initialRole: 'customer');
   }
 
+  Future<void> _scrollToBrowseServices() async {
+    final targetContext = _browseServicesSectionKey.currentContext;
+    if (targetContext == null) {
+      return;
+    }
+
+    await Scrollable.ensureVisible(
+      targetContext,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      alignment: 0.08,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _featuredServicesController = PageController(viewportFraction: 0.88);
-    _featuredServicesTicker = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!mounted || !_featuredServicesController.hasClients) {
-        return;
-      }
-
-      final services = _AppScope.of(context).services.take(6).toList(growable: false);
-      if (services.length < 2) {
-        return;
-      }
-
-      final nextIndex = (_featuredServiceIndex + 1) % services.length;
-      _featuredServicesController.animateToPage(
-        nextIndex,
-        duration: const Duration(milliseconds: 420),
-        curve: Curves.easeOutCubic,
-      );
-      setState(() => _featuredServiceIndex = nextIndex);
-    });
   }
 
   @override
   void dispose() {
-    _featuredServicesTicker?.cancel();
-    _featuredServicesController.dispose();
     super.dispose();
   }
 
@@ -2178,15 +2256,34 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
     final services = _filteredServices;
+    final featuredOfferings = services.length <= 5 ? services : services.take(5).toList(growable: false);
     final categoryOptions = controller.serviceCategories;
-    final featuredServices = controller.services.take(6).toList(growable: false);
+    const cityLabel = 'Johannesburg';
+
+    const trustHighlights = [
+      ('Top rated professionals', 'Reliable, vetted providers with strong marketplace ratings.', Icons.star_rounded),
+      ('Same-day availability', 'Book in under a minute and request help for today.', Icons.calendar_today_rounded),
+      ('Clean value pricing', 'Transparent pricing with instant and scheduled options.', Icons.bar_chart_rounded),
+      ('All-in-one app', 'Book, track, pay, review, and reorder in one place.', Icons.apps_rounded),
+    ];
+
+    const testimonials = [
+      (
+        'It felt premium from the moment I opened the app. Booking was simple and the cleaner arrived exactly when expected.',
+        'Nadia',
+      ),
+      (
+        'The provider updates and live tracking make it feel much more polished than a normal services app.',
+        'Shereen',
+      ),
+      (
+        'I like that I can move from home cleaning to laundry or repairs without relearning the app.',
+        'Kareem',
+      ),
+    ];
 
     if (!categoryOptions.contains(_selectedCategory)) {
       _selectedCategory = categoryOptions.first;
-    }
-
-    if (featuredServices.isNotEmpty && _featuredServiceIndex >= featuredServices.length) {
-      _featuredServiceIndex = 0;
     }
 
     return SingleChildScrollView(
@@ -2194,132 +2291,1544 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MarketplaceHeroCard(
-            title: 'Book trusted services with us.',
-            body:
-                'Browse mechanics, cleaners, plumbers, and more in a lighter premium layout, then track the provider live all the way to your door.',
-            primaryLabel: 'Book now',
-            secondaryLabel: 'Schedule later',
-            locationLabel: 'Johannesburg',
-            serviceBadges: controller.services.take(6).map((service) => service.title).toList(growable: false),
-            onPrimaryPressed: controller.services.isEmpty ? () {} : () => _openBookingSheet(controller.services.first),
-            onSecondaryPressed: controller.services.isEmpty
+          _JustlifeInspiredHero(
+            cityLabel: cityLabel,
+            onBrowsePressed: _scrollToBrowseServices,
+            onLocationPressed: controller.services.isEmpty
                 ? () {}
                 : () => _openBookingSheet(controller.services.first, scheduledDefault: true),
-            tertiaryLabel: controller.isAuthenticated ? null : 'Sign in',
-            onTertiaryPressed: controller.isAuthenticated ? null : _openCustomerSignIn,
-            authHint: controller.isAuthenticated ? null : 'Sign in securely with your mobile number to manage bookings, tracking, payments, and service updates.',
+            onSignInPressed: controller.isAuthenticated ? null : _openCustomerSignIn,
           ),
           const SizedBox(height: 28),
-          if (featuredServices.isNotEmpty) ...[
+          if (featuredOfferings.isNotEmpty) ...[
             const _SectionHeading(
-              title: 'Popular services this week',
-              subtitle: 'A rotating yellow carousel that keeps the full marketplace visible at a glance.',
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 336,
-              child: PageView.builder(
-                controller: _featuredServicesController,
-                itemCount: featuredServices.length,
-                onPageChanged: (index) => setState(() => _featuredServiceIndex = index),
-                itemBuilder: (context, index) {
-                  final service = featuredServices[index];
-                  return Padding(
-                    padding: EdgeInsets.only(right: index == featuredServices.length - 1 ? 0 : 12),
-                    child: _FeaturedServiceCard(
-                      data: service,
-                      onBook: () => _openBookingSheet(service),
-                      onSchedule: () => _openBookingSheet(service, scheduledDefault: true),
-                    ),
-                  );
-                },
-              ),
+              title: 'Signature offerings on rotation',
+              subtitle: 'A moving spotlight on the services that define the KAZI experience before you browse the full catalogue.',
             ),
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                featuredServices.length,
-                (index) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  width: _featuredServiceIndex == index ? 28 : 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: _featuredServiceIndex == index ? KaziTheme.accentGold : const Color(0xFFE0D2A6),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
+            _OfferingCarousel(
+              offerings: featuredOfferings,
+              onBook: (service) => _openBookingSheet(service),
             ),
             const SizedBox(height: 28),
           ],
           const _SectionHeading(
             title: 'Browse all services',
-            subtitle: 'Search the full marketplace and open the same booking flow without changing backend behaviour.',
+            subtitle: 'Search the full marketplace, compare options, and book from the same clean flow.',
           ),
           const SizedBox(height: 12),
-          _SurfaceCard(
-            backgroundColor: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  onChanged: (value) => setState(() => _searchQuery = value),
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.search),
-                    hintText: 'Search mechanics, cleaning, plumbing, or appliance repair',
+          Container(
+            key: _browseServicesSectionKey,
+            child: _SurfaceCard(
+              backgroundColor: const Color(0xFFFFFCF2),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    onChanged: (value) => setState(() => _searchQuery = value),
+                    decoration: const InputDecoration(
+                      prefixIcon: Icon(Icons.search),
+                      hintText: 'Search mechanics, cleaning, plumbing, or appliance repair',
+                    ),
                   ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: categoryOptions
+                        .map(
+                          (category) {
+                            final selected = _selectedCategory == category;
+                            return ChoiceChip(
+                              label: Text(
+                                category,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: selected ? Colors.white : KaziTheme.primaryGreen,
+                                ),
+                              ),
+                              avatar: selected
+                                  ? const Icon(Icons.check_circle, size: 16, color: Colors.white)
+                                  : null,
+                              showCheckmark: false,
+                              backgroundColor: const Color(0xFFFFF7DE),
+                              selectedColor: KaziTheme.primaryGreen,
+                              side: BorderSide(
+                                color: selected ? KaziTheme.primaryGreen : const Color(0xFFE2C96F),
+                              ),
+                              selected: selected,
+                              onSelected: (_) => setState(() => _selectedCategory = category),
+                            );
+                          },
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final serviceCardAspectRatio = switch (constraints.maxWidth) {
+                < 560 => 0.72,
+                < 900 => 0.84,
+                < 1280 => 0.88,
+                _ => 1.0,
+              };
+
+              return _ResponsiveGrid(
+                minTileWidth: 270,
+                maxColumns: 3,
+                childAspectRatio: serviceCardAspectRatio,
+                children: services
+                    .map(
+                      (service) => _ServiceFlowCard(
+                        data: service,
+                        onBook: () => _openBookingSheet(service),
+                        onSchedule: () => _openBookingSheet(service, scheduledDefault: true),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 28),
+          const _SectionHeading(
+            title: 'There are so many reasons to love KAZI',
+            subtitle: 'The experience is built to feel reliable, premium, and simple from the first screen.',
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final trustCardAspectRatio = switch (constraints.maxWidth) {
+                < 560 => 0.84,
+                < 900 => 0.64,
+                < 1280 => 0.78,
+                _ => 0.9,
+              };
+
+              return _ResponsiveGrid(
+                minTileWidth: 210,
+                maxColumns: 4,
+                childAspectRatio: trustCardAspectRatio,
+                children: trustHighlights
+                    .map(
+                      (entry) => _TrustFeatureCard(
+                        title: entry.$1,
+                        body: entry.$2,
+                        icon: entry.$3,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 28),
+          const _SectionHeading(
+            title: 'What customers say about KAZI',
+            subtitle: 'A cleaner home-services experience should feel calm, credible, and easy to repeat.',
+          ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final testimonialCardAspectRatio = switch (constraints.maxWidth) {
+                < 560 => 0.92,
+                < 900 => 1.0,
+                < 1280 => 0.98,
+                _ => 1.08,
+              };
+
+              return _ResponsiveGrid(
+                minTileWidth: 250,
+                maxColumns: 3,
+                childAspectRatio: testimonialCardAspectRatio,
+                children: testimonials
+                    .map(
+                      (entry) => _TestimonialCard(
+                        quote: entry.$1,
+                        customerName: entry.$2,
+                      ),
+                    )
+                    .toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 28),
+          _PromisePanel(
+            onPrimaryPressed: controller.services.isEmpty ? () {} : () => _openBookingSheet(controller.services.first),
+            onSecondaryPressed: controller.isAuthenticated ? null : _openCustomerSignIn,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _JustlifeInspiredHero extends StatelessWidget {
+  const _JustlifeInspiredHero({
+    required this.cityLabel,
+    required this.onBrowsePressed,
+    required this.onLocationPressed,
+    this.onSignInPressed,
+  });
+
+  final String cityLabel;
+  final VoidCallback onBrowsePressed;
+  final VoidCallback onLocationPressed;
+  final VoidCallback? onSignInPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget buildContent() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFE7A3),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE1B645)),
+            ),
+            child: const Text(
+              '#1 home services app for your day-to-day life',
+              style: TextStyle(
+                color: KaziTheme.primaryGreen,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Where would you like to receive your service?',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontSize: 42,
+                  height: 1.04,
+                  fontWeight: FontWeight.w900,
                 ),
-                const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: categoryOptions
-                      .map(
-                        (category) => ChoiceChip(
-                          label: Text(category),
-                          selected: _selectedCategory == category,
-                          onSelected: (_) => setState(() => _selectedCategory = category),
-                        ),
-                      )
-                      .toList(),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Start with your location, then browse trusted cleaning, repairs, laundry, pet care, and home support with a calmer premium flow.',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF526056),
+                  height: 1.6,
+                ),
+          ),
+          const SizedBox(height: 22),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFCF1),
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: const Color(0xFFDCCB8A)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD76A),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.location_on_outlined, color: KaziTheme.primaryGreen),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Service area',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$cityLabel and nearby coverage with fast dispatch windows.',
+                        style: const TextStyle(color: Color(0xFF56645A), height: 1.4),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          if (services.isEmpty)
-            const _SurfaceCard(
-              child: Text('No services match this search right now. Try a different keyword or category.'),
-            )
-          else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final serviceCardAspectRatio = switch (constraints.maxWidth) {
-                  < 1100 => 0.68,
-                  _ => 1.02,
-                };
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              FilledButton(
+                onPressed: onBrowsePressed,
+                style: FilledButton.styleFrom(
+                  backgroundColor: KaziTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                child: const Text('Browse services'),
+              ),
+              OutlinedButton.icon(
+                onPressed: onLocationPressed,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: KaziTheme.primaryGreen,
+                  side: const BorderSide(color: Color(0xFFB8C5B7)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                  textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                icon: const Icon(Icons.location_on_outlined),
+                label: const Text('Choose location'),
+              ),
+              if (onSignInPressed != null)
+                TextButton(
+                  onPressed: onSignInPressed,
+                  style: TextButton.styleFrom(
+                    foregroundColor: KaziTheme.primaryGreen,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    textStyle: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  child: const Text('Sign in'),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
 
-                return _ResponsiveGrid(
-                  minTileWidth: 240,
-                  maxColumns: 3,
-                  childAspectRatio: serviceCardAspectRatio,
-                  children: services
-                      .map(
-                        (service) => _ServiceFlowCard(
-                          data: service,
-                          onBook: () => _openBookingSheet(service),
-                          onSchedule: () => _openBookingSheet(service, scheduledDefault: true),
-                        ),
-                      )
-                      .toList(),
-                );
-              },
+    Widget buildVisualPanel() {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Row(
+            children: [
+              _HeroBadge(icon: Icons.star_rounded, label: 'Top rated'),
+              SizedBox(width: 10),
+              _HeroBadge(icon: Icons.schedule_rounded, label: 'Same day'),
+            ],
+          ),
+          SizedBox(height: 18),
+          SizedBox(
+            height: 164,
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Align(
+                    child: _HeroSunburst(),
+                  ),
+                ),
+                Positioned(top: 12, left: 6, child: _FloatingTile(color: Color(0xFFFFCB3D), icon: Icons.cleaning_services_rounded)),
+                Positioned(top: 0, right: 20, child: _FloatingTile(color: Color(0xFFCBE8D2), icon: Icons.home_repair_service_rounded)),
+                Positioned(bottom: 16, left: 36, child: _FloatingTile(color: Color(0xFFFFE9A8), icon: Icons.local_laundry_service_rounded)),
+                Positioned(bottom: 4, right: 0, child: _FloatingTile(color: Color(0xFFDCF1E2), icon: Icons.pets_rounded)),
+                Positioned.fill(
+                  child: Align(
+                    child: _CenterHeroCard(),
+                  ),
+                ),
+              ],
             ),
+          ),
+          SizedBox(height: 18),
+          Text(
+            'A cleaner, calmer booking experience',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF143424),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Move from browsing to booking, live tracking, and payments without the screen feeling crowded.',
+            style: TextStyle(color: Color(0xFF58675C), height: 1.55),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFF6D8),
+            Color(0xFFEAF6EE),
+            Color(0xFFD5EBD9),
+          ],
+          stops: [0.0, 0.48, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(36),
+        border: Border.all(color: const Color(0xFFD6DDCF)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12003E25),
+            blurRadius: 30,
+            offset: Offset(0, 16),
+          ),
         ],
       ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 840;
+          if (wide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 11, child: buildContent()),
+                const SizedBox(width: 28),
+                const Expanded(flex: 9, child: _HeroVisualPanel()),
+              ],
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildContent(),
+              const SizedBox(height: 28),
+              buildVisualPanel(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeroVisualPanel extends StatelessWidget {
+  const _HeroVisualPanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: const [
+        Row(
+          children: [
+            _HeroBadge(icon: Icons.star_rounded, label: 'Top rated'),
+            SizedBox(width: 10),
+            _HeroBadge(icon: Icons.schedule_rounded, label: 'Same day'),
+          ],
+        ),
+        SizedBox(height: 18),
+        SizedBox(
+          height: 164,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Align(
+                  child: _HeroSunburst(),
+                ),
+              ),
+              Positioned(top: 12, left: 6, child: _FloatingTile(color: Color(0xFFFFCB3D), icon: Icons.cleaning_services_rounded)),
+              Positioned(top: 0, right: 20, child: _FloatingTile(color: Color(0xFFCBE8D2), icon: Icons.home_repair_service_rounded)),
+              Positioned(bottom: 16, left: 36, child: _FloatingTile(color: Color(0xFFFFE9A8), icon: Icons.local_laundry_service_rounded)),
+              Positioned(bottom: 4, right: 0, child: _FloatingTile(color: Color(0xFFDCF1E2), icon: Icons.pets_rounded)),
+              Positioned.fill(
+                child: Align(
+                  child: _CenterHeroCard(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 18),
+        Text(
+          'A cleaner, calmer booking experience',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF143424),
+          ),
+        ),
+        SizedBox(height: 8),
+        Text(
+          'Move from browsing to booking, live tracking, and payments without the screen feeling crowded.',
+          style: TextStyle(color: Color(0xFF58675C), height: 1.55),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroBadge extends StatelessWidget {
+  const _HeroBadge({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF0),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD7C98C)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: KaziTheme.primaryGreen),
+          const SizedBox(width: 6),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+class _FloatingTile extends StatelessWidget {
+  const _FloatingTile({required this.color, required this.icon});
+
+  final Color color;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x18004D2B),
+            blurRadius: 18,
+            offset: Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Icon(icon, color: KaziTheme.primaryGreen, size: 28),
+    );
+  }
+}
+
+class _HeroSunburst extends StatefulWidget {
+  const _HeroSunburst();
+
+  @override
+  State<_HeroSunburst> createState() => _HeroSunburstState();
+}
+
+class _HeroSunburstState extends State<_HeroSunburst> with SingleTickerProviderStateMixin {
+  late final bool _animate;
+  AnimationController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _animate = _shouldAnimate();
+    if (_animate) {
+      _controller = AnimationController(vsync: this, duration: const Duration(seconds: 16))..repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  bool _shouldAnimate() {
+    var animate = true;
+    assert(() {
+      animate = false;
+      return true;
+    }());
+    return animate;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RotationTransition(
+      turns: _animate ? _controller! : const AlwaysStoppedAnimation(0),
+      child: SizedBox(
+        width: 146,
+        height: 146,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            for (var index = 0; index < 12; index++)
+              Transform.rotate(
+                angle: (math.pi * 2 * index) / 12,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    width: 8,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: KaziTheme.accentGold.withValues(alpha: 0.85),
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x33FFB81C),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const RadialGradient(
+                  colors: [
+                    Color(0xFFFFF0B6),
+                    Color(0xFFFFC83D),
+                  ],
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x44FFB81C),
+                    blurRadius: 18,
+                    offset: Offset(0, 6),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CenterHeroCard extends StatelessWidget {
+  const _CenterHeroCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 110,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFBF0),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD7C98C)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x16003E25),
+            blurRadius: 24,
+            offset: Offset(0, 16),
+          ),
+        ],
+      ),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Book fast',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF143424),
+              height: 1.05,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Live tracking',
+            style: TextStyle(
+              color: KaziTheme.primaryGreen,
+              fontWeight: FontWeight.w800,
+              fontSize: 11,
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Built-in pay',
+            style: TextStyle(
+              color: Color(0xFF5F6C63),
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceShortcutTile extends StatelessWidget {
+  const _ServiceShortcutTile({required this.data, required this.onTap});
+
+  final _ServiceData data;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: _SurfaceCard(
+        backgroundColor: Colors.white,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 58,
+              height: 58,
+              decoration: BoxDecoration(
+                color: KaziTheme.softGold,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(data.icon, color: KaziTheme.primaryGreen, size: 28),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              data.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF173325),
+                height: 1.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrustFeatureCard extends StatelessWidget {
+  const _TrustFeatureCard({
+    required this.title,
+    required this.body,
+    required this.icon,
+  });
+
+  final String title;
+  final String body;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFFFFEFB),
+            Color(0xFFFFF6DE),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFE1C56A)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12003E25),
+            blurRadius: 18,
+            offset: Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.86),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE0C56D)),
+            ),
+            child: const Text(
+              'KAZI standard',
+              style: TextStyle(
+                color: KaziTheme.primaryGreen,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF4CB),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0xFFE0C56D)),
+            ),
+            child: Icon(icon, size: 32, color: KaziTheme.primaryGreen),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF173325),
+              height: 1.1,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            body,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Color(0xFF5A685E), height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TestimonialCard extends StatelessWidget {
+  const _TestimonialCard({required this.quote, required this.customerName});
+
+  final String quote;
+  final String customerName;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedName = customerName.trim();
+    final customerInitial = trimmedName.isNotEmpty ? trimmedName[0].toUpperCase() : 'K';
+
+    return _SurfaceCard(
+      backgroundColor: const Color(0xFFFFFCF6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Row(
+                  children: List.generate(
+                    5,
+                    (_) => const Padding(
+                      padding: EdgeInsets.only(right: 4),
+                      child: Icon(Icons.star_rounded, size: 18, color: KaziTheme.accentGold),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: KaziTheme.softGold,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.format_quote_rounded, color: KaziTheme.primaryGreen),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            quote,
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Color(0xFF4F5B53),
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE7F0EA),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  customerInitial,
+                  style: const TextStyle(
+                    color: KaziTheme.primaryGreen,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      customerName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        color: Color(0xFF173325),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    const Text(
+                      'Verified KAZI customer',
+                      style: TextStyle(
+                        color: Color(0xFF5D6A62),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF3ED),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'Loved for punctual arrivals and polished finishes',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: KaziTheme.primaryGreen,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfferingCarousel extends StatefulWidget {
+  const _OfferingCarousel({required this.offerings, required this.onBook});
+
+  final List<_ServiceData> offerings;
+  final ValueChanged<_ServiceData> onBook;
+
+  @override
+  State<_OfferingCarousel> createState() => _OfferingCarouselState();
+}
+
+class _OfferingCarouselState extends State<_OfferingCarousel> {
+  late final PageController _pageController;
+  late final bool _autoRotate;
+  Timer? _rotationTimer;
+  var _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 1);
+    _autoRotate = _shouldAnimate();
+
+    if (_autoRotate && widget.offerings.length > 1) {
+      _rotationTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (!_pageController.hasClients) return;
+        final nextPage = (_currentPage + 1) % widget.offerings.length;
+        _pageController.animateToPage(
+          nextPage,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeOutCubic,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _rotationTimer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _goToPage(int page) {
+    if (!_pageController.hasClients) {
+      setState(() => _currentPage = page);
+      return;
+    }
+
+    _pageController.animateToPage(
+      page,
+      duration: const Duration(milliseconds: 420),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void _goToPrevious() {
+    final previousPage = (_currentPage - 1 + widget.offerings.length) % widget.offerings.length;
+    _goToPage(previousPage);
+  }
+
+  void _goToNext() {
+    final nextPage = (_currentPage + 1) % widget.offerings.length;
+    _goToPage(nextPage);
+  }
+
+  bool _shouldAnimate() {
+    var animate = true;
+    assert(() {
+      animate = false;
+      return true;
+    }());
+    return animate;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+
+        return Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFFFFFCF3),
+                Color(0xFFF3F8F4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: const Color(0xFFDCC46E)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x14003E25),
+                blurRadius: 22,
+                offset: Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              SizedBox(
+                height: compact ? 420 : 430,
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: widget.offerings.length,
+                  onPageChanged: (index) => setState(() => _currentPage = index),
+                  itemBuilder: (context, index) {
+                    final offering = widget.offerings[index];
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(26),
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF0C4A2C),
+                              Color(0xFF1B6B45),
+                            ],
+                          ),
+                        ),
+                        child: compact
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: _OfferingCarouselVisual(offering: offering)),
+                                  _OfferingCarouselContent(offering: offering, onBook: () => widget.onBook(offering)),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(
+                                    flex: 11,
+                                    child: _OfferingCarouselContent(
+                                      offering: offering,
+                                      onBook: () => widget.onBook(offering),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 10,
+                                    child: _OfferingCarouselVisual(offering: offering),
+                                  ),
+                                ],
+                              ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _CarouselNavButton(
+                    icon: Icons.west_rounded,
+                    label: 'Previous',
+                    onPressed: widget.offerings.length > 1 ? _goToPrevious : null,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            widget.offerings.length,
+                            (index) => AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              margin: const EdgeInsets.symmetric(horizontal: 4),
+                              width: _currentPage == index ? 30 : 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: _currentPage == index ? KaziTheme.primaryGreen : const Color(0xFFD6CBA4),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Offering ${_currentPage + 1} of ${widget.offerings.length}',
+                          style: const TextStyle(
+                            color: Color(0xFF4F5B53),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  _CarouselNavButton(
+                    icon: Icons.east_rounded,
+                    label: 'Next',
+                    onPressed: widget.offerings.length > 1 ? _goToNext : null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _OfferingCarouselContent extends StatelessWidget {
+  const _OfferingCarouselContent({required this.offering, required this.onBook});
+
+  final _ServiceData offering;
+  final VoidCallback onBook;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0x26FFF1C9),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0x88FFD56F)),
+                ),
+                child: Text(
+                  offering.category,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(offering.icon, color: KaziTheme.primaryGreen, size: 24),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          const Text(
+            'Now rotating through KAZI favourites',
+            style: TextStyle(
+              color: Color(0xFFFFD56F),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            offering.title,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  height: 1.05,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            offering.subtitle,
+            style: const TextStyle(
+              color: Color(0xFFE4EFE8),
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _OfferingStatPill(label: offering.priceFrom),
+              _OfferingStatPill(label: offering.eta),
+              const _OfferingStatPill(label: 'Professional finish'),
+            ],
+          ),
+          const Spacer(),
+          FilledButton(
+            onPressed: onBook,
+            style: FilledButton.styleFrom(
+              backgroundColor: KaziTheme.accentGold,
+              foregroundColor: const Color(0xFF153527),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+              textStyle: const TextStyle(fontWeight: FontWeight.w900),
+            ),
+            child: const Text('Book this offering'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfferingCarouselVisual extends StatelessWidget {
+  const _OfferingCarouselVisual({required this.offering});
+
+  final _ServiceData offering;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: 0.16),
+                Colors.white.withValues(alpha: 0.05),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(18),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                DecoratedBox(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0xFFF2EEE6),
+                        Color(0xFFDCCFB8),
+                      ],
+                    ),
+                  ),
+                ),
+                Image.asset(
+                  offering.imageAsset,
+                  fit: offering.imageFit,
+                  alignment: offering.imageAlignment,
+                ),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.16),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          right: 30,
+          top: 28,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF6D9),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFE0C56D)),
+            ),
+            child: const Text(
+              'Featured offering',
+              style: TextStyle(
+                color: KaziTheme.primaryGreen,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CarouselNavButton extends StatelessWidget {
+  const _CarouselNavButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: onPressed == null ? const Color(0xFFE8E4D8) : Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: onPressed == null ? const Color(0xFFD9D4C5) : const Color(0xFFE1C56A),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: KaziTheme.primaryGreen, size: 18),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: KaziTheme.primaryGreen,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _OfferingStatPill extends StatelessWidget {
+  const _OfferingStatPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PromisePanel extends StatelessWidget {
+  const _PromisePanel({required this.onPrimaryPressed, this.onSecondaryPressed});
+
+  final VoidCallback onPrimaryPressed;
+  final VoidCallback? onSecondaryPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0E2F21),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final wide = constraints.maxWidth >= 820;
+          final copy = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0x1FFFFFFF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: const Text(
+                  'The KAZI Promise',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Excellence in every home, booking, and provider arrival.',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                'KAZI is designed to keep the experience premium and easy: book faster, view provider details, track arrivals, manage payments, and return for your next service without friction.',
+                style: TextStyle(color: Color(0xFFD4E3DA), height: 1.65),
+              ),
+              const SizedBox(height: 18),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  FilledButton(
+                    onPressed: onPrimaryPressed,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: KaziTheme.accentGold,
+                      foregroundColor: const Color(0xFF153527),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      textStyle: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    child: const Text('Book your next service'),
+                  ),
+                  if (onSecondaryPressed != null)
+                    OutlinedButton(
+                      onPressed: onSecondaryPressed,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0x80FFCC57)),
+                        backgroundColor: const Color(0x14000000),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      ),
+                      child: const Text('Create account'),
+                    ),
+                ],
+              ),
+            ],
+          );
+
+          final visual = Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0x14FFFFFF),
+              borderRadius: BorderRadius.circular(26),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'What you manage in one place',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                ),
+                SizedBox(height: 12),
+                _PromiseBullet(text: 'Bookings, schedules, and provider ETA'),
+                SizedBox(height: 10),
+                _PromiseBullet(text: 'Payments, promo codes, and wallet activity'),
+                SizedBox(height: 10),
+                _PromiseBullet(text: 'Ratings, reviews, and rebooking'),
+              ],
+            ),
+          );
+
+          if (!wide) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [copy, const SizedBox(height: 18), visual],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 6, child: copy),
+              const SizedBox(width: 18),
+              Expanded(flex: 4, child: visual),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PromiseBullet extends StatelessWidget {
+  const _PromiseBullet({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.only(top: 5),
+          decoration: const BoxDecoration(
+            color: KaziTheme.accentGold,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(color: Color(0xFFD6E4DB), height: 1.5),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -2678,7 +4187,7 @@ class _BookingsPageState extends State<_BookingsPage> {
                               }
                             : null,
                         onReview: booking.status == _BookingStatus.completed &&
-                          booking.needsReviewForRole(controller.isProvider)
+                                booking.needsReviewForRole(controller.isProvider)
                             ? () async {
                                 await _openReviewSheet(booking);
                               }
@@ -2852,10 +4361,9 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                   ),
                   const SizedBox(height: 18),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 12,
+                    runSpacing: 12,
                     children: [
-                      _HeroMetaPill(label: controller.providerAvailable ? 'Available now' : 'Availability paused'),
                       _HeroMetaPill(label: '${controller.incomingJobs.length} incoming jobs'),
                       _HeroMetaPill(label: '${controller.acceptedJobs.length} accepted today'),
                     ],
@@ -2879,9 +4387,6 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                     DropdownButtonFormField<String>(
                       key: ValueKey(_selectedDocumentType),
                       initialValue: _selectedDocumentType,
-                      decoration: const InputDecoration(
-                        labelText: 'Verification document type',
-                      ),
                       items: const [
                         DropdownMenuItem(value: 'national_id', child: Text('National ID')),
                         DropdownMenuItem(value: 'proof_of_address', child: Text('Proof of address')),
@@ -2945,39 +4450,39 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                           : const Icon(Icons.upload_file_outlined),
                       label: Text(_uploadingDocument ? 'Uploading document...' : 'Upload verification document'),
                     ),
-                  ],
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: KaziTheme.surface,
-                      borderRadius: BorderRadius.circular(22),
-                    ),
-                    child: SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Available now'),
-                      subtitle: Text(
-                        controller.providerProfileMissing
-                            ? 'Create a provider profile first'
-                            : controller.providerAvailable
-                                ? 'Instant jobs enabled'
-                                : 'Paused for new assignments',
+                    Container(
+                      margin: const EdgeInsets.only(top: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: KaziTheme.surface,
+                        borderRadius: BorderRadius.circular(22),
                       ),
-                      value: controller.providerAvailable,
-                      onChanged: controller.providerProfileMissing
-                          ? null
-                          : (value) async {
-                              try {
-                                await controller.setProviderAvailability(value);
-                              } catch (error) {
-                                if (!mounted) return;
-                                messenger.showSnackBar(
-                                  SnackBar(content: Text(error.toString())),
-                                );
-                              }
-                            },
+                      child: SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Available now'),
+                        subtitle: Text(
+                          controller.providerProfileMissing
+                              ? 'Create a provider profile first'
+                              : controller.providerAvailable
+                                  ? 'Instant jobs enabled'
+                                  : 'Paused for new assignments',
+                        ),
+                        value: controller.providerAvailable,
+                        onChanged: controller.providerProfileMissing
+                            ? null
+                            : (value) async {
+                                try {
+                                  await controller.setProviderAvailability(value);
+                                } catch (error) {
+                                  if (!mounted) return;
+                                  messenger.showSnackBar(
+                                    SnackBar(content: Text(error.toString())),
+                                  );
+                                }
+                              },
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -3408,425 +4913,27 @@ class _WalletPageState extends State<_WalletPage> {
   }
 }
 
-class _MarketplaceHeroCard extends StatelessWidget {
-  const _MarketplaceHeroCard({
-    required this.title,
-    required this.body,
-    required this.primaryLabel,
-    required this.secondaryLabel,
-    required this.locationLabel,
-    required this.serviceBadges,
-    required this.onPrimaryPressed,
-    required this.onSecondaryPressed,
-    this.tertiaryLabel,
-    this.onTertiaryPressed,
-    this.authHint,
-  });
-
-  final String title;
-  final String body;
-  final String primaryLabel;
-  final String secondaryLabel;
-  final String locationLabel;
-  final List<String> serviceBadges;
-  final VoidCallback onPrimaryPressed;
-  final VoidCallback onSecondaryPressed;
-  final String? tertiaryLabel;
-  final VoidCallback? onTertiaryPressed;
-  final String? authHint;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFFCF4),
-            Color(0xFFFFF1BF),
-            Color(0xFFFFF9E8),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(36),
-        border: Border.all(color: const Color(0xFFE6D19C)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14003E25),
-            blurRadius: 34,
-            offset: Offset(0, 18),
-          ),
-        ],
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 840;
-
-          return Flex(
-            direction: wide ? Axis.horizontal : Axis.vertical,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: wide ? 6 : 0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: const Color(0xFFE8D5A5)),
-                      ),
-                      child: const Text(
-                        'KAZI HOME SERVICES',
-                        style: TextStyle(
-                          color: KaziTheme.primaryGreen,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.9,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
-                      child: Text(
-                        title,
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              color: const Color(0xFF113321),
-                              fontSize: 44,
-                              fontWeight: FontWeight.w900,
-                              height: 1.02,
-                            ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 560),
-                      child: Text(
-                        body,
-                        style: const TextStyle(
-                          color: Color(0xFF4A5C52),
-                          fontSize: 17,
-                          height: 1.65,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: serviceBadges
-                          .map(
-                            (badge) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(color: const Color(0xFFE4DAB9)),
-                              ),
-                              child: Text(
-                                badge,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF214230),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 24),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        FilledButton(onPressed: onPrimaryPressed, child: Text(primaryLabel)),
-                        OutlinedButton(onPressed: onSecondaryPressed, child: Text(secondaryLabel)),
-                        if (tertiaryLabel != null && onTertiaryPressed != null)
-                          TextButton(onPressed: onTertiaryPressed, child: Text(tertiaryLabel!)),
-                      ],
-                    ),
-                    if (authHint != null) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        authHint!,
-                        style: const TextStyle(
-                          color: Color(0xFF526056),
-                          height: 1.5,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-              SizedBox(width: wide ? 20 : 0, height: wide ? 0 : 20),
-              Expanded(
-                flex: wide ? 4 : 0,
-                child: _HeroShowcasePanel(
-                  locationLabel: locationLabel,
-                  serviceBadges: serviceBadges,
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _HeroShowcasePanel extends StatelessWidget {
-  const _HeroShowcasePanel({required this.locationLabel, required this.serviceBadges});
-
-  final String locationLabel;
-  final List<String> serviceBadges;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFFFFC83D),
-            Color(0xFFFFB81C),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x24A86E00),
-            blurRadius: 26,
-            offset: Offset(0, 18),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Icon(Icons.near_me_outlined, color: KaziTheme.primaryGreen),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Live arrival tracking',
-                      style: TextStyle(
-                        color: Color(0xFF173325),
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$locationLabel coverage with fast dispatch windows.',
-                      style: const TextStyle(
-                        color: Color(0xFF355344),
-                        height: 1.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          const _InlineStatus(label: 'Best for', value: 'Same-day home and vehicle help'),
-          const SizedBox(height: 10),
-          const _InlineStatus(label: 'Booking flow', value: 'Book, track, pay, and rate in one place'),
-          const SizedBox(height: 10),
-          const _InlineStatus(label: 'Availability', value: 'Instant and scheduled visits'),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: serviceBadges
-                .take(4)
-                .map(
-                  (badge) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFDF8E9),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      badge,
-                      style: const TextStyle(
-                        color: Color(0xFF193625),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FeaturedServiceCard extends StatelessWidget {
-  const _FeaturedServiceCard({
-    required this.data,
-    required this.onBook,
-    required this.onSchedule,
-  });
-
-  final _ServiceData data;
-  final VoidCallback onBook;
-  final VoidCallback onSchedule;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFD56A),
-            Color(0xFFFFBE24),
-            Color(0xFFFFD56A),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(28),
-        border: Border.all(color: const Color(0xFFD3A118)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x259D6C00),
-            blurRadius: 28,
-            offset: Offset(0, 18),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(22),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              data.category.toUpperCase(),
-              style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w800, letterSpacing: 0.8),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 52,
-                height: 52,
-                decoration: BoxDecoration(
-                  color: const Color(0x33FFFFFF),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Icon(data.icon, color: const Color(0xFF163524)),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      data.title,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF163524),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Fast dispatch with live tracking',
-                      style: TextStyle(color: Color(0xFF4E4A2F), fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Text(
-            data.subtitle,
-            style: const TextStyle(color: Color(0xFF4B4A40), height: 1.55),
-          ),
-          const Spacer(),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _HeroMetaPill(label: data.priceFrom, highlighted: true),
-              _HeroMetaPill(label: data.eta),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              FilledButton(onPressed: onBook, child: const Text('Book now')),
-              OutlinedButton(
-                onPressed: onSchedule,
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0x66FFFFFF)),
-                  foregroundColor: const Color(0xFF163524),
-                ),
-                child: const Text('Schedule'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _HeroMetaPill extends StatelessWidget {
-  const _HeroMetaPill({required this.label, this.highlighted = false});
+  const _HeroMetaPill({required this.label});
 
   final String label;
-  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: highlighted
-            ? KaziTheme.accentGold
-            : const Color(0xFFFDF8E7),
+        color: const Color(0xFFFDF8E7),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: highlighted ? const Color(0xFFD3A118) : const Color(0xFFE2D5AB),
+          color: const Color(0xFFE2D5AB),
         ),
       ),
       child: Text(
         label,
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.w800,
-          color: highlighted ? KaziTheme.primaryGreen : null,
+          color: KaziTheme.primaryGreen,
         ),
       ),
     );
@@ -3876,146 +4983,178 @@ class _AuthRequiredCard extends StatelessWidget {
 class _NotificationsSheet extends StatelessWidget {
   const _NotificationsSheet();
 
-  String _formatTimestamp(DateTime? createdAt) {
-    if (createdAt == null) {
-      return 'Just now';
-    }
-
-    final difference = DateTime.now().difference(createdAt);
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    }
-    if (difference.inHours < 1) {
-      return '${difference.inMinutes} min ago';
-    }
-    if (difference.inDays < 1) {
-      return '${difference.inHours} hr ago';
-    }
-    return '${difference.inDays} day${difference.inDays == 1 ? '' : 's'} ago';
-  }
-
-  IconData _iconForNotification(String type) {
-    if (type.contains('cancel')) return Icons.event_busy_outlined;
-    if (type.contains('complete')) return Icons.task_alt_outlined;
-    if (type.contains('accept') || type.contains('assigned')) return Icons.person_pin_circle_outlined;
-    if (type.contains('route') || type.contains('arrived')) return Icons.near_me_outlined;
-    return Icons.notifications_active_outlined;
-  }
-
   @override
   Widget build(BuildContext context) {
     final controller = _AppScope.of(context);
-    final notifications = controller.notifications;
     final messenger = ScaffoldMessenger.of(context);
+    final notifications = controller.notifications;
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Notifications', style: Theme.of(context).textTheme.headlineSmall),
-                      const SizedBox(height: 4),
-                      Text('${controller.unreadNotifications} unread updates'),
-                    ],
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Notifications',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text('${controller.unreadNotifications} unread updates'),
+                      ],
+                    ),
                   ),
-                ),
-                TextButton(
-                  onPressed: controller.unreadNotifications == 0
-                      ? null
-                      : () async {
-                          try {
-                            await controller.markAllNotificationsRead();
-                          } catch (error) {
-                            messenger.showSnackBar(SnackBar(content: Text(error.toString())));
-                          }
-                        },
-                  child: const Text('Mark all read'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Flexible(
-              child: notifications.isEmpty
-                  ? const _SurfaceCard(
-                      child: Text('Booking updates, provider movement, chat alerts, and payment confirmations will appear here.'),
-                    )
-                  : ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: notifications.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = notifications[index];
-                        return _SurfaceCard(
-                          child: InkWell(
-                            onTap: item.isRead
-                                ? null
-                                : () async {
-                                    try {
-                                      await controller.markNotificationRead(item.id);
-                                    } catch (error) {
-                                      messenger.showSnackBar(SnackBar(content: Text(error.toString())));
-                                    }
-                                  },
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 44,
-                                  height: 44,
-                                  decoration: BoxDecoration(
-                                    color: item.isRead ? KaziTheme.surface : const Color(0xFFE6F4EC),
-                                    borderRadius: BorderRadius.circular(14),
+                  TextButton(
+                    onPressed: controller.unreadNotifications == 0
+                        ? null
+                        : () async {
+                            try {
+                              await controller.markAllNotificationsRead();
+                            } catch (error) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text(error.toString())),
+                              );
+                            }
+                          },
+                    child: const Text('Mark all read'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: notifications.isEmpty
+                    ? const _SurfaceCard(
+                        child: Text(
+                          'Booking updates, provider movement, chat alerts, and payment confirmations will appear here.',
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: notifications.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = notifications[index];
+                          return _SurfaceCard(
+                            child: InkWell(
+                              onTap: item.isRead
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await controller.markNotificationRead(item.id);
+                                      } catch (error) {
+                                        messenger.showSnackBar(
+                                          SnackBar(content: Text(error.toString())),
+                                        );
+                                      }
+                                    },
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: item.isRead
+                                          ? KaziTheme.surface
+                                          : const Color(0xFFE6F4EC),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Icon(
+                                      _iconForNotification(item.type),
+                                      color: item.isRead
+                                          ? const Color(0xFF5A675F)
+                                          : KaziTheme.primaryGreen,
+                                    ),
                                   ),
-                                  child: Icon(
-                                    _iconForNotification(item.type),
-                                    color: item.isRead ? const Color(0xFF5A675F) : KaziTheme.primaryGreen,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              item.title,
-                                              style: TextStyle(
-                                                fontWeight: item.isRead ? FontWeight.w600 : FontWeight.w800,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                item.title,
+                                                style: TextStyle(
+                                                  fontWeight: item.isRead
+                                                      ? FontWeight.w600
+                                                      : FontWeight.w800,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          Text(
-                                            _formatTimestamp(item.createdAt),
-                                            style: Theme.of(context).textTheme.bodySmall,
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(item.body, style: const TextStyle(height: 1.4)),
-                                    ],
+                                            Text(
+                                              _formatTimestamp(item.createdAt),
+                                              style: Theme.of(context).textTheme.bodySmall,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(item.body, style: const TextStyle(height: 1.4)),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  IconData _iconForNotification(String type) {
+    final normalized = type.toLowerCase();
+    if (normalized.contains('chat') || normalized.contains('message')) {
+      return Icons.chat_bubble_outline;
+    }
+    if (normalized.contains('payment') || normalized.contains('wallet')) {
+      return Icons.account_balance_wallet_outlined;
+    }
+    if (normalized.contains('promo') || normalized.contains('offer')) {
+      return Icons.local_offer_outlined;
+    }
+    if (normalized.contains('booking') || normalized.contains('provider')) {
+      return Icons.event_available_outlined;
+    }
+    return Icons.notifications_outlined;
+  }
+
+  String _formatTimestamp(DateTime? timestamp) {
+    if (timestamp == null) {
+      return 'Just now';
+    }
+
+    final difference = DateTime.now().difference(timestamp);
+    if (difference.inMinutes < 1) {
+      return 'Now';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes}m';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours}h';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays}d';
+    }
+
+    final month = timestamp.month.toString().padLeft(2, '0');
+    final day = timestamp.day.toString().padLeft(2, '0');
+    return '$day/$month';
   }
 }
 
@@ -4036,92 +5175,188 @@ class _ServiceFlowCard extends StatelessWidget {
       backgroundColor: Colors.white,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final compact = constraints.maxWidth < 220;
+          final compact = constraints.maxWidth < 360;
           final buttonStyle = compact
-              ? const ButtonStyle(
+              ? ButtonStyle(
                   visualDensity: VisualDensity.compact,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  minimumSize: WidgetStatePropertyAll(Size(double.infinity, compact ? 34 : 40)),
+                  padding: const WidgetStatePropertyAll(
+                    EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  ),
                 )
               : null;
+          final imageHeight = compact ? 96.0 : (constraints.maxWidth < 320 ? 142.0 : 156.0);
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: compact ? 40 : 48,
-                    height: compact ? 40 : 48,
-                    decoration: BoxDecoration(
-                      color: KaziTheme.softGold,
-                      borderRadius: BorderRadius.circular(compact ? 14 : 16),
-                    ),
-                    child: Icon(data.icon, color: KaziTheme.primaryGreen, size: compact ? 20 : 24),
-                  ),
-                  const Spacer(),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFF5D6),
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      data.category,
-                      style: const TextStyle(
-                        color: KaziTheme.primaryGreen,
-                        fontWeight: FontWeight.w800,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: SizedBox(
+                  height: imageHeight,
+                  width: double.infinity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              const Color(0xFFF4F1EB),
+                              const Color(0xFFE5DDD1),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                      Image.asset(
+                        data.imageAsset,
+                        fit: data.imageFit,
+                        alignment: data.imageAlignment,
+                      ),
+                      DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.05),
+                              Colors.black.withValues(alpha: 0.42),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: compact ? 34 : 44,
+                                  height: compact ? 34 : 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.92),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: Icon(data.icon, color: KaziTheme.primaryGreen, size: compact ? 18 : 22),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerRight,
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: compact ? 10 : 12,
+                                        vertical: compact ? 5 : 7,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFFF1C9).withValues(alpha: 0.96),
+                                        borderRadius: BorderRadius.circular(999),
+                                      ),
+                                      child: Text(
+                                        data.category,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          color: KaziTheme.primaryGreen,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: compact ? 11 : 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Text(
+                              data.title,
+                              maxLines: compact ? 1 : 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: compact ? 16 : 22,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white,
+                                height: 1.05,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              Text(
-                data.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: compact ? 16 : 19,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF163524),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: compact ? 10 : 14),
               Text(
                 data.subtitle,
-                maxLines: compact ? 2 : 3,
+                maxLines: compact ? 2 : 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF536158), height: 1.5),
+                style: TextStyle(
+                  color: const Color(0xFF536158),
+                  height: 1.4,
+                  fontSize: compact ? 12.5 : 14,
+                ),
               ),
-              SizedBox(height: compact ? 12 : 16),
+              SizedBox(height: compact ? 8 : 14),
               if (compact)
                 Text(
                   '${data.priceFrom} • ${data.eta}',
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF1A231D)),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1A231D),
+                    fontSize: 12.5,
+                  ),
                 )
               else ...[
                 _InlineStatus(label: 'Price', value: data.priceFrom),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 _InlineStatus(label: 'Dispatch', value: data.eta),
               ],
-              SizedBox(height: compact ? 12 : 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton(
-                    onPressed: onBook,
-                    style: buttonStyle,
-                    child: Text(compact ? 'Book' : 'Book now'),
-                  ),
-                  OutlinedButton(
-                    onPressed: onSchedule,
-                    style: buttonStyle,
-                    child: Text(compact ? 'Later' : 'Schedule'),
-                  ),
-                ],
-              ),
+              SizedBox(height: compact ? 10 : 14),
+              if (compact)
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: onBook,
+                        style: buttonStyle,
+                        child: const Text('Book'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: onSchedule,
+                        style: buttonStyle,
+                        child: const Text('Later'),
+                      ),
+                    ),
+                  ],
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton(
+                      onPressed: onBook,
+                      style: buttonStyle,
+                      child: const Text('Book now'),
+                    ),
+                    OutlinedButton(
+                      onPressed: onSchedule,
+                      style: buttonStyle,
+                      child: const Text('Schedule'),
+                    ),
+                  ],
+                ),
             ],
           );
         },
@@ -4736,11 +5971,57 @@ class _SectionHeading extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: const BoxDecoration(
+                color: KaziTheme.accentGold,
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'KAZI highlights',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: KaziTheme.primaryGreen,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.35,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF0D4D2C),
+              ),
+        ),
+        const SizedBox(height: 6),
         Text(
           subtitle,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xFF4F5B53)),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF41624F),
+                height: 1.55,
+              ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: 96,
+          height: 4,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            gradient: const LinearGradient(
+              colors: [
+                KaziTheme.accentGold,
+                KaziTheme.primaryGreen,
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -4885,6 +6166,9 @@ class _ServiceData {
     required this.subtitle,
     required this.priceFrom,
     required this.eta,
+    required this.imageAsset,
+    this.imageFit = BoxFit.cover,
+    this.imageAlignment = Alignment.center,
     required this.icon,
   });
 
@@ -4894,6 +6178,9 @@ class _ServiceData {
   final String subtitle;
   final String priceFrom;
   final String eta;
+  final String imageAsset;
+  final BoxFit imageFit;
+  final Alignment imageAlignment;
   final IconData icon;
 }
 

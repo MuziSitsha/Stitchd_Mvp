@@ -23,6 +23,30 @@ Set-Location 'c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile'
 & $flutter test
 ```
 
+## Fresh Web Preview
+
+Use the repo-level preview command when you want a rebuilt Flutter web bundle served with cache-disabled headers:
+
+```powershell
+Set-Location 'c:\Users\nkazi\OneDrive\Desktop\kazi'
+corepack yarn preview:mobile:web
+```
+
+Default behavior:
+
+- rebuilds `apps/mobile/build/web`
+- passes `KAZI_API_BASE_URL=http://127.0.0.1:3002/api/v1`
+- serves the bundle on `http://127.0.0.1:8082/`
+- sends `no-store` cache headers to avoid stale service-worker-style preview issues
+
+Optional direct usage:
+
+```powershell
+Set-Location 'c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile'
+py -3 .\tool\preview_web_build.py --skip-build --port 8083
+py -3 .\tool\preview_web_build.py --api-base-url=https://your-api.example.com/api/v1 --port 8084
+```
+
 ## Runtime Configuration
 
 Use `--dart-define` values when testing against a reachable backend or when preparing Firebase push:

@@ -519,6 +519,15 @@ class KaziSession {
   final bool isNewUser;
   final ApiUser user;
 
+  Map<String, dynamic> toJson() {
+    return {
+      'accessToken': accessToken,
+      'refreshToken': refreshToken,
+      'isNewUser': isNewUser,
+      'user': user.toJson(),
+    };
+  }
+
   factory KaziSession.fromJson(Map<String, dynamic> json) {
     return KaziSession(
       accessToken: json['accessToken'] as String,
@@ -549,6 +558,17 @@ class ApiUser {
   String get displayName {
     final fullName = [firstName, lastName].whereType<String>().where((item) => item.isNotEmpty).join(' ');
     return fullName.isEmpty ? phone : fullName;
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'phone': phone,
+      'role': role,
+      'firstName': firstName,
+      'lastName': lastName,
+      'walletBalanceCents': walletBalanceCents,
+    };
   }
 
   factory ApiUser.fromJson(Map<String, dynamic> json) {
