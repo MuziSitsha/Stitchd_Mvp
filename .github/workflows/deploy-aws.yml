@@ -42,15 +42,44 @@ jobs:
           AWS_LOG_GROUP: ${{ secrets.AWS_LOG_GROUP }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
           IMAGE_URI: ${{ env.IMAGE_URI }}
+          PUBLIC_API_URL: ${{ secrets.PUBLIC_API_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          JWT_REFRESH_EXPIRES_IN: ${{ secrets.JWT_REFRESH_EXPIRES_IN }}
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          ADMIN_PHONE: ${{ secrets.ADMIN_PHONE }}
+          ADMIN_FIRST_NAME: ${{ secrets.ADMIN_FIRST_NAME }}
+          ADMIN_LAST_NAME: ${{ secrets.ADMIN_LAST_NAME }}
+          REDIS_ENABLED: ${{ secrets.REDIS_ENABLED }}
+          REDIS_HOST: ${{ secrets.REDIS_HOST }}
+          REDIS_PORT: ${{ secrets.REDIS_PORT }}
+          REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+          CLICKATELL_API_KEY: ${{ secrets.CLICKATELL_API_KEY }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_CLIENT_EMAIL: ${{ secrets.FIREBASE_CLIENT_EMAIL }}
+          FIREBASE_PRIVATE_KEY: ${{ secrets.FIREBASE_PRIVATE_KEY }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          PEACH_PAYMENTS_ENTITY_ID: ${{ secrets.PEACH_PAYMENTS_ENTITY_ID }}
+          PEACH_PAYMENTS_SECRET: ${{ secrets.PEACH_PAYMENTS_SECRET }}
+          PEACH_PAYMENTS_MODE: ${{ secrets.PEACH_PAYMENTS_MODE }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_PHONE_NUMBER: ${{ secrets.TWILIO_PHONE_NUMBER }}
+          APP_AWS_ACCESS_KEY_ID: ${{ secrets.APP_AWS_ACCESS_KEY_ID }}
+          APP_AWS_SECRET_ACCESS_KEY: ${{ secrets.APP_AWS_SECRET_ACCESS_KEY }}
+          AWS_S3_BUCKET_NAME: ${{ secrets.AWS_S3_BUCKET_NAME }}
+          DEFAULT_COMMISSION_RATE: ${{ secrets.DEFAULT_COMMISSION_RATE }}
+          ALLOWED_ORIGINS: ${{ secrets.ALLOWED_ORIGINS }}
         run: |
-          sed \
-            -e "s|__AWS_ECS_TASK_FAMILY__|$AWS_ECS_TASK_FAMILY|g" \
-            -e "s|__AWS_ECS_EXECUTION_ROLE_ARN__|$AWS_ECS_EXECUTION_ROLE_ARN|g" \
-            -e "s|__AWS_ECS_TASK_ROLE_ARN__|$AWS_ECS_TASK_ROLE_ARN|g" \
-            -e "s|__AWS_LOG_GROUP__|$AWS_LOG_GROUP|g" \
-            -e "s|__AWS_REGION__|$AWS_REGION|g" \
-            -e "s|__IMAGE_URI__|$IMAGE_URI|g" \
-            infra/aws/ecs-task-definition.template.json > infra/aws/ecs-task-definition.json
+          node -e "const fs=require('fs'); const path='infra/aws/ecs-task-definition.template.json'; const rendered=fs.readFileSync(path,'utf8')
+            .replaceAll('__AWS_ECS_TASK_FAMILY__', process.env.AWS_ECS_TASK_FAMILY)
+            .replaceAll('__AWS_ECS_EXECUTION_ROLE_ARN__', process.env.AWS_ECS_EXECUTION_ROLE_ARN)
+            .replaceAll('__AWS_ECS_TASK_ROLE_ARN__', process.env.AWS_ECS_TASK_ROLE_ARN)
+            .replaceAll('__AWS_LOG_GROUP__', process.env.AWS_LOG_GROUP)
+            .replaceAll('__AWS_REGION__', process.env.AWS_REGION)
+            .replaceAll('__IMAGE_URI__', process.env.IMAGE_URI); const task=JSON.parse(rendered); const runtimeEnv=['PUBLIC_API_URL','DATABASE_URL','JWT_SECRET','JWT_EXPIRES_IN','JWT_REFRESH_EXPIRES_IN','ADMIN_EMAIL','ADMIN_PASSWORD','ADMIN_PHONE','ADMIN_FIRST_NAME','ADMIN_LAST_NAME','REDIS_ENABLED','REDIS_HOST','REDIS_PORT','REDIS_PASSWORD','CLICKATELL_API_KEY','FIREBASE_PROJECT_ID','FIREBASE_CLIENT_EMAIL','FIREBASE_PRIVATE_KEY','GOOGLE_MAPS_API_KEY','PEACH_PAYMENTS_ENTITY_ID','PEACH_PAYMENTS_SECRET','PEACH_PAYMENTS_MODE','TWILIO_ACCOUNT_SID','TWILIO_AUTH_TOKEN','TWILIO_PHONE_NUMBER','APP_AWS_ACCESS_KEY_ID','APP_AWS_SECRET_ACCESS_KEY','AWS_S3_BUCKET_NAME','DEFAULT_COMMISSION_RATE','ALLOWED_ORIGINS'].filter((name)=>process.env[name]).map((name)=>({name: name === 'APP_AWS_ACCESS_KEY_ID' ? 'AWS_ACCESS_KEY_ID' : name === 'APP_AWS_SECRET_ACCESS_KEY' ? 'AWS_SECRET_ACCESS_KEY' : name, value: process.env[name]})); task.containerDefinitions[0].environment=[...task.containerDefinitions[0].environment,...runtimeEnv]; fs.writeFileSync('infra/aws/ecs-task-definition.json', JSON.stringify(task, null, 2));"
 
       - name: Deploy ECS task definition
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2

@@ -21,6 +21,27 @@ import { AppController } from './app.controller';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 
+const createOptionalRedisImports = () => {
+  const redisEnabled = (process.env.REDIS_ENABLED || 'false').toLowerCase() === 'true';
+
+  if (!redisEnabled) {
+    return [];
+  }
+
+  return [
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        redis: {
+          host: config.get<string>('app.redisHost') || 'localhost',
+          port: config.get<number>('app.redisPort') || 6379,
+          password: config.get<string>('app.redisPassword'),
+        },
+      }),
+    }),
+  ];
+};
+
 @Module({
   imports: [
     // Config - loads .env
@@ -45,17 +66,8 @@ import databaseConfig from './config/database.config';
       }),
     }),
 
-    // Redis job queue (BullMQ) - for notifications, emails, payouts
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        redis: {
-          host: config.get<string>('app.redisHost') || 'localhost',
-          port: config.get<number>('app.redisPort') || 6379,
-          password: config.get<string>('app.redisPassword'),
-        },
-      }),
-    }),
+    // Queues are optional until a Redis target is provisioned.
+    ...createOptionalRedisImports(),
 
     // Rate limiting - protect against abuse
     ThrottlerModule.forRoot([

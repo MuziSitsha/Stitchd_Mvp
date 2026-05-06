@@ -32,9 +32,10 @@ Status values:
 | DATABASE_URL | pending | missing | AWS staging PostgreSQL |
 | JWT_SECRET | pending | missing | Generate long random secret |
 | JWT_REFRESH_SECRET | pending | missing | Generate long random secret |
-| REDIS_HOST | pending | missing | AWS staging Redis |
-| REDIS_PORT | 6379 | missing | Confirm if custom |
-| REDIS_PASSWORD | pending | missing | Load only after Redis provision |
+| REDIS_ENABLED | false | provided | Keep false until queue-backed workloads are introduced in staging |
+| REDIS_HOST | pending | missing | Only required when REDIS_ENABLED=true |
+| REDIS_PORT | 6379 | missing | Only required when REDIS_ENABLED=true |
+| REDIS_PASSWORD | pending | missing | Only required when REDIS_ENABLED=true |
 
 ## Firebase
 

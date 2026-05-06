@@ -12,6 +12,7 @@ export default registerAs('app', () => ({
   adminPhone: process.env.ADMIN_PHONE || '+27820000000',
   adminFirstName: process.env.ADMIN_FIRST_NAME || 'KAZI',
   adminLastName: process.env.ADMIN_LAST_NAME || 'Admin',
+  redisEnabled: (process.env.REDIS_ENABLED || 'false').toLowerCase() === 'true',
   redisHost: process.env.REDIS_HOST || 'localhost',
   redisPort: parseInt(process.env.REDIS_PORT || '6379', 10),
   redisPassword: process.env.REDIS_PASSWORD,

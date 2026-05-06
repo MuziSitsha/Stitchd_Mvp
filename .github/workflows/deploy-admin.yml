@@ -23,6 +23,8 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build admin bundle
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
         run: yarn workspace @kazi/admin build
 
       - name: Configure AWS credentials

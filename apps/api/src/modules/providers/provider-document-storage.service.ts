@@ -22,12 +22,19 @@ export class ProviderDocumentStorageService {
     this.region = this.configService.get<string>('app.awsRegion') || 'af-south-1';
     this.bucketName = this.configService.get<string>('app.awsS3BucketName') || '';
 
+    const accessKeyId = this.configService.get<string>('app.awsAccessKeyId');
+    const secretAccessKey = this.configService.get<string>('app.awsSecretAccessKey');
+
     this.s3Client = new S3Client({
       region: this.region,
-      credentials: {
-        accessKeyId: this.configService.get<string>('app.awsAccessKeyId') || '',
-        secretAccessKey: this.configService.get<string>('app.awsSecretAccessKey') || '',
-      },
+      ...(accessKeyId && secretAccessKey
+        ? {
+            credentials: {
+              accessKeyId,
+              secretAccessKey,
+            },
+          }
+        : {}),
     });
   }
 
@@ -68,12 +75,6 @@ export class ProviderDocumentStorageService {
   private assertUploadIsConfigured() {
     if (!this.bucketName) {
       throw new ServiceUnavailableException('AWS S3 bucket is not configured');
-    }
-
-    const accessKeyId = this.configService.get<string>('app.awsAccessKeyId');
-    const secretAccessKey = this.configService.get<string>('app.awsSecretAccessKey');
-    if (!accessKeyId || !secretAccessKey) {
-      throw new ServiceUnavailableException('AWS S3 credentials are not configured');
     }
   }
 

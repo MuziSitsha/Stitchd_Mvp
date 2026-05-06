@@ -77,7 +77,7 @@ type AdminAuthResponse = {
   };
 };
 
-const DEFAULT_API_BASE_URL = 'http://127.0.0.1:3002/api/v1';
+const DEFAULT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:3001/api/v1';
 
 function getInitialApiBaseUrl() {
   const stored = localStorage.getItem('kazi.admin.apiBaseUrl');
@@ -91,7 +91,7 @@ function getInitialApiBaseUrl() {
 export function App() {
   const [apiBaseUrl, setApiBaseUrl] = useState(getInitialApiBaseUrl);
   const [email, setEmail] = useState(() => localStorage.getItem('kazi.admin.email') || 'sales@gubudo.com');
-  const [password, setPassword] = useState(() => localStorage.getItem('kazi.admin.password') || 'Merc1985!');
+  const [password, setPassword] = useState('');
   const [token, setToken] = useState(() => localStorage.getItem('kazi.admin.token') || '');
   const [adminIdentity, setAdminIdentity] = useState(() => localStorage.getItem('kazi.admin.identity') || '');
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
@@ -165,10 +165,6 @@ export function App() {
   }, [email]);
 
   useEffect(() => {
-    localStorage.setItem('kazi.admin.password', password);
-  }, [password]);
-
-  useEffect(() => {
     localStorage.setItem('kazi.admin.token', token);
   }, [token]);
 
@@ -218,7 +214,7 @@ export function App() {
       const identity = auth.user.email || [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ') || 'Admin';
       setToken(auth.accessToken);
       setAdminIdentity(identity);
-      setPassword('Merc1985!');
+      setPassword('');
       await loadDashboard(undefined, auth.accessToken);
       setStatusMessage(`Signed in as ${identity}.`);
     } catch (error) {
@@ -261,7 +257,7 @@ export function App() {
 
   function signOut() {
     setToken('');
-    setPassword('Merc1985!');
+    setPassword('');
     setAdminIdentity('');
     setSettings(null);
     setMetrics(null);

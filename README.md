@@ -33,7 +33,7 @@ The repository contains a working MVP foundation for the customer app, provider 
 - Branch `main` is current and GitHub CI is passing.
 - Customer app, provider flow, admin console, bookings, reviews, wallet accounting, and admin payout-profile settings are in the repository.
 - Current deferred work is the real third-party completion step: payment settlement wiring, real gateway credentials, real push/call credentials, and final AWS rollout.
-- Admin sign-in for the current MVP handover is `sales@gubudo.com` / `Merc1985!`.
+- Admin sign-in email for the current MVP handover is `sales@gubudo.com`. The bootstrap password must stay out of source control and be shared through a password manager or secret vault.
 
 See [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md) for the delivery summary, handover checklist, and next actions.
 
@@ -66,7 +66,7 @@ docker-compose up -d
 
 ### 4. Start development
 ```bash
-# Backend API (port 3002)
+# Backend API (port 3001)
 yarn dev:api
 
 # Admin dashboard (port 5173)
@@ -77,7 +77,7 @@ cd apps/mobile
 flutter pub get
 flutter run
 
-# API docs available at: http://localhost:3002/docs
+# API docs available at: http://localhost:3001/docs
 ```
 
 ---
@@ -124,7 +124,7 @@ See `apps/api/.env.example` for all required variables.
 
 ### Key services to configure:
 - **AWS RDS PostgreSQL** — `DATABASE_URL`
-- **AWS ElastiCache Redis** — `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
+- **AWS ElastiCache Redis** — `REDIS_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **Clickatell** — SA SMS provider for OTP verification
 - **Firebase** — Push notifications (FCM)
 - **Peach Payments** — SA card processing
@@ -185,11 +185,45 @@ AWS_REGION
 AWS_ECR_REPOSITORY
 AWS_ECS_CLUSTER
 AWS_ECS_SERVICE
-AWS_ECS_TASK_DEFINITION
+AWS_ECS_TASK_FAMILY
+AWS_ECS_EXECUTION_ROLE_ARN
+AWS_ECS_TASK_ROLE_ARN
+AWS_LOG_GROUP
+PUBLIC_API_URL
+DATABASE_URL
+JWT_SECRET
+JWT_EXPIRES_IN
+JWT_REFRESH_EXPIRES_IN
+ADMIN_EMAIL
+ADMIN_PASSWORD
+ADMIN_PHONE
+ADMIN_FIRST_NAME
+ADMIN_LAST_NAME
+REDIS_ENABLED
+REDIS_HOST
+REDIS_PORT
+REDIS_PASSWORD
+CLICKATELL_API_KEY
+FIREBASE_PROJECT_ID
+FIREBASE_CLIENT_EMAIL
+FIREBASE_PRIVATE_KEY
+GOOGLE_MAPS_API_KEY
+PEACH_PAYMENTS_ENTITY_ID
+PEACH_PAYMENTS_SECRET
+PEACH_PAYMENTS_MODE
+TWILIO_ACCOUNT_SID
+TWILIO_AUTH_TOKEN
+TWILIO_PHONE_NUMBER
+AWS_S3_BUCKET_NAME
+ALLOWED_ORIGINS
+DEFAULT_COMMISSION_RATE
 TEST_DATABASE_URL      # Separate PostgreSQL test database
+VITE_API_BASE_URL      # Admin build target
 AWS_ADMIN_S3_BUCKET
 AWS_ADMIN_CLOUDFRONT_DISTRIBUTION_ID
 ```
+
+If the ECS task role has S3 access, the API does not need static runtime `APP_AWS_ACCESS_KEY_ID` and `APP_AWS_SECRET_ACCESS_KEY` values.
 
 ### Branch strategy
 - `main` → production release branch
