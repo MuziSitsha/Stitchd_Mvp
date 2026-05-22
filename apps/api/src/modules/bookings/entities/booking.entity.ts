@@ -24,6 +24,7 @@ export enum BookingType {
 export enum PaymentMethod {
   CASH = 'cash',
   CARD = 'card',
+  PAYFAST = 'payfast',
   WALLET = 'wallet',
   EFT = 'eft',
 }

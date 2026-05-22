@@ -1,10 +1,10 @@
-# KAZI GitHub Actions Staging Secrets Checklist
+# STITCHD GitHub Actions Staging Secrets Checklist
 
 Use this checklist to populate GitHub Actions secrets for the repository before triggering the staging deploy workflows.
 
 Repository target:
 
-- `MuziSitsha/kazi-platform`
+- `MuziSitsha/stitchd-platform`
 
 GitHub path:
 
@@ -44,7 +44,7 @@ These are the values required to deploy the current staging stack.
 
 | Secret | Required | Recommended staging value / source |
 |---|---|---|
-| `PUBLIC_API_URL` | yes | `https://api-staging.kazi.co.za` |
+| `PUBLIC_API_URL` | yes | `https://api-staging.stitchd.co.za` |
 | `DATABASE_URL` | yes | Staging PostgreSQL connection string |
 | `JWT_SECRET` | yes | Long random secret |
 | `JWT_EXPIRES_IN` | yes | `7d` |
@@ -52,17 +52,17 @@ These are the values required to deploy the current staging stack.
 | `ADMIN_EMAIL` | yes | `sales@gubudo.com` unless business changes it |
 | `ADMIN_PASSWORD` | yes | Staging admin bootstrap password from password manager |
 | `ADMIN_PHONE` | yes | `+27820000000` or the approved admin bootstrap number |
-| `ADMIN_FIRST_NAME` | yes | `KAZI` |
+| `ADMIN_FIRST_NAME` | yes | `STITCHD` |
 | `ADMIN_LAST_NAME` | yes | `Admin` |
 | `REDIS_ENABLED` | yes | `false` for current staging deploy |
-| `ALLOWED_ORIGINS` | yes | `https://admin-staging.kazi.co.za` |
+| `ALLOWED_ORIGINS` | yes | `https://admin-staging.stitchd.co.za` |
 | `DEFAULT_COMMISSION_RATE` | yes | `0.15` unless business confirms a different default |
 
 ### Firebase server-side push configuration
 
 | Secret | Required | Recommended staging value / source |
 |---|---|---|
-| `FIREBASE_PROJECT_ID` | yes | `kazi-staging` |
+| `FIREBASE_PROJECT_ID` | yes | `stitchd-staging` |
 | `FIREBASE_CLIENT_EMAIL` | yes | Firebase service account client email |
 | `FIREBASE_PRIVATE_KEY` | yes | Firebase service account private key with preserved line breaks |
 
@@ -70,7 +70,7 @@ These are the values required to deploy the current staging stack.
 
 | Secret | Required | Recommended staging value / source |
 |---|---|---|
-| `VITE_API_BASE_URL` | yes | `https://api-staging.kazi.co.za/api/v1` |
+| `VITE_API_BASE_URL` | yes | `https://api-staging.stitchd.co.za/api/v1` |
 | `AWS_ADMIN_S3_BUCKET` | yes | S3 bucket for admin static hosting |
 | `AWS_ADMIN_CLOUDFRONT_DISTRIBUTION_ID` | yes | CloudFront distribution serving admin staging |
 
@@ -91,9 +91,10 @@ These are referenced by the API workflow, but the current code path will still b
 | `REDIS_PASSWORD` | yes | Same as above |
 | `CLICKATELL_API_KEY` | yes | OTP only sends live SMS in production mode; staging can remain unset if that flow is not under test |
 | `GOOGLE_MAPS_API_KEY` | yes | Only needed once maps/tracking launch validation starts |
-| `PEACH_PAYMENTS_ENTITY_ID` | yes | Only needed when hosted checkout staging validation starts |
-| `PEACH_PAYMENTS_SECRET` | yes | Same as above |
-| `PEACH_PAYMENTS_MODE` | yes | Defaults in app config already cover a non-production mode |
+| `PAYFAST_MERCHANT_ID` | yes | Needed for hosted checkout staging validation |
+| `PAYFAST_MERCHANT_KEY` | yes | Paired with the merchant ID |
+| `PAYFAST_PASSPHRASE` | yes | Needed when the PayFast account uses a passphrase |
+| `PAYFAST_MODE` | yes | Defaults in app config already cover a non-production mode |
 | `TWILIO_ACCOUNT_SID` | yes | Call flow falls back when Twilio is unset |
 | `TWILIO_AUTH_TOKEN` | yes | Same as above |
 | `TWILIO_PHONE_NUMBER` | yes | Same as above |
@@ -125,5 +126,5 @@ Use this order in GitHub so you can trigger deploys immediately after.
 3. Add Firebase server-side secrets.
 4. Add admin hosting secrets.
 5. Add `TEST_DATABASE_URL` for CI.
-6. Trigger `Deploy KAZI API to AWS`.
-7. Trigger `Deploy KAZI Admin to AWS`.
+6. Trigger `Deploy STITCHD API to AWS`.
+7. Trigger `Deploy STITCHD Admin to AWS`.

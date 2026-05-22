@@ -43,7 +43,7 @@ export class UsersService {
     user.isActive = true;
     user.isPhoneVerified = true;
     user.isEmailVerified = true;
-    user.firstName = params.firstName ?? user.firstName ?? 'KAZI';
+    user.firstName = params.firstName ?? user.firstName ?? 'STITCHD';
     user.lastName = params.lastName ?? user.lastName ?? 'Admin';
     user.preferredLanguage = user.preferredLanguage || 'en';
     user.referralCode = user.referralCode || this.generateReferralCode();
@@ -94,7 +94,7 @@ export class UsersService {
 
   private generateReferralCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const prefix = 'KAZI';
+    const prefix = 'STITCHD';
     let code = prefix;
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));

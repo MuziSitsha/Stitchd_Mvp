@@ -1,4 +1,4 @@
-# KAZI Staging Secrets Register
+# STITCHD Staging Secrets Register
 
 Use this as the working register for staging setup.
 
@@ -19,11 +19,11 @@ Status values:
 
 | Item | Value | Status | Notes |
 |------|-------|--------|-------|
-| Staging API URL | https://api-staging.kazi.co.za | provided | Swap only if final domain naming changes |
-| Staging admin URL | https://admin-staging.kazi.co.za | provided | Swap only if final domain naming changes |
-| Mobile API base URL | https://api-staging.kazi.co.za/api/v1 | provided | Use for real-device staging builds |
-| Peach return URL | https://api-staging.kazi.co.za/api/v1/payments/checkout/result | provided | Confirm against final Peach setup |
-| Peach webhook callback URL | https://api-staging.kazi.co.za/api/v1/payments/webhooks/peach | provided | Confirm against final Peach setup |
+| Staging API URL | https://api-staging.stitchd.co.za | provided | Swap only if final domain naming changes |
+| Staging admin URL | https://admin-staging.stitchd.co.za | provided | Swap only if final domain naming changes |
+| Mobile API base URL | https://api-staging.stitchd.co.za/api/v1 | provided | Use for real-device staging builds |
+| PayFast return URL | https://api-staging.stitchd.co.za/api/v1/payments/checkout/result | provided | Confirm against final PayFast setup |
+| PayFast webhook callback URL | https://api-staging.stitchd.co.za/api/v1/payments/webhooks/payfast | provided | Confirm against final PayFast setup |
 
 ## Backend Core
 
@@ -41,7 +41,7 @@ Status values:
 
 | Item | Value | Status | Notes |
 |------|-------|--------|-------|
-| FIREBASE_PROJECT_ID | kazi-staging | provided | Preferred staging project name |
+| FIREBASE_PROJECT_ID | stitchd-staging | provided | Preferred staging project name |
 | FIREBASE_CLIENT_EMAIL | pending | missing | From service account |
 | FIREBASE_PRIVATE_KEY | pending | missing | From service account |
 | FIREBASE_API_KEY | pending | missing | Firebase app config |
@@ -71,13 +71,14 @@ Status values:
 | TWILIO_AUTH_TOKEN | pending | missing | Secure secret |
 | TWILIO_PHONE_NUMBER | pending | missing | Voice-capable number |
 
-## Peach Payments
+## PayFast
 
 | Item | Value | Status | Notes |
 |------|-------|--------|-------|
-| PEACH_PAYMENTS_ENTITY_ID | pending | missing | Merchant credential |
-| PEACH_PAYMENTS_SECRET | pending | missing | Merchant secret |
-| PEACH_PAYMENTS_MODE | staging | provided | Switch to production later |
+| PAYFAST_MERCHANT_ID | pending | missing | Merchant credential |
+| PAYFAST_MERCHANT_KEY | pending | missing | Merchant key |
+| PAYFAST_PASSPHRASE | pending | missing | Merchant passphrase |
+| PAYFAST_MODE | staging | provided | Switch to production later |
 
 ## AWS And Storage
 
@@ -86,7 +87,7 @@ Status values:
 | AWS_REGION | af-south-1 | provided | Johannesburg latency target |
 | AWS_ACCESS_KEY_ID | pending | missing | Deployment access |
 | AWS_SECRET_ACCESS_KEY | pending | missing | Deployment access |
-| AWS_S3_BUCKET | kazi-staging-uploads | provided | Confirm actual bucket creation |
+| AWS_S3_BUCKET | stitchd-staging-uploads | provided | Confirm actual bucket creation |
 | AWS_ECR_REPOSITORY | pending | missing | Staging deployment |
 | AWS_ECS_CLUSTER | pending | missing | Staging deployment |
 | AWS_ECS_SERVICE | pending | missing | Staging deployment |

@@ -34,7 +34,7 @@ export class UpdatePlatformSettingsDto {
   @IsBoolean()
   scheduledBookingsEnabled?: boolean;
 
-  @ApiPropertyOptional({ example: 'KAZI Marketplace (Pty) Ltd' })
+  @ApiPropertyOptional({ example: 'STITCHD Marketplace (Pty) Ltd' })
   @IsOptional()
   @IsString()
   @MaxLength(120)
@@ -46,7 +46,7 @@ export class UpdatePlatformSettingsDto {
   @MaxLength(120)
   payoutBankName?: string;
 
-  @ApiPropertyOptional({ example: 'KAZI Marketplace' })
+  @ApiPropertyOptional({ example: 'STITCHD Marketplace' })
   @IsOptional()
   @IsString()
   @MaxLength(120)
@@ -70,7 +70,7 @@ export class UpdatePlatformSettingsDto {
   @MaxLength(20)
   payoutBranchCode?: string;
 
-  @ApiPropertyOptional({ example: 'KAZI settlements' })
+  @ApiPropertyOptional({ example: 'STITCHD settlements' })
   @IsOptional()
   @IsString()
   @MaxLength(120)

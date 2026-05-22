@@ -1,4 +1,4 @@
-# KAZI Launch Decisions
+# STITCHD Launch Decisions
 
 ## Johannesburg Launch Area
 
@@ -45,7 +45,7 @@ Before production launch:
 
 - rotate the password
 - enable multi-factor authentication where supported
-- avoid reusing this password across Firebase, AWS, Twilio, Peach, and other vendors unless absolutely necessary during initial setup
+- avoid reusing this password across Firebase, AWS, Twilio, PayFast, and other vendors unless absolutely necessary during initial setup
 
 ## Still Pending Business Defaults
 

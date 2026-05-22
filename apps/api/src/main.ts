@@ -31,8 +31,8 @@ async function bootstrap() {
   // Swagger API docs (disable in production if needed)
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('KAZI API')
-      .setDescription('KAZI On-Demand Services Platform - South Africa')
+      .setTitle('STITCHD API')
+      .setDescription('STITCHD On-Demand Services Platform - South Africa')
       .setVersion('1.0')
       .addBearerAuth()
       .addTag('auth', 'Authentication & OTP')
@@ -52,7 +52,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  logger.log(`KAZI API running on port ${port}`);
+  logger.log(`STITCHD API running on port ${port}`);
   logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 }
 

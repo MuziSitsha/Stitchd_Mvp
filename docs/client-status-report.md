@@ -1,8 +1,8 @@
-# KAZI Client Status Report
+# STITCHD Client Status Report
 
 ## Executive Summary
 
-KAZI is currently in a strong MVP state against the original brief.
+STITCHD is currently in a strong MVP state against the original brief.
 
 The repository already contains:
 
@@ -13,13 +13,13 @@ The repository already contains:
 
 The main remaining work is not rebuilding product scope. The remaining work is live integration, cloud rollout, and final launch validation.
 
-In practical terms, KAZI is now in the final-mile phase between code-complete MVP and launch-ready MVP.
+In practical terms, STITCHD is now in the final-mile phase between code-complete MVP and launch-ready MVP.
 
 ## Original Brief Alignment
 
 The requested brief was:
 
-- cloud-based MVP for KAZI
+- cloud-based MVP for STITCHD
 - Uber-style on-demand services platform for South Africa
 - customer app
 - provider app
@@ -60,7 +60,7 @@ The requested brief was:
 - live Firebase credential setup and device push validation
 - live Twilio credential setup and call validation
 - live Clickatell setup for South African OTP delivery
-- live Peach Payments merchant setup and full payment validation
+- live PayFast merchant setup and full payment validation
 - AWS staging deployment
 - AWS production deployment
 - staging and production secrets management
@@ -199,7 +199,7 @@ Recommended launch approach:
 To move from code-complete MVP to launch-ready MVP, the recommended order is:
 
 1. finalize launch decisions for Johannesburg services, commission, referral, and payment mix
-2. collect staging credentials for Firebase, Google Maps, Clickatell, Twilio, Peach Payments, and AWS
+2. collect staging credentials for Firebase, Google Maps, Clickatell, Twilio, PayFast, and AWS
 3. deploy the staging environment on AWS
 4. connect all live integrations one by one
 5. run real-device QA across customer, provider, and admin flows
@@ -207,8 +207,8 @@ To move from code-complete MVP to launch-ready MVP, the recommended order is:
 
 ## Conclusion
 
-KAZI is not at the idea stage or prototype stage.
+STITCHD is not at the idea stage or prototype stage.
 
-KAZI is at the final integration and go-live stage.
+STITCHD is at the final integration and go-live stage.
 
 The product scope requested in the original brief is substantially implemented in the codebase already. The remaining work is the operational completion layer needed for a real launch in Johannesburg.

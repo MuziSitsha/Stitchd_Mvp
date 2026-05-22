@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "za.co.kazi" "\0"
-            VALUE "FileDescription", "kazi_mobile" "\0"
+            VALUE "CompanyName", "za.co.stitchd" "\0"
+            VALUE "FileDescription", "stitchd_mobile" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "kazi_mobile" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 za.co.kazi. All rights reserved." "\0"
-            VALUE "OriginalFilename", "kazi_mobile.exe" "\0"
-            VALUE "ProductName", "kazi_mobile" "\0"
+            VALUE "InternalName", "stitchd_mobile" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 za.co.stitchd. All rights reserved." "\0"
+            VALUE "OriginalFilename", "stitchd_mobile.exe" "\0"
+            VALUE "ProductName", "stitchd_mobile" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

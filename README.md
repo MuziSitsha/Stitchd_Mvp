@@ -1,15 +1,15 @@
-# KAZI Platform
+# STITCHD Platform
 
 > Johannesburg-first on-demand services MVP for South Africa
 
-Built for the KAZI client brief with Flutter, NestJS, PostgreSQL, and an AWS deployment target.
+Built for the STITCHD client brief with Flutter, NestJS, PostgreSQL, and an AWS deployment target.
 
 ---
 
 ## Current MVP Status
 
 ```
-kazi/
+stitchd/
 ├── apps/
 │   ├── api/          # NestJS backend API
 │   ├── admin/        # React admin dashboard foundation
@@ -24,7 +24,7 @@ kazi/
 └── package.json      # Monorepo root
 ```
 
-The repository contains a working MVP foundation for the customer app, provider app, and admin dashboard, with launch-critical integrations prepared for Firebase push, Twilio calling, Peach Payments, and AWS deployment.
+The repository contains a working MVP foundation for the customer app, provider app, and admin dashboard, with launch-critical integrations prepared for Firebase push, Twilio calling, PayFast, and AWS deployment.
 
 ---
 
@@ -35,7 +35,7 @@ The repository contains a working MVP foundation for the customer app, provider 
 - Current deferred work is the real third-party completion step: payment settlement wiring, real gateway credentials, real push/call credentials, and final AWS rollout.
 - Admin sign-in email for the current MVP handover is `sales@gubudo.com`. The bootstrap password must stay out of source control and be shared through a password manager or secret vault.
 
-See [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md) for the delivery summary, handover checklist, and next actions.
+See [docs/handover.md](docs/handover.md) for the delivery summary, handover checklist, and next actions.
 
 ## Quick Start
 
@@ -47,8 +47,8 @@ See [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md) fo
 
 ### 1. Clone & install
 ```bash
-git clone https://github.com/YOUR_ORG/kazi-platform.git
-cd kazi-platform
+git clone https://github.com/YOUR_ORG/stitchd-platform.git
+cd stitchd-platform
 yarn install
 ```
 
@@ -127,7 +127,7 @@ See `apps/api/.env.example` for all required variables.
 - **AWS ElastiCache Redis** — `REDIS_ENABLED`, `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`
 - **Clickatell** — SA SMS provider for OTP verification
 - **Firebase** — Push notifications (FCM)
-- **Peach Payments** — SA card processing
+- **PayFast** — South African hosted checkout and EFT/card collection
 - **Google Maps** — Live provider tracking
 - **AWS S3** — Document uploads (ID verification, etc.)
 
@@ -142,7 +142,7 @@ See `apps/api/.env.example` for all required variables.
 | `providers` | `/api/v1/providers/*` | Provider onboarding & management |
 | `bookings` | `/api/v1/bookings/*` | Booking engine (instant + scheduled) |
 | `services` | `/api/v1/services/*` | Service categories |
-| `payments` | `/api/v1/payments/*` | Cash settlement, wallet credits, and hosted Peach checkout initiation |
+| `payments` | `/api/v1/payments/*` | Cash settlement, wallet credits, and hosted PayFast checkout initiation |
 | `chat` | `/api/v1/chat/*` | Booking-scoped chat plus Twilio-ready call bridge |
 | `wallet` | `/api/v1/wallet/*` | Customer wallet & provider earnings |
 | `reviews` | `/api/v1/reviews/*` | Ratings & reviews |
@@ -158,7 +158,7 @@ See `apps/api/.env.example` for all required variables.
 - Wallet balance and provider earnings bookkeeping
 - Ratings and reviews after completed bookings
 - Admin platform settings, provider verification queue, analytics summary, and recent payment feed
-- Hosted online checkout initiation for card and EFT bookings through Peach Payments
+- Hosted online checkout initiation for card, EFT, and PayFast bookings through PayFast
 - AWS deployment workflows for the Nest API and the admin dashboard
 - Proprietary source ownership declaration in the root license file
 
@@ -167,7 +167,7 @@ See `apps/api/.env.example` for all required variables.
 - Real payment settlement wiring from hosted checkout/provider wallet flow into the business payout destination
 - Real Firebase credentials and device-level push validation
 - Real Twilio credentials and live call bridge validation
-- Real Peach credentials and end-to-end hosted payment validation
+- Real PayFast credentials and end-to-end hosted payment validation
 - Final Android and iPhone device QA against one reachable API URL
 - Final AWS staging and production rollout
 
@@ -175,7 +175,7 @@ See `apps/api/.env.example` for all required variables.
 
 ## Deployment
 
-Production target is AWS in `af-south-1`, fronted by CloudFront and an ALB. The exact topology is documented in [docs/aws-architecture.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\aws-architecture.md).
+Production target is AWS in `af-south-1`, fronted by CloudFront and an ALB. The exact topology is documented in [docs/aws-architecture.md](docs/aws-architecture.md).
 
 ### GitHub Secrets required for AWS CI/CD
 ```
@@ -208,9 +208,10 @@ FIREBASE_PROJECT_ID
 FIREBASE_CLIENT_EMAIL
 FIREBASE_PRIVATE_KEY
 GOOGLE_MAPS_API_KEY
-PEACH_PAYMENTS_ENTITY_ID
-PEACH_PAYMENTS_SECRET
-PEACH_PAYMENTS_MODE
+PAYFAST_MERCHANT_ID
+PAYFAST_MERCHANT_KEY
+PAYFAST_PASSPHRASE
+PAYFAST_MODE
 TWILIO_ACCOUNT_SID
 TWILIO_AUTH_TOKEN
 TWILIO_PHONE_NUMBER
@@ -247,19 +248,19 @@ Light Surface:  #F6F7F4  (Warm white surface)
 - Green used for primary actions, headers, trust signals, and states
 - Gold reserved for accent moments, highlights, badges, and CTAs
 - Avoid dark-mode-first layouts and avoid generic purple SaaS palettes
-- Use the shared token package in [packages/ui-tokens](c:\Users\nkazi\OneDrive\Desktop\kazi\packages\ui-tokens) as the source of truth
+- Use the shared token package in [packages/ui-tokens](packages/ui-tokens) as the source of truth
 
 ## AWS Reference Docs
 
-- [docs/aws-architecture.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\aws-architecture.md)
-- [docs/client-delivery-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-delivery-plan.md)
-- [docs/client-go-live-checklist.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-go-live-checklist.md)
-- [docs/client-message-template.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\client-message-template.md)
-- [docs/staging-secrets-checklist.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\staging-secrets-checklist.md)
-- [docs/go-live-test-script.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\go-live-test-script.md)
-- [docs/google-maps-integration-plan.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\google-maps-integration-plan.md)
-- [docs/handover.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\handover.md)
-- [docs/third-party-account-bootstrap.md](c:\Users\nkazi\OneDrive\Desktop\kazi\docs\third-party-account-bootstrap.md)
+- [docs/aws-architecture.md](docs/aws-architecture.md)
+- [docs/client-delivery-plan.md](docs/client-delivery-plan.md)
+- [docs/client-go-live-checklist.md](docs/client-go-live-checklist.md)
+- [docs/client-message-template.md](docs/client-message-template.md)
+- [docs/staging-secrets-checklist.md](docs/staging-secrets-checklist.md)
+- [docs/go-live-test-script.md](docs/go-live-test-script.md)
+- [docs/google-maps-integration-plan.md](docs/google-maps-integration-plan.md)
+- [docs/handover.md](docs/handover.md)
+- [docs/third-party-account-bootstrap.md](docs/third-party-account-bootstrap.md)
 
 ---
 
@@ -274,4 +275,4 @@ Light Surface:  #F6F7F4  (Warm white surface)
 
 ## License
 
-See the root [LICENSE](c:\Users\nkazi\OneDrive\Desktop\kazi\LICENSE) file. The repository is proprietary and source ownership remains with KAZI (Pty) Ltd.
+See the root [LICENSE](LICENSE) file. The repository is proprietary and source ownership remains with STITCHD (Pty) Ltd.

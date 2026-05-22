@@ -1,4 +1,4 @@
-# KAZI Secrets Remediation Runbook
+# STITCHD Secrets Remediation Runbook
 
 This runbook covers the remaining manual work after the repository cleanup.
 
@@ -24,7 +24,7 @@ Affected surfaces:
 Recommended sequence:
 
 1. Open the Firebase console for the staging project.
-2. Review Project settings and confirm the Android app `za.co.kazi.mobile` and the iOS app `za.co.kazi.mobile` bundle entry.
+2. Review Project settings and confirm the Android app `za.co.stitchd.mobile` and the iOS app `za.co.stitchd.mobile` bundle entry.
 3. Rotate or regenerate the Firebase Web API key if it was exposed.
 4. If a service-account private key was ever exported, create a new private key and revoke the old one in Google Cloud IAM.
 5. Download a fresh `google-services.json` for Android.

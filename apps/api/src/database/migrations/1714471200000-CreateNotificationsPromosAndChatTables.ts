@@ -80,7 +80,7 @@ export class CreateNotificationsPromosAndChatTables1714471200000 implements Migr
       INSERT INTO "promos" (
         "id", "code", "title", "description", "discountType", "discountValue", "maxDiscountCents", "minBookingAmountCents", "usageLimit", "usageCount", "isActive", "referralOnly", "createdAt", "updatedAt"
       ) VALUES (
-        uuid_generate_v4(), 'WELCOME100', 'Welcome to KAZI', 'R100 off your first qualifying booking.', 'flat', 10000, NULL, 25000, NULL, 0, true, false, now(), now()
+        uuid_generate_v4(), 'WELCOME100', 'Welcome to STITCHD', 'R100 off your first qualifying booking.', 'flat', 10000, NULL, 25000, NULL, 0, true, false, now(), now()
       ) ON CONFLICT ("code") DO NOTHING
     `);
   }

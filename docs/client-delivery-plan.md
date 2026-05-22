@@ -1,8 +1,8 @@
-# KAZI Client Delivery Plan
+# STITCHD Client Delivery Plan
 
 ## Product Direction
 
-KAZI is being delivered as an AWS-hosted, South Africa-focused on-demand services MVP for Johannesburg. The product scope remains:
+STITCHD is being delivered as an AWS-hosted, South Africa-focused on-demand services MVP for Johannesburg. The product scope remains:
 
 - Customer app
 - Provider app
@@ -31,7 +31,7 @@ KAZI is being delivered as an AWS-hosted, South Africa-focused on-demand service
 - Caching and queues: Redis
 - Storage: S3
 - CDN: CloudFront
-- Payments: Peach Payments
+- Payments: PayFast
 - SMS: Clickatell
 - Push: Firebase FCM
 

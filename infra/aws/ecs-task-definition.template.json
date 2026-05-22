@@ -8,7 +8,7 @@
   "memory": "1024",
   "containerDefinitions": [
     {
-      "name": "kazi-api",
+      "name": "stitchd-api",
       "image": "__IMAGE_URI__",
       "essential": true,
       "portMappings": [

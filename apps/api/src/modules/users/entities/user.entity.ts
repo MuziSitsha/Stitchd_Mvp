@@ -7,6 +7,7 @@ import { Exclude } from 'class-transformer';
 export enum UserRole {
   CUSTOMER = 'customer',
   PROVIDER = 'provider',
+  COACH = 'coach',
   ADMIN = 'admin',
 }
 

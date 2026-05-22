@@ -3,8 +3,8 @@ import { IsOptional, IsString, IsUrl } from 'class-validator';
 
 export class InitiateBookingPaymentDto {
   @ApiPropertyOptional({
-    example: 'https://kazi.co.za/payments/result',
-    description: 'Optional shopper return URL after Peach completes the checkout flow.',
+    example: 'https://stitchd.co.za/payments/result',
+    description: 'Optional shopper return URL after PayFast completes the checkout flow.',
   })
   @IsOptional()
   @IsString()

@@ -2,7 +2,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class SettleBookingPaymentDto {
-  @ApiPropertyOptional({ example: 'PEACH-TEST-12345' })
+  @ApiPropertyOptional({ example: 'PAYFAST-TEST-12345' })
   @IsOptional()
   @IsString()
   @MaxLength(120)

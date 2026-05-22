@@ -1,10 +1,10 @@
-# KAZI Client Message Template
+# STITCHD Client Message Template
 
 Use this as the exact WhatsApp or email message to request the final launch inputs.
 
 ## Short Client Message
 
-Hi, the KAZI MVP foundation is now in a good state from the code side and the current repo checks are passing.
+Hi, the STITCHD MVP foundation is now in a good state from the code side and the current repo checks are passing.
 
 What is already in place:
 
@@ -28,7 +28,7 @@ To finish the live rollout, please send the following:
 
 1. Firebase project details for push notifications
 2. Twilio credentials and a voice-capable number
-3. Peach Payments merchant credentials
+3. PayFast merchant credentials
 4. Clickatell SMS credentials
 5. AWS deployment access or the required production secrets
 6. Production database and Redis details
@@ -43,7 +43,7 @@ Once we have those, the next step is staging setup, real-device QA, and final pr
 
 Hi,
 
-The KAZI MVP is now at the point where the core product flows are implemented and the repository checks are passing. The remaining work is mainly live integration, environment setup, and launch validation.
+The STITCHD MVP is now at the point where the core product flows are implemented and the repository checks are passing. The remaining work is mainly live integration, environment setup, and launch validation.
 
 Implemented in the current build:
 
@@ -67,7 +67,7 @@ To complete staging and launch preparation, please share the following:
 
 - Firebase credentials for push notifications
 - Twilio credentials for live calling
-- Peach Payments merchant credentials
+- PayFast merchant credentials
 - Clickatell SMS credentials
 - AWS deployment access or deployment secrets
 - production PostgreSQL and Redis details

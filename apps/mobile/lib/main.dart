@@ -16,12 +16,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'app_api.dart';
-import 'theme/kazi_theme.dart';
+import 'theme/stitchd_theme.dart';
 
 const _destinations = [
   _ShellDestination('Home', Icons.home_outlined, Icons.home),
   _ShellDestination('Bookings', Icons.calendar_month_outlined, Icons.calendar_month),
-  _ShellDestination('Provider', Icons.engineering_outlined, Icons.engineering),
+  _ShellDestination('Workspace', Icons.engineering_outlined, Icons.engineering),
   _ShellDestination(
     'Wallet',
     Icons.account_balance_wallet_outlined,
@@ -29,7 +29,7 @@ const _destinations = [
   ),
 ];
 
-const _paymentReturnUrl = String.fromEnvironment('KAZI_PAYMENT_RETURN_URL');
+const _paymentReturnUrl = String.fromEnvironment('STITCHD_PAYMENT_RETURN_URL');
 
 const _serviceCategories = [
   'All',
@@ -174,7 +174,8 @@ String _formatBookingSchedule(DateTime? scheduledAt, {required bool isScheduled}
 String _formatPaymentMethodLabel(String value) {
   switch (value.toUpperCase()) {
     case 'CARD':
-      return 'Card';
+    case 'PAYFAST':
+      return 'PayFast';
     case 'EFT':
       return 'EFT';
     case 'WALLET':
@@ -184,6 +185,55 @@ String _formatPaymentMethodLabel(String value) {
     default:
       return value.replaceAll('_', ' ');
   }
+}
+
+String _formatRoleLabel(String value) {
+  switch (value.toLowerCase()) {
+    case 'customer':
+      return 'Client';
+    case 'provider':
+      return 'Supplier';
+    case 'coach':
+      return 'Coach';
+    case 'admin':
+      return 'Admin';
+    default:
+      if (value.trim().isEmpty) {
+        return 'Guest';
+      }
+      return value[0].toUpperCase() + value.substring(1);
+  }
+}
+
+String _formatPlannerEventLabel(String value) {
+  switch (value) {
+    case 'lobola':
+      return 'Lobola';
+    case 'funeral':
+      return 'Funeral';
+    case 'corporate':
+      return 'Corporate';
+    case 'birthday':
+      return 'Birthday';
+    default:
+      return 'Wedding';
+  }
+}
+
+String _shellSubtitleForRole(_StitchdController controller, bool isTablet) {
+  if (controller.isCoach) {
+    return isTablet
+        ? 'Coach timelines, squad health, and event readiness'
+        : 'Coach timelines and squad readiness';
+  }
+  if (controller.isProvider) {
+    return isTablet
+        ? 'Supplier jobs, onboarding progress, and payout visibility'
+        : 'Supplier jobs and payout visibility';
+  }
+  return isTablet
+      ? 'Client planning, bookings, and PayFast-ready checkout'
+      : 'Client planning and secure PayFast checkout';
 }
 
 String _formatPaymentStatusLabel(String value) {
@@ -289,11 +339,11 @@ class _FirebaseRuntimeOptions {
   }
 }
 
-class _AppScope extends InheritedNotifier<_KaziController> {
-  const _AppScope({required _KaziController controller, required super.child})
+class _AppScope extends InheritedNotifier<_StitchdController> {
+  const _AppScope({required _StitchdController controller, required super.child})
       : super(notifier: controller);
 
-  static _KaziController of(BuildContext context, {bool listen = true}) {
+  static _StitchdController of(BuildContext context, {bool listen = true}) {
     final scope = listen
         ? context.dependOnInheritedWidgetOfExactType<_AppScope>()
         : context.getElementForInheritedWidgetOfExactType<_AppScope>()?.widget as _AppScope?;
@@ -302,23 +352,23 @@ class _AppScope extends InheritedNotifier<_KaziController> {
   }
 }
 
-class _KaziController extends ChangeNotifier {
-  static const String _configuredPushToken = String.fromEnvironment('KAZI_FCM_TOKEN');
-  static const String _storedSessionKey = 'kazi.mobile.session';
-  static const String _rememberSessionKey = 'kazi.mobile.rememberSession';
-  static const String _rememberIdentifierKey = 'kazi.mobile.rememberIdentifier';
-  static const String _storedIdentifierKey = 'kazi.mobile.identifier';
+class _StitchdController extends ChangeNotifier {
+  static const String _configuredPushToken = String.fromEnvironment('STITCHD_FCM_TOKEN');
+  static const String _storedSessionKey = 'stitchd.mobile.session';
+  static const String _rememberSessionKey = 'stitchd.mobile.rememberSession';
+  static const String _rememberIdentifierKey = 'stitchd.mobile.rememberIdentifier';
+  static const String _storedIdentifierKey = 'stitchd.mobile.identifier';
 
-  _KaziController() {
+  _StitchdController() {
     bootstrap();
   }
 
-  final KaziApiClient api = KaziApiClient();
+  final StitchdApiClient api = StitchdApiClient();
   SharedPreferences? _preferences;
 
   bool isBootstrapping = true;
   bool isRefreshing = false;
-  KaziSession? session;
+  StitchdSession? session;
   ApiUser? currentUser;
   bool providerAvailable = false;
   bool providerProfileMissing = false;
@@ -352,6 +402,8 @@ class _KaziController extends ChangeNotifier {
   bool get isAuthenticated => session != null;
   bool get isCustomer => currentUser?.role == 'customer';
   bool get isProvider => currentUser?.role == 'provider';
+  bool get isCoach => currentUser?.role == 'coach';
+  String get roleLabel => _formatRoleLabel(currentUser?.role ?? '');
   String get rememberedIdentifier => _rememberedIdentifier;
   bool get rememberIdentifier => _rememberIdentifier;
   bool get rememberSession => _rememberSession;
@@ -468,7 +520,7 @@ class _KaziController extends ChangeNotifier {
           providerVerificationStatus = profile.verificationStatus;
           providerProfileMissing = false;
           providerDocuments = await api.listMyProviderDocuments(session!.accessToken);
-        } on KaziApiException catch (error) {
+        } on StitchdApiException catch (error) {
           providerAvailable = false;
           providerVerificationStatus = 'pending';
           providerProfileMissing = error.statusCode == 404;
@@ -502,7 +554,7 @@ class _KaziController extends ChangeNotifier {
 
     try {
       final decoded = jsonDecode(storedSession) as Map<String, dynamic>;
-      session = KaziSession.fromJson(decoded);
+      session = StitchdSession.fromJson(decoded);
       currentUser = session!.user;
       await refreshAuthenticatedData();
     } catch (_) {
@@ -543,7 +595,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> completeProviderOnboarding() async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     await api.onboardProvider(
@@ -560,12 +612,12 @@ class _KaziController extends ChangeNotifier {
     required PlatformFile file,
   }) async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     final bytes = file.bytes;
     if (bytes == null || bytes.isEmpty) {
-      throw const KaziApiException('The selected file could not be read on this device.');
+      throw const StitchdApiException('The selected file could not be read on this device.');
     }
 
     final result = await api.uploadProviderDocument(
@@ -584,7 +636,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> setProviderAvailability(bool value) async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     final profile = await api.updateAvailability(
@@ -597,7 +649,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> acceptJob(_ProviderJobData job) async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     await api.acceptBooking(accessToken: session!.accessToken, bookingId: job.id);
@@ -606,7 +658,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> declineJob(_ProviderJobData job, {String? reason}) async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     await api.declineBooking(
@@ -619,7 +671,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> advanceBooking(_BookingData booking) async {
     if (session == null) {
-      throw const KaziApiException('Sign in as a provider first.');
+      throw const StitchdApiException('Sign in as a supplier first.');
     }
 
     final nextStatus = switch (booking.status) {
@@ -650,7 +702,7 @@ class _KaziController extends ChangeNotifier {
     String? comment,
   }) async {
     if (session == null) {
-      throw const KaziApiException('Sign in to leave a review.');
+      throw const StitchdApiException('Sign in to leave a review.');
     }
 
     await api.createReview(
@@ -665,7 +717,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> cancelBooking(_BookingData booking, {required String reason}) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to cancel a booking.');
+      throw const StitchdApiException('Sign in first to cancel a booking.');
     }
 
     await api.cancelBooking(
@@ -686,12 +738,12 @@ class _KaziController extends ChangeNotifier {
     Position? customerPosition,
   }) async {
     if (session == null || !isCustomer) {
-      throw const KaziApiException('Sign in as a customer to create a booking.');
+      throw const StitchdApiException('Sign in as a client to create a booking.');
     }
 
     final liveService = await _resolveLiveServiceForBooking(service);
     if (liveService == null) {
-      throw const KaziApiException(
+      throw const StitchdApiException(
         'This service card is visible in the marketplace, but it is not connected to a live backend service yet.',
       );
     }
@@ -829,7 +881,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> openHostedPayment(_BookingData booking) async {
     if (session == null || !isCustomer) {
-      throw const KaziApiException('Sign in as a customer to pay for a booking.');
+      throw const StitchdApiException('Sign in as a client to pay with PayFast.');
     }
 
     final checkout = await api.createHostedCheckout(
@@ -840,13 +892,13 @@ class _KaziController extends ChangeNotifier {
 
     final checkoutUrl = checkout.checkoutUrl;
     if (checkoutUrl == null || checkoutUrl.isEmpty) {
-      throw const KaziApiException('No hosted checkout URL was returned for this booking.');
+      throw const StitchdApiException('No hosted checkout URL was returned for this booking.');
     }
 
     final uri = Uri.parse(checkoutUrl);
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) {
-      throw KaziApiException('Could not open the payment link: $checkoutUrl');
+      throw StitchdApiException('Could not open the payment link: $checkoutUrl');
     }
 
     await refreshAuthenticatedData();
@@ -854,13 +906,13 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> updateLiveLocation(_BookingData booking) async {
     if (session == null || !isProvider) {
-      throw const KaziApiException('Sign in as the assigned provider to share live tracking.');
+      throw const StitchdApiException('Sign in as the assigned provider to share live tracking.');
     }
 
     final position = await _tryGetCurrentPosition();
     _providerTrackingPermissionRequested = true;
     if (position == null) {
-      throw const KaziApiException('Location permission is required to share live tracking.');
+      throw const StitchdApiException('Location permission is required to share live tracking.');
     }
 
     final updatedBooking = await api.updateBookingTracking(
@@ -920,7 +972,7 @@ class _KaziController extends ChangeNotifier {
     final latitude = booking.providerCurrentLat;
     final longitude = booking.providerCurrentLng;
     if (latitude == null || longitude == null) {
-      throw const KaziApiException('This booking does not have a live provider location yet.');
+      throw const StitchdApiException('This booking does not have a live provider location yet.');
     }
 
     final uri = booking.customerLat != null && booking.customerLng != null
@@ -932,13 +984,13 @@ class _KaziController extends ChangeNotifier {
           );
     final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
     if (!launched) {
-      throw const KaziApiException('Could not open the live tracking map.');
+      throw const StitchdApiException('Could not open the live tracking map.');
     }
   }
 
   Future<void> markNotificationRead(String notificationId) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to manage notifications.');
+      throw const StitchdApiException('Sign in first to manage notifications.');
     }
 
     await api.markNotificationRead(
@@ -958,7 +1010,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<void> markAllNotificationsRead() async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to manage notifications.');
+      throw const StitchdApiException('Sign in first to manage notifications.');
     }
 
     await api.markAllNotificationsRead(session!.accessToken);
@@ -970,7 +1022,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<ApiReferralSummary> redeemReferralCode(String referralCode) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to redeem a referral code.');
+      throw const StitchdApiException('Sign in first to redeem a referral code.');
     }
 
     final summary = await api.redeemReferralCode(
@@ -986,7 +1038,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<ApiChatThread> getBookingThread(String bookingId) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to open booking chat.');
+      throw const StitchdApiException('Sign in first to open booking chat.');
     }
 
     return api.getBookingChatThread(
@@ -1000,7 +1052,7 @@ class _KaziController extends ChangeNotifier {
     required String message,
   }) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to send booking messages.');
+      throw const StitchdApiException('Sign in first to send booking messages.');
     }
 
     return api.sendBookingChatMessage(
@@ -1012,7 +1064,7 @@ class _KaziController extends ChangeNotifier {
 
   Future<ApiBookingCall> startBookingCall(String bookingId) async {
     if (session == null) {
-      throw const KaziApiException('Sign in first to call through a booking.');
+      throw const StitchdApiException('Sign in first to call through a booking.');
     }
 
     return api.startBookingCall(
@@ -1395,10 +1447,10 @@ Future<String?> _showReasonSheet(
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: selectedValue == option.value ? const Color(0xFFE6F4EC) : KaziTheme.surface,
+                            color: selectedValue == option.value ? const Color(0xFFE6F4EC) : StitchdTheme.surface,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: selectedValue == option.value ? KaziTheme.primaryGreen : KaziTheme.border,
+                              color: selectedValue == option.value ? StitchdTheme.primaryGreen : StitchdTheme.border,
                             ),
                           ),
                           child: Row(
@@ -1409,7 +1461,7 @@ Future<String?> _showReasonSheet(
                                     ? Icons.radio_button_checked
                                     : Icons.radio_button_off,
                                 color: selectedValue == option.value
-                                    ? KaziTheme.primaryGreen
+                                    ? StitchdTheme.primaryGreen
                                     : const Color(0xFF6B756E),
                               ),
                               const SizedBox(width: 8),
@@ -1650,9 +1702,9 @@ class _AuthSheetState extends State<_AuthSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Sign in to KAZI', style: Theme.of(context).textTheme.headlineSmall),
+            Text('Sign in to STITCHD', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            const Text('Enter your South African mobile number to receive a one-time verification code and continue securely.'),
+            const Text('Enter your South African mobile number to receive a one-time verification code and continue into your STITCHD workspace.'),
             const SizedBox(height: 20),
             TextField(
               controller: _phoneController,
@@ -1666,10 +1718,10 @@ class _AuthSheetState extends State<_AuthSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: ['customer', 'provider']
+              children: ['customer', 'provider', 'coach']
                   .map(
                     (role) => ChoiceChip(
-                      label: Text(role == 'customer' ? 'Customer' : 'Provider'),
+                      label: Text(_formatRoleLabel(role)),
                       selected: _role == role,
                       onSelected: (_) => setState(() => _role = role),
                     ),
@@ -1683,7 +1735,7 @@ class _AuthSheetState extends State<_AuthSheet> {
               value: _rememberSession,
               onChanged: (value) => setState(() => _rememberSession = value ?? true),
               title: const Text('Stay signed in on this device'),
-              subtitle: const Text('Keep your customer session active so booking does not request OTP again.'),
+              subtitle: Text('Keep your ${_formatRoleLabel(_role).toLowerCase()} session active so you can return without requesting OTP again.'),
             ),
             CheckboxListTile(
               contentPadding: EdgeInsets.zero,
@@ -1722,24 +1774,24 @@ class _AuthSheetState extends State<_AuthSheet> {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const KaziApp());
+  runApp(const StitchdApp());
 }
 
-class KaziApp extends StatefulWidget {
-  const KaziApp({super.key});
+class StitchdApp extends StatefulWidget {
+  const StitchdApp({super.key});
 
   @override
-  State<KaziApp> createState() => _KaziAppState();
+  State<StitchdApp> createState() => _StitchdAppState();
 }
 
-class _KaziAppState extends State<KaziApp> {
-  late final _KaziController _controller;
+class _StitchdAppState extends State<StitchdApp> {
+  late final _StitchdController _controller;
   final GlobalKey<ScaffoldMessengerState> _scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
   @override
   void initState() {
     super.initState();
-    _controller = _KaziController();
+    _controller = _StitchdController();
     _controller.onForegroundPushMessage = _showForegroundPushMessage;
   }
 
@@ -1762,24 +1814,24 @@ class _KaziAppState extends State<KaziApp> {
     return _AppScope(
       controller: _controller,
       child: MaterialApp(
-        title: 'KAZI',
+        title: 'STITCHD by STITCHD',
         debugShowCheckedModeBanner: false,
         scaffoldMessengerKey: _scaffoldMessengerKey,
-        theme: KaziTheme.light(),
-        home: const KaziShell(),
+        theme: StitchdTheme.light(),
+        home: const StitchdShell(),
       ),
     );
   }
 }
 
-class KaziShell extends StatefulWidget {
-  const KaziShell({super.key});
+class StitchdShell extends StatefulWidget {
+  const StitchdShell({super.key});
 
   @override
-  State<KaziShell> createState() => _KaziShellState();
+  State<StitchdShell> createState() => _StitchdShellState();
 }
 
-class _KaziShellState extends State<KaziShell> {
+class _StitchdShellState extends State<StitchdShell> {
   int _selectedIndex = 0;
 
   Future<void> _openNotifications() {
@@ -1809,9 +1861,7 @@ class _KaziShellState extends State<KaziShell> {
               children: [
                 Text(_destinations[_selectedIndex].label),
                 Text(
-                  isTablet
-                      ? 'Johannesburg bookings, provider updates, and wallet activity'
-                      : 'Fast booking flow for customers and providers',
+                  _shellSubtitleForRole(controller, isTablet),
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ],
@@ -1822,10 +1872,10 @@ class _KaziShellState extends State<KaziShell> {
                   margin: const EdgeInsets.only(right: 12),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: KaziTheme.surface,
+                    color: StitchdTheme.surface,
                     borderRadius: BorderRadius.circular(999),
                   ),
-                  child: Text('${controller.currentUser?.displayName ?? 'User'} • ${controller.currentUser?.role ?? ''}'),
+                  child: Text('${controller.currentUser?.displayName ?? 'User'} • ${controller.roleLabel}'),
                 )
               else
                 TextButton(
@@ -1837,13 +1887,13 @@ class _KaziShellState extends State<KaziShell> {
                   margin: const EdgeInsets.only(right: 12),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: KaziTheme.surface,
+                    color: StitchdTheme.surface,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.place_outlined, size: 18, color: KaziTheme.primaryGreen),
+                      Icon(Icons.place_outlined, size: 18, color: StitchdTheme.primaryGreen),
                       SizedBox(width: 6),
                       Text('Johannesburg'),
                     ],
@@ -1931,12 +1981,38 @@ class _KaziShellState extends State<KaziShell> {
   }
 
   Widget _buildPage(int index) {
+    final controller = _AppScope.of(context);
+
     switch (index) {
       case 0:
-        return const _CustomerHomePage();
+        if (controller.isCoach) {
+          return const _PlannerPersonaPage(
+            persona: 'coach',
+            title: 'Coach control room',
+            subtitle: 'Watch squad readiness, weather signals, and timeline risk before the event slips.',
+            requiredRole: 'coach',
+          );
+        }
+        if (controller.isProvider) {
+          return const _ProviderHubPage();
+        }
+        return const _PlannerPersonaPage(
+          persona: 'client',
+          title: 'Plan your event with STITCHD',
+          subtitle: 'Shape the squad, confirm the vibe, and move from discovery into a guided six-step onboarding flow.',
+          showOnboarding: true,
+        );
       case 1:
         return const _BookingsPage();
       case 2:
+        if (controller.isCoach) {
+          return const _PlannerPersonaPage(
+            persona: 'coach',
+            title: 'Coach workspace',
+            subtitle: 'Stay on top of staffing gaps, support vendors, and event-day coordination.',
+            requiredRole: 'coach',
+          );
+        }
         return const _ProviderHubPage();
       default:
         return const _WalletPage();
@@ -1970,7 +2046,7 @@ class _ShellRail extends StatelessWidget {
             width: extended ? double.infinity : 56,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: KaziTheme.primaryGreen,
+              color: StitchdTheme.primaryGreen,
               borderRadius: BorderRadius.circular(24),
             ),
             child: extended
@@ -1978,7 +2054,7 @@ class _ShellRail extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'KAZI',
+                        'STITCHD',
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
@@ -2014,6 +2090,1376 @@ class _ShellRail extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PlannerPersonaPage extends StatefulWidget {
+  const _PlannerPersonaPage({
+    required this.persona,
+    required this.title,
+    required this.subtitle,
+    this.requiredRole,
+    this.showOnboarding = false,
+  });
+
+  final String persona;
+  final String title;
+  final String subtitle;
+  final String? requiredRole;
+  final bool showOnboarding;
+
+  @override
+  State<_PlannerPersonaPage> createState() => _PlannerPersonaPageState();
+}
+
+class _PlannerPersonaPageState extends State<_PlannerPersonaPage> {
+  static const List<String> _eventTypes = ['wedding', 'lobola', 'funeral', 'corporate', 'birthday'];
+  static const List<String> _plannerTabs = ['squad', 'suppliers', 'budget', 'inspiration', 'marketplace'];
+
+  late Future<ApiPlannerExperience> _plannerFuture;
+  String _selectedEventType = 'wedding';
+  String _activeTab = 'squad';
+
+  @override
+  void initState() {
+    super.initState();
+    _plannerFuture = _loadPlannerExperience();
+  }
+
+  Future<ApiPlannerExperience> _loadPlannerExperience() {
+    return _AppScope.of(context, listen: false).api.getPlannerExperience(
+      eventType: _selectedEventType,
+      persona: widget.persona,
+    );
+  }
+
+  void _refreshPlanner({String? eventType}) {
+    setState(() {
+      if (eventType != null) {
+        _selectedEventType = eventType;
+      }
+      _plannerFuture = _loadPlannerExperience();
+    });
+  }
+
+  Future<void> _openOnboardingSheet(List<ApiPlannerStep> steps) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PlannerOnboardingSheet(steps: steps),
+    );
+  }
+
+  Future<void> _openCoachProfileSheet(ApiPlannerCoach coach) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PlannerInfoSheet(
+        title: coach.name,
+        subtitle: coach.role,
+        sections: [
+          _PlannerInfoSection(
+            title: 'Coach profile',
+            body: 'Assigned to ${_formatPlannerEventLabel(_selectedEventType).toLowerCase()} planning with a ${coach.rating.toStringAsFixed(1)} rating across ${coach.eventsCompleted} completed events.',
+          ),
+          const _PlannerInfoSection(
+            title: 'How this maps to the brief',
+            body: 'The STITCHD spec expects a coach profile entry point from the header card. This bottom sheet now acts as that profile surface on mobile.',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openPlannerMessagesSheet(ApiPlannerExperience experience, {ApiPlannerVendor? vendor}) {
+    final threadTitle = vendor == null ? 'Squad messages' : '${vendor.name} thread';
+    final summary = vendor == null
+        ? 'Centralised planning messages for ${experience.title}.'
+        : 'Conversation thread for ${vendor.name} in the ${vendor.slot.toLowerCase()} slot.';
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PlannerMessagesSheet(
+        title: threadTitle,
+        summary: summary,
+        messages: [
+          _PlannerMessage(
+            sender: experience.coach.name,
+            body: 'Timeline is ${experience.timelineStatus.toLowerCase()}. I want confirmations on the core squad before we lock next-week deliverables.',
+            timestamp: '09:10',
+          ),
+          _PlannerMessage(
+            sender: vendor?.name ?? 'Florals lane',
+            body: vendor == null
+                ? 'Support squad options are ready for review. The weather alert suggests we keep tent suppliers on standby.'
+                : 'We can hold your requested date while you confirm the final brief and payment window.',
+            timestamp: '10:24',
+          ),
+          const _PlannerMessage(
+            sender: 'You',
+            body: 'Keep everything in this thread so coach, client, and suppliers stay aligned.',
+            timestamp: 'Now',
+            isCurrentUser: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openVendorInfoSheet({
+    required ApiPlannerVendor vendor,
+    required String title,
+    required String body,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PlannerInfoSheet(
+        title: title,
+        subtitle: vendor.name,
+        sections: [
+          _PlannerInfoSection(title: vendor.slot, body: body),
+          _PlannerInfoSection(
+            title: 'Commercial snapshot',
+            body: '${vendor.priceLabel} • ${vendor.reviewCount} reviews • score ${vendor.score}% • status ${vendor.status.replaceAll('_', ' ')}',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openVendorSwapSheet(ApiPlannerExperience experience, ApiPlannerVendor vendor) {
+    final alternatives = [...experience.coreVendors, ...experience.supportVendors]
+        .where((candidate) => candidate.id != vendor.id)
+        .take(4)
+        .toList();
+
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _PlannerVendorSwapSheet(
+        title: 'Swap ${vendor.slot}',
+        currentVendor: vendor,
+        alternatives: alternatives,
+        onBrowseAll: () {
+          Navigator.of(context).pop();
+          setState(() => _activeTab = 'suppliers');
+        },
+      ),
+    );
+  }
+
+  String _plannerNavLabel(String tab) {
+    switch (tab) {
+      case 'suppliers':
+        return 'SUPPLIERS';
+      case 'budget':
+        return 'BUDGET';
+      case 'inspiration':
+        return 'INSPIRATION';
+      case 'marketplace':
+        return 'MARKETPLACE';
+      default:
+        return 'SQUAD';
+    }
+  }
+
+  String _plannerSubtitleForEvent() {
+    switch (_selectedEventType) {
+      case 'lobola':
+        return 'LOBOLA COORDINATION';
+      case 'funeral':
+        return 'FUNERAL PLANNING';
+      case 'corporate':
+        return 'CORPORATE EXPERIENCE';
+      case 'birthday':
+        return 'BIRTHDAY PLANNING';
+      default:
+        return 'WEDDING LABOUR';
+    }
+  }
+
+  Widget _buildPlannerHeader(ApiPlannerExperience experience, _StitchdController controller) {
+    return _SurfaceCard(
+      backgroundColor: StitchdTheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title, style: Theme.of(context).textTheme.headlineMedium),
+                    const SizedBox(height: 8),
+                    Text(widget.subtitle, style: const TextStyle(height: 1.5)),
+                    const SizedBox(height: 16),
+                    Text(
+                      _plannerSubtitleForEvent(),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.4,
+                        color: StitchdTheme.primaryGreen,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(experience.title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    Text(experience.intro, style: const TextStyle(height: 1.5)),
+                    const SizedBox(height: 10),
+                    Text(experience.strapline, style: const TextStyle(color: Color(0xFF4F5B53), height: 1.45)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 260,
+                child: _PlannerCoachCard(
+                  coach: experience.coach,
+                  onPressed: () => _openCoachProfileSheet(experience.coach),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _plannerTabs
+                .map(
+                  (tab) => TextButton(
+                    onPressed: () => setState(() => _activeTab = tab),
+                    style: TextButton.styleFrom(
+                      foregroundColor: _activeTab == tab ? StitchdTheme.primaryGreen : const Color(0xFF4F5B53),
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _activeTab == tab ? StitchdTheme.primaryGreen : Colors.transparent,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        _plannerNavLabel(tab),
+                        style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.8),
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _eventTypes
+                .map(
+                  (eventType) => ChoiceChip(
+                    label: Text(_formatPlannerEventLabel(eventType)),
+                    selected: _selectedEventType == eventType,
+                    onSelected: (_) => _refreshPlanner(eventType: eventType),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _PlannerStatChip(label: 'Budget', value: _formatCurrencyFromCents(experience.budgetTotal)),
+              _PlannerStatChip(label: 'Allocated', value: _formatCurrencyFromCents(experience.budgetAllocated)),
+              _PlannerStatChip(label: 'Match', value: '${experience.compatibilityScore}%'),
+              _PlannerStatChip(label: 'Timeline', value: experience.timelineStatus),
+            ],
+          ),
+          if (widget.showOnboarding) ...[
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: controller.isCustomer
+                  ? () => _openOnboardingSheet(experience.onboardingSteps)
+                  : () => _showAuthSheet(context, initialRole: 'customer'),
+              icon: const Icon(Icons.auto_awesome_outlined),
+              label: Text(controller.isCustomer ? 'Start six-step onboarding' : 'Sign in as client to continue'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSquadTab(ApiPlannerExperience experience) {
+    final budgetProgress = experience.budgetTotal == 0
+        ? 0.0
+        : (experience.budgetAllocated / experience.budgetTotal).clamp(0, 1).toDouble();
+
+    return Column(
+      children: [
+        Wrap(
+          spacing: 20,
+          runSpacing: 20,
+          children: [
+            SizedBox(
+              width: 420,
+              child: _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Time to event', style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    Text(
+                      experience.timelineStatus,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Event type: ${_formatPlannerEventLabel(_selectedEventType)}'),
+                    const SizedBox(height: 8),
+                    Text('Squad chemistry ${experience.compatibilityScore}%'),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 420,
+              child: _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Budget overview', style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    LinearProgressIndicator(value: budgetProgress, minHeight: 10),
+                    const SizedBox(height: 12),
+                    Text('${_formatCurrencyFromCents(experience.budgetAllocated)} of ${_formatCurrencyFromCents(experience.budgetTotal)} allocated'),
+                    const SizedBox(height: 8),
+                    Text('Labour tracker ${experience.labourProgress}'),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 420,
+              child: _SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Weather forecast', style: TextStyle(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 12),
+                    Text('${experience.weather.label} • ${experience.weather.temperature}', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    Text('Chance of rain ${experience.weather.rainChance}%'),
+                    const SizedBox(height: 8),
+                    Text(experience.weather.alert),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        _PlannerVendorCard(
+          title: 'Core squad',
+          subtitle: 'Primary suppliers shaping the event. Swap, message, or open contract-style actions from here.',
+          vendors: experience.coreVendors,
+          primaryActionLabel: 'Swap',
+          secondaryActionLabel: 'Message',
+          onPrimaryAction: (vendor) => _openVendorSwapSheet(experience, vendor),
+          onSecondaryAction: (vendor) => _openPlannerMessagesSheet(experience, vendor: vendor),
+          onContractAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Quote & contract',
+            body: 'This supplier card now opens a contract-style detail surface instead of a placeholder. Use it to review quote expectations and commercial status before you secure the slot.',
+          ),
+          onCalendarAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Shared calendar',
+            body: 'This planner action now opens a timeline detail surface for availability and delivery sequencing on the event run sheet.',
+          ),
+        ),
+        const SizedBox(height: 20),
+        if (experience.weather.rainChance > 40)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: _PlannerWeatherAlertCard(
+              probability: experience.weather.rainChance,
+              recommendation: experience.weather.alert,
+              ctaLabel: 'View tent suppliers',
+              onPressed: () => setState(() => _activeTab = 'suppliers'),
+            ),
+          ),
+        _PlannerVendorCard(
+          title: 'Support squad',
+          subtitle: 'Optional and recommended specialists that can tighten guest flow, cover weather risk, and refine the vibe.',
+          vendors: experience.supportVendors,
+          primaryActionLabel: 'Add',
+          secondaryActionLabel: 'Compare',
+          onPrimaryAction: (vendor) => _openVendorSwapSheet(experience, vendor),
+          onSecondaryAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Supplier comparison',
+            body: 'Use this support-squad comparison view to review score, reviews, and pricing before adding the supplier into the event.',
+          ),
+          onContractAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Quote summary',
+            body: 'Support suppliers now expose a quote summary surface so the planner is not limited to passive cards.',
+          ),
+          onCalendarAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Availability window',
+            body: 'This shows how the supplier fits into the event-day timeline and the broader planning calendar.',
+          ),
+          showAddSupplierCard: true,
+          onAddSupplier: () => setState(() => _activeTab = 'suppliers'),
+        ),
+        const SizedBox(height: 20),
+        _PlannerStatusBar(
+          securedValue: '${experience.coreVendors.where((vendor) => vendor.status == 'secured').length}/${experience.coreVendors.length + experience.supportVendors.length}',
+          chemistryValue: '${experience.compatibilityScore}%',
+          labourValue: experience.labourProgress,
+          timelineValue: experience.timelineStatus,
+          onViewMessages: () => _openPlannerMessagesSheet(experience),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuppliersTab(ApiPlannerExperience experience) {
+    final allVendors = [...experience.coreVendors, ...experience.supportVendors];
+    return Column(
+      children: [
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Supplier discovery', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              const Text('This is the STITCHD supplier browse surface from the brief: compare, swap, and shortlist across your event squad.'),
+              const SizedBox(height: 16),
+              const Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _PlannerFilterChip(label: 'Verified'),
+                  _PlannerFilterChip(label: 'Top rated'),
+                  _PlannerFilterChip(label: 'Available this week'),
+                  _PlannerFilterChip(label: 'Premium vibe'),
+                  _PlannerFilterChip(label: 'Under budget'),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _PlannerVendorCard(
+          title: 'Recommended suppliers',
+          subtitle: 'Use this list to swap existing squad members or add support roles into the event.',
+          vendors: allVendors,
+          primaryActionLabel: 'Swap',
+          secondaryActionLabel: 'Shortlist',
+          onPrimaryAction: (vendor) => _openVendorSwapSheet(experience, vendor),
+          onSecondaryAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Shortlist supplier',
+            body: 'This shortlist flow turns the supplier browse surface into an actionable planning step rather than a static catalogue.',
+          ),
+          onContractAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Commercial pack',
+            body: 'Review quote context, pricing expectations, and booking-readiness before swapping into the squad.',
+          ),
+          onCalendarAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Availability',
+            body: 'Check the supplier against event timing and run-sheet expectations.',
+          ),
+          compact: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBudgetTab(ApiPlannerExperience experience) {
+    final remaining = math.max(0, experience.budgetTotal - experience.budgetAllocated);
+    final allVendors = [...experience.coreVendors, ...experience.supportVendors];
+
+    return Column(
+      children: [
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Budget command', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              const Text('Track allocation, compare committed spend against the event budget, and see which suppliers are absorbing the most budget.'),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _PlannerStatChip(label: 'Total budget', value: _formatCurrencyFromCents(experience.budgetTotal)),
+                  _PlannerStatChip(label: 'Committed', value: _formatCurrencyFromCents(experience.budgetAllocated)),
+                  _PlannerStatChip(label: 'Remaining', value: _formatCurrencyFromCents(remaining)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Slot allocation', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              ...allVendors.map((vendor) => _PlannerBudgetRow(vendor: vendor)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInspirationTab(ApiPlannerExperience experience) {
+    final inspirationNotes = [
+      'Match your ${_formatPlannerEventLabel(_selectedEventType).toLowerCase()} vibe to suppliers with strong compatibility scores.',
+      'Use the support squad to add polish without breaking the committed budget.',
+      'Carry your favourite suppliers into messaging and budget decisions once the mood is locked.',
+    ];
+
+    return Column(
+      children: [
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Inspiration board', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              const Text('The brief calls for a mood-board and vibe-analysis layer. This mobile surface now frames that flow around your current event context.'),
+              const SizedBox(height: 16),
+              ...inspirationNotes.map(
+                (note) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.auto_awesome, size: 18, color: StitchdTheme.accentGold),
+                      const SizedBox(width: 10),
+                      Expanded(child: Text(note, style: const TextStyle(height: 1.45))),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _PlannerVendorCard(
+          title: 'Vibe-matched suppliers',
+          subtitle: 'High-chemistry suppliers worth pinning to the mood board before you commit.',
+          vendors: experience.supportVendors,
+          primaryActionLabel: 'Save look',
+          secondaryActionLabel: 'Message',
+          onPrimaryAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Saved to inspiration',
+            body: 'This supplier is now treated as a mood-board candidate with strong fit for the event style and squad chemistry.',
+          ),
+          onSecondaryAction: (vendor) => _openPlannerMessagesSheet(experience, vendor: vendor),
+          onContractAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Quote preview',
+            body: 'Inspiration mode still exposes the commercial layer so shortlist decisions stay grounded in budget reality.',
+          ),
+          onCalendarAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Scheduling context',
+            body: 'Review whether the inspiration candidate can fit the date and planning cadence.',
+          ),
+          compact: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMarketplaceTab(ApiPlannerExperience experience) {
+    return Column(
+      children: [
+        _SurfaceCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Marketplace', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+              const SizedBox(height: 8),
+              const Text('This tab opens vendor discovery beyond the current event, which the STITCHD brief calls out as a separate browse surface.'),
+              const SizedBox(height: 16),
+              const Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _PlannerFeatureTile(title: 'Venue tours', subtitle: 'Browse spaces across event types.', icon: Icons.location_city_outlined),
+                  _PlannerFeatureTile(title: 'Cross-event ads', subtitle: 'Featured suppliers and packages.', icon: Icons.campaign_outlined),
+                  _PlannerFeatureTile(title: 'Verified marketplace', subtitle: 'Search vetted suppliers only.', icon: Icons.verified_outlined),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _PlannerVendorCard(
+          title: 'Marketplace standouts',
+          subtitle: 'Suppliers with strong ratings and event-fit scores that can be pulled into the squad.',
+          vendors: experience.coreVendors,
+          primaryActionLabel: 'View card',
+          secondaryActionLabel: 'Add to squad',
+          onPrimaryAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Marketplace card',
+            body: 'This opens the supplier card detail directly from marketplace discovery, matching the brief’s event-agnostic browse flow.',
+          ),
+          onSecondaryAction: (vendor) => _openVendorSwapSheet(experience, vendor),
+          onContractAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Commercial fit',
+            body: 'Marketplace suppliers now expose a booking-readiness and pricing surface before they enter the squad.',
+          ),
+          onCalendarAction: (vendor) => _openVendorInfoSheet(
+            vendor: vendor,
+            title: 'Availability check',
+            body: 'Use this to assess whether the supplier can support the chosen event date and prep timeline.',
+          ),
+          compact: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveTab(ApiPlannerExperience experience) {
+    switch (_activeTab) {
+      case 'suppliers':
+        return _buildSuppliersTab(experience);
+      case 'budget':
+        return _buildBudgetTab(experience);
+      case 'inspiration':
+        return _buildInspirationTab(experience);
+      case 'marketplace':
+        return _buildMarketplaceTab(experience);
+      default:
+        return _buildSquadTab(experience);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _AppScope.of(context);
+
+    if (widget.requiredRole != null) {
+      final matchesRequiredRole = controller.currentUser?.role == widget.requiredRole;
+      if (!controller.isAuthenticated || !matchesRequiredRole) {
+        return _AuthRequiredCard(
+          title: '${_formatRoleLabel(widget.requiredRole!)} sign-in required',
+          body: 'Use the ${_formatRoleLabel(widget.requiredRole!).toLowerCase()} workspace to access planner insights for this event squad.',
+          role: widget.requiredRole!,
+        );
+      }
+    }
+
+    return FutureBuilder<ApiPlannerExperience>(
+      future: _plannerFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError || !snapshot.hasData) {
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 720),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: _SurfaceCard(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Planner feed unavailable', style: Theme.of(context).textTheme.headlineSmall),
+                      const SizedBox(height: 12),
+                      const Text('The STITCHD planner endpoint did not respond. Retry to restore the persona dashboard.'),
+                      const SizedBox(height: 20),
+                      FilledButton(
+                        onPressed: _refreshPlanner,
+                        child: const Text('Retry planner sync'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        final experience = snapshot.data!;
+
+        return RefreshIndicator(
+          onRefresh: () async => _refreshPlanner(),
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              _buildPlannerHeader(experience, controller),
+              const SizedBox(height: 20),
+              _buildActiveTab(experience),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _PlannerOnboardingSheet extends StatelessWidget {
+  const _PlannerOnboardingSheet({required this.steps});
+
+  final List<ApiPlannerStep> steps;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('STITCHD onboarding', style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              const Text('Move through the six setup steps to turn inspiration into a staffed, budgeted event.'),
+              const SizedBox(height: 20),
+              ...steps.asMap().entries.map(
+                    (entry) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SurfaceCard(
+                        backgroundColor: StitchdTheme.surface,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                color: StitchdTheme.primaryGreen,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Text('${entry.key + 1}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(entry.value.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 6),
+                                  Text(entry.value.description, style: const TextStyle(height: 1.45)),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannerStatChip extends StatelessWidget {
+  const _PlannerStatChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD9DED8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: const TextStyle(color: Color(0xFF4F5B53))),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerVendorCard extends StatelessWidget {
+  const _PlannerVendorCard({
+    required this.title,
+    required this.subtitle,
+    required this.vendors,
+    this.primaryActionLabel,
+    this.secondaryActionLabel,
+    this.onPrimaryAction,
+    this.onSecondaryAction,
+    this.onContractAction,
+    this.onCalendarAction,
+    this.compact = false,
+    this.showAddSupplierCard = false,
+    this.onAddSupplier,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<ApiPlannerVendor> vendors;
+  final String? primaryActionLabel;
+  final String? secondaryActionLabel;
+  final ValueChanged<ApiPlannerVendor>? onPrimaryAction;
+  final ValueChanged<ApiPlannerVendor>? onSecondaryAction;
+  final ValueChanged<ApiPlannerVendor>? onContractAction;
+  final ValueChanged<ApiPlannerVendor>? onCalendarAction;
+  final bool compact;
+  final bool showAddSupplierCard;
+  final VoidCallback? onAddSupplier;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(subtitle),
+          const SizedBox(height: 16),
+          ...vendors.asMap().entries.map(
+                (entry) => Padding(
+                  padding: EdgeInsets.only(bottom: entry.key == vendors.length - 1 && !showAddSupplierCard ? 0 : 12),
+                  child: Container(
+                    padding: EdgeInsets.all(compact ? 14 : 16),
+                    decoration: BoxDecoration(
+                      color: StitchdTheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: entry.value.status == 'recommended'
+                            ? const Color(0xFF9F67FF)
+                            : const Color(0xFFD9DED8),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(entry.value.slot, style: const TextStyle(color: StitchdTheme.primaryGreen, fontWeight: FontWeight.w700)),
+                                  const SizedBox(height: 4),
+                                  Text(entry.value.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 4),
+                                  Text(entry.value.subcategory),
+                                  const SizedBox(height: 4),
+                                  Text('Rating ${entry.value.rating.toStringAsFixed(1)} • ${entry.value.reviewCount} reviews'),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(entry.value.priceLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 4),
+                                Text('OVR ${entry.value.score}'),
+                                const SizedBox(height: 4),
+                                Text(entry.value.status.toUpperCase()),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (primaryActionLabel != null)
+                              OutlinedButton(
+                                onPressed: onPrimaryAction == null ? null : () => onPrimaryAction!(entry.value),
+                                child: Text(primaryActionLabel!),
+                              ),
+                            if (secondaryActionLabel != null)
+                              TextButton(
+                                onPressed: onSecondaryAction == null ? null : () => onSecondaryAction!(entry.value),
+                                child: Text(secondaryActionLabel!),
+                              ),
+                            TextButton(
+                              onPressed: onContractAction == null ? null : () => onContractAction!(entry.value),
+                              child: const Text('Quote'),
+                            ),
+                            TextButton(
+                              onPressed: onCalendarAction == null ? null : () => onCalendarAction!(entry.value),
+                              child: const Text('Calendar'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          if (showAddSupplierCard)
+            InkWell(
+              onTap: onAddSupplier,
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFB9C2BB), style: BorderStyle.solid),
+                  color: const Color(0xFFF8FBF8),
+                ),
+                child: const Column(
+                  children: [
+                    Icon(Icons.add_circle_outline, size: 32, color: StitchdTheme.primaryGreen),
+                    SizedBox(height: 10),
+                    Text('ADD SUPPLIER', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerStatusBar extends StatelessWidget {
+  const _PlannerStatusBar({
+    required this.securedValue,
+    required this.chemistryValue,
+    required this.labourValue,
+    required this.timelineValue,
+    required this.onViewMessages,
+  });
+
+  final String securedValue;
+  final String chemistryValue;
+  final String labourValue;
+  final String timelineValue;
+  final VoidCallback onViewMessages;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      backgroundColor: StitchdTheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _PlannerStatusMetric(label: 'SECURED', value: securedValue, subtitle: 'Essential suppliers locked in.'),
+              _PlannerStatusMetric(label: 'SQUAD CHEMISTRY', value: chemistryValue, subtitle: 'Compatibility across the squad.'),
+              _PlannerStatusMetric(label: 'LABOUR TRACKER', value: labourValue, subtitle: 'Team completion against plan.'),
+              _PlannerStatusMetric(label: 'TIMELINE SYNC', value: timelineValue, subtitle: 'Shared planning cadence.'),
+              const _PlannerStatusMetric(label: 'COMMUNICATION', value: 'Centralised', subtitle: 'One thread for coach and suppliers.'),
+              FilledButton.icon(
+                onPressed: onViewMessages,
+                icon: const Icon(Icons.forum_outlined),
+                label: const Text('View Messages'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerStatusMetric extends StatelessWidget {
+  const _PlannerStatusMetric({required this.label, required this.value, required this.subtitle});
+
+  final String label;
+  final String value;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 180,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: StitchdTheme.primaryGreen)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 4),
+          Text(subtitle, style: const TextStyle(color: Color(0xFF4F5B53), height: 1.35)),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerInfoSection {
+  const _PlannerInfoSection({required this.title, required this.body});
+
+  final String title;
+  final String body;
+}
+
+class _PlannerInfoSheet extends StatelessWidget {
+  const _PlannerInfoSheet({required this.title, required this.subtitle, required this.sections});
+
+  final String title;
+  final String subtitle;
+  final List<_PlannerInfoSection> sections;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 6),
+              Text(subtitle, style: const TextStyle(color: Color(0xFF4F5B53))),
+              const SizedBox(height: 20),
+              ...sections.map(
+                (section) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _SurfaceCard(
+                    backgroundColor: StitchdTheme.surface,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(section.title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 8),
+                        Text(section.body, style: const TextStyle(height: 1.45)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannerMessage {
+  const _PlannerMessage({required this.sender, required this.body, required this.timestamp, this.isCurrentUser = false});
+
+  final String sender;
+  final String body;
+  final String timestamp;
+  final bool isCurrentUser;
+}
+
+class _PlannerMessagesSheet extends StatelessWidget {
+  const _PlannerMessagesSheet({required this.title, required this.summary, required this.messages});
+
+  final String title;
+  final String summary;
+  final List<_PlannerMessage> messages;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(title, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Text(summary, style: const TextStyle(height: 1.45)),
+            const SizedBox(height: 16),
+            ...messages.map(
+              (message) => Align(
+                alignment: message.isCurrentUser ? Alignment.centerRight : Alignment.centerLeft,
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 10),
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: message.isCurrentUser ? StitchdTheme.primaryGreen : StitchdTheme.surface,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${message.sender} • ${message.timestamp}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          color: message.isCurrentUser ? Colors.white : StitchdTheme.primaryGreen,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        message.body,
+                        style: TextStyle(color: message.isCurrentUser ? Colors.white : null, height: 1.4),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannerVendorSwapSheet extends StatelessWidget {
+  const _PlannerVendorSwapSheet({
+    required this.title,
+    required this.currentVendor,
+    required this.alternatives,
+    required this.onBrowseAll,
+  });
+
+  final String title;
+  final ApiPlannerVendor currentVendor;
+  final List<ApiPlannerVendor> alternatives;
+  final VoidCallback onBrowseAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              Text('Current supplier: ${currentVendor.name} • ${currentVendor.priceLabel}', style: const TextStyle(height: 1.45)),
+              const SizedBox(height: 16),
+              ...alternatives.map(
+                (vendor) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _SurfaceCard(
+                    backgroundColor: StitchdTheme.surface,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(vendor.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 4),
+                              Text('${vendor.slot} • ${vendor.subcategory}'),
+                              const SizedBox(height: 4),
+                              Text('${vendor.priceLabel} • Score ${vendor.score}%'),
+                            ],
+                          ),
+                        ),
+                        OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('${vendor.name} is now shortlisted as a swap candidate for ${currentVendor.slot}.')),
+                            );
+                          },
+                          child: const Text('Shortlist'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: onBrowseAll,
+                icon: const Icon(Icons.travel_explore_outlined),
+                label: const Text('Browse all suppliers'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PlannerCoachCard extends StatelessWidget {
+  const _PlannerCoachCard({required this.coach, required this.onPressed});
+
+  final ApiPlannerCoach coach;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD9DED8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('COACH', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2, color: StitchdTheme.primaryGreen)),
+          const SizedBox(height: 8),
+          Text(coach.name, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text(coach.role),
+          const SizedBox(height: 10),
+          Text('Rating ${coach.rating.toStringAsFixed(1)} • ${coach.eventsCompleted} events'),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onPressed, child: const Text('View profile >')),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerWeatherAlertCard extends StatelessWidget {
+  const _PlannerWeatherAlertCard({
+    required this.probability,
+    required this.recommendation,
+    required this.ctaLabel,
+    required this.onPressed,
+  });
+
+  final int probability;
+  final String recommendation;
+  final String ctaLabel;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SurfaceCard(
+      backgroundColor: StitchdTheme.surface,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('WEATHER ALERT', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.1, color: StitchdTheme.accentGold)),
+          const SizedBox(height: 10),
+          Text('Rain probability $probability%', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Text(recommendation, style: const TextStyle(height: 1.45)),
+          const SizedBox(height: 12),
+          TextButton(onPressed: onPressed, child: Text('$ctaLabel >')),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerBudgetRow extends StatelessWidget {
+  const _PlannerBudgetRow({required this.vendor});
+
+  final ApiPlannerVendor vendor;
+
+  int _parseCents(String value) {
+    final numeric = value.replaceAll(RegExp(r'[^0-9]'), '');
+    final amount = int.tryParse(numeric) ?? 0;
+    return amount * 100;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(vendor.slot, style: const TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                Text(vendor.name, style: const TextStyle(color: Color(0xFF4F5B53))),
+              ],
+            ),
+          ),
+          Text(_formatCurrencyFromCents(_parseCents(vendor.priceLabel))),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlannerFilterChip extends StatelessWidget {
+  const _PlannerFilterChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: StitchdTheme.surface,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
+    );
+  }
+}
+
+class _PlannerFeatureTile extends StatelessWidget {
+  const _PlannerFeatureTile({required this.title, required this.subtitle, required this.icon});
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      child: _SurfaceCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: StitchdTheme.primaryGreen),
+            const SizedBox(height: 12),
+            Text(title, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            Text(subtitle, style: const TextStyle(height: 1.45)),
+          ],
+        ),
       ),
     );
   }
@@ -2103,7 +3549,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
       return;
     }
     var scheduled = scheduledDefault;
-    var paymentMethod = 'Card';
+    var paymentMethod = 'PayFast';
     var submitting = false;
     var refreshingLocation = false;
     String? error;
@@ -2198,7 +3644,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                   children: [
                                     TileLayer(
                                       urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                      userAgentPackageName: 'com.kazi.mobile',
+                                      userAgentPackageName: 'com.stitchd.mobile',
                                     ),
                                     MarkerLayer(
                                       markers: [
@@ -2307,7 +3753,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: ['Card', 'Cash', 'Wallet']
+                      children: ['PayFast', 'Cash', 'Wallet']
                           .map(
                             (method) => ChoiceChip(
                               label: Text(method),
@@ -2331,7 +3777,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                 final trimmedAddress = addressController.text.trim();
                                 final bookingPositionForSubmit = usingCurrentLocation ? bookingPosition : null;
                                 if (trimmedAddress.isEmpty && bookingPositionForSubmit == null) {
-                                  throw const KaziApiException(
+                                  throw const StitchdApiException(
                                     'Add your service address or enable your current location before requesting a provider.',
                                   );
                                 }
@@ -2354,7 +3800,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                   messenger.showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        '${service.title} scheduled for tomorrow via $paymentMethod.',
+                                        '${service.title} scheduled for tomorrow via ${_formatPaymentMethodLabel(paymentMethod)}.',
                                       ),
                                     ),
                                   );
@@ -2446,7 +3892,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
           if (featuredOfferings.isNotEmpty) ...[
             const _SectionHeading(
               title: 'Signature offerings on rotation',
-              subtitle: 'A moving spotlight on the services that define the KAZI experience before you browse the full catalogue.',
+              subtitle: 'A moving spotlight on the services that define the STITCHD experience before you browse the full catalogue.',
             ),
             const SizedBox(height: 12),
             _OfferingCarousel(
@@ -2487,7 +3933,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                 category,
                                 style: TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  color: selected ? Colors.white : KaziTheme.primaryGreen,
+                                  color: selected ? Colors.white : StitchdTheme.primaryGreen,
                                 ),
                               ),
                               avatar: selected
@@ -2495,9 +3941,9 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
                                   : null,
                               showCheckmark: false,
                               backgroundColor: const Color(0xFFFFF7DE),
-                              selectedColor: KaziTheme.primaryGreen,
+                              selectedColor: StitchdTheme.primaryGreen,
                               side: BorderSide(
-                                color: selected ? KaziTheme.primaryGreen : const Color(0xFFE2C96F),
+                                color: selected ? StitchdTheme.primaryGreen : const Color(0xFFE2C96F),
                               ),
                               selected: selected,
                               onSelected: (_) => setState(() => _selectedCategory = category),
@@ -2530,7 +3976,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
           ),
           const SizedBox(height: 28),
           const _SectionHeading(
-            title: 'There are so many reasons to love KAZI',
+            title: 'There are so many reasons to love STITCHD',
             subtitle: 'The experience is built to feel reliable, premium, and simple from the first screen.',
           ),
           const SizedBox(height: 14),
@@ -2553,7 +3999,7 @@ class _CustomerHomePageState extends State<_CustomerHomePage> {
           ),
           const SizedBox(height: 28),
           const _SectionHeading(
-            title: 'What customers say about KAZI',
+            title: 'What customers say about STITCHD',
             subtitle: 'A cleaner home-services experience should feel calm, credible, and easy to repeat.',
           ),
           const SizedBox(height: 14),
@@ -2613,7 +4059,7 @@ class _JustlifeInspiredHero extends StatelessWidget {
             child: const Text(
               '#1 home services app for your day-to-day life',
               style: TextStyle(
-                color: KaziTheme.primaryGreen,
+                color: StitchdTheme.primaryGreen,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 0.2,
               ),
@@ -2653,7 +4099,7 @@ class _JustlifeInspiredHero extends StatelessWidget {
                     color: const Color(0xFFFFD76A),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.location_on_outlined, color: KaziTheme.primaryGreen),
+                  child: const Icon(Icons.location_on_outlined, color: StitchdTheme.primaryGreen),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -2683,7 +4129,7 @@ class _JustlifeInspiredHero extends StatelessWidget {
               FilledButton(
                 onPressed: onBrowsePressed,
                 style: FilledButton.styleFrom(
-                  backgroundColor: KaziTheme.primaryGreen,
+                  backgroundColor: StitchdTheme.primaryGreen,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -2694,7 +4140,7 @@ class _JustlifeInspiredHero extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onLocationPressed,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: KaziTheme.primaryGreen,
+                  foregroundColor: StitchdTheme.primaryGreen,
                   side: const BorderSide(color: Color(0xFFB8C5B7)),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -2707,7 +4153,7 @@ class _JustlifeInspiredHero extends StatelessWidget {
                 TextButton(
                   onPressed: onSignInPressed,
                   style: TextButton.styleFrom(
-                    foregroundColor: KaziTheme.primaryGreen,
+                    foregroundColor: StitchdTheme.primaryGreen,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
                     textStyle: const TextStyle(fontWeight: FontWeight.w800),
                   ),
@@ -2895,7 +4341,7 @@ class _HeroBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: KaziTheme.primaryGreen),
+          Icon(icon, size: 16, color: StitchdTheme.primaryGreen),
           const SizedBox(width: 6),
           Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
         ],
@@ -2926,7 +4372,7 @@ class _FloatingTile extends StatelessWidget {
           ),
         ],
       ),
-      child: Icon(icon, color: KaziTheme.primaryGreen, size: 28),
+      child: Icon(icon, color: StitchdTheme.primaryGreen, size: 28),
     );
   }
 }
@@ -2985,7 +4431,7 @@ class _HeroSunburstState extends State<_HeroSunburst> with SingleTickerProviderS
                     width: 8,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: KaziTheme.accentGold.withValues(alpha: 0.85),
+                      color: StitchdTheme.accentGold.withValues(alpha: 0.85),
                       borderRadius: BorderRadius.circular(999),
                       boxShadow: const [
                         BoxShadow(
@@ -3064,7 +4510,7 @@ class _CenterHeroCard extends StatelessWidget {
           Text(
             'Live tracking',
             style: TextStyle(
-              color: KaziTheme.primaryGreen,
+              color: StitchdTheme.primaryGreen,
               fontWeight: FontWeight.w800,
               fontSize: 11,
             ),
@@ -3105,10 +4551,10 @@ class _ServiceShortcutTile extends StatelessWidget {
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                color: KaziTheme.softGold,
+                color: StitchdTheme.softGold,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(data.icon, color: KaziTheme.primaryGreen, size: 28),
+              child: Icon(data.icon, color: StitchdTheme.primaryGreen, size: 28),
             ),
             const SizedBox(height: 14),
             Text(
@@ -3175,9 +4621,9 @@ class _TrustFeatureCard extends StatelessWidget {
               border: Border.all(color: const Color(0xFFE0C56D)),
             ),
             child: const Text(
-              'KAZI standard',
+              'STITCHD standard',
               style: TextStyle(
-                color: KaziTheme.primaryGreen,
+                color: StitchdTheme.primaryGreen,
                 fontWeight: FontWeight.w800,
                 fontSize: 12,
               ),
@@ -3192,7 +4638,7 @@ class _TrustFeatureCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFFE0C56D)),
             ),
-            child: Icon(icon, size: 32, color: KaziTheme.primaryGreen),
+            child: Icon(icon, size: 32, color: StitchdTheme.primaryGreen),
           ),
           const SizedBox(height: 16),
           Text(
@@ -3247,7 +4693,7 @@ class _TestimonialCard extends StatelessWidget {
                     5,
                     (_) => const Padding(
                       padding: EdgeInsets.only(right: 4),
-                      child: Icon(Icons.star_rounded, size: 18, color: KaziTheme.accentGold),
+                      child: Icon(Icons.star_rounded, size: 18, color: StitchdTheme.accentGold),
                     ),
                   ),
                 ),
@@ -3256,10 +4702,10 @@ class _TestimonialCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: KaziTheme.softGold,
+                  color: StitchdTheme.softGold,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.format_quote_rounded, color: KaziTheme.primaryGreen),
+                child: const Icon(Icons.format_quote_rounded, color: StitchdTheme.primaryGreen),
               ),
             ],
           ),
@@ -3287,7 +4733,7 @@ class _TestimonialCard extends StatelessWidget {
                 child: Text(
                   customerInitial,
                   style: const TextStyle(
-                    color: KaziTheme.primaryGreen,
+                    color: StitchdTheme.primaryGreen,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -3307,7 +4753,7 @@ class _TestimonialCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     const Text(
-                      'Verified KAZI customer',
+                      'Verified STITCHD customer',
                       style: TextStyle(
                         color: Color(0xFF5D6A62),
                         fontSize: 12,
@@ -3331,7 +4777,7 @@ class _TestimonialCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: KaziTheme.primaryGreen,
+                color: StitchdTheme.primaryGreen,
                 fontWeight: FontWeight.w700,
                 fontSize: 12,
               ),
@@ -3528,7 +4974,7 @@ class _OfferingCarouselState extends State<_OfferingCarousel> {
                               width: _currentPage == index ? 30 : 10,
                               height: 10,
                               decoration: BoxDecoration(
-                                color: _currentPage == index ? KaziTheme.primaryGreen : const Color(0xFFD6CBA4),
+                                color: _currentPage == index ? StitchdTheme.primaryGreen : const Color(0xFFD6CBA4),
                                 borderRadius: BorderRadius.circular(999),
                               ),
                             ),
@@ -3609,13 +5055,13 @@ class _OfferingCarouselContent extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.92),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Icon(offering.icon, color: KaziTheme.primaryGreen, size: 24),
+                    child: Icon(offering.icon, color: StitchdTheme.primaryGreen, size: 24),
                   ),
                 ],
               ),
               const SizedBox(height: 18),
               const Text(
-                'Now rotating through KAZI favourites',
+                'Now rotating through STITCHD favourites',
                 style: TextStyle(
                   color: Color(0xFFFFD56F),
                   fontWeight: FontWeight.w800,
@@ -3658,7 +5104,7 @@ class _OfferingCarouselContent extends StatelessWidget {
                 child: FilledButton(
                   onPressed: onBook,
                   style: FilledButton.styleFrom(
-                    backgroundColor: KaziTheme.accentGold,
+                    backgroundColor: StitchdTheme.accentGold,
                     foregroundColor: const Color(0xFF153527),
                     padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -3750,7 +5196,7 @@ class _OfferingCarouselVisual extends StatelessWidget {
             child: const Text(
               'Featured offering',
               style: TextStyle(
-                color: KaziTheme.primaryGreen,
+                color: StitchdTheme.primaryGreen,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -3791,12 +5237,12 @@ class _CarouselNavButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: KaziTheme.primaryGreen, size: 18),
+              Icon(icon, color: StitchdTheme.primaryGreen, size: 18),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: const TextStyle(
-                  color: KaziTheme.primaryGreen,
+                  color: StitchdTheme.primaryGreen,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -3860,7 +5306,7 @@ class _PromisePanel extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: const Text(
-                  'The KAZI Promise',
+                  'The STITCHD Promise',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
                 ),
               ),
@@ -3874,7 +5320,7 @@ class _PromisePanel extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               const Text(
-                'KAZI is designed to keep the experience premium and easy: book faster, view provider details, track arrivals, manage payments, and return for your next service without friction.',
+                'STITCHD is designed to keep the experience premium and easy: book faster, view provider details, track arrivals, manage payments, and return for your next service without friction.',
                 style: TextStyle(color: Color(0xFFD4E3DA), height: 1.65),
               ),
               const SizedBox(height: 18),
@@ -3885,7 +5331,7 @@ class _PromisePanel extends StatelessWidget {
                   FilledButton(
                     onPressed: onPrimaryPressed,
                     style: FilledButton.styleFrom(
-                      backgroundColor: KaziTheme.accentGold,
+                      backgroundColor: StitchdTheme.accentGold,
                       foregroundColor: const Color(0xFF153527),
                       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -3969,7 +5415,7 @@ class _PromiseBullet extends StatelessWidget {
           height: 10,
           margin: const EdgeInsets.only(top: 5),
           decoration: const BoxDecoration(
-            color: KaziTheme.accentGold,
+            color: StitchdTheme.accentGold,
             shape: BoxShape.circle,
           ),
         ),
@@ -4022,7 +5468,7 @@ class _BookingsPageState extends State<_BookingsPage> {
         SnackBar(
           content: Text(
             controller.isProvider
-                ? 'Booking cancelled and removed from the provider queue.'
+                ? 'Booking cancelled and removed from the supplier queue.'
                 : 'Booking cancelled successfully.',
           ),
         ),
@@ -4057,7 +5503,7 @@ class _BookingsPageState extends State<_BookingsPage> {
 
       final launched = await launchUrl(Uri.parse('tel:${call.participantPhone}'));
       if (!launched) {
-        throw const KaziApiException('Could not open the phone dialer on this device.');
+        throw const StitchdApiException('Could not open the phone dialer on this device.');
       }
     } catch (error) {
       if (!mounted) return;
@@ -4131,14 +5577,14 @@ class _BookingsPageState extends State<_BookingsPage> {
                     Text(
                       controller.isProvider
                           ? 'Rate the customer for ${booking.serviceTitle}'
-                          : 'Rate the provider for ${booking.serviceTitle}',
+                          : 'Rate the supplier for ${booking.serviceTitle}',
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     const SizedBox(height: 12),
                     Text(
                       controller.isProvider
                           ? 'How was the customer experience on this trip?'
-                          : 'How was your provider experience?',
+                          : 'How was your supplier experience?',
                     ),
                     const SizedBox(height: 16),
                     Wrap(
@@ -4249,19 +5695,19 @@ class _BookingsPageState extends State<_BookingsPage> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: KaziTheme.softGold,
+                    color: StitchdTheme.softGold,
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    controller.isProvider ? 'Provider trip controls' : 'Customer trip controls',
-                    style: const TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                    controller.isProvider ? 'Supplier trip controls' : 'Client trip controls',
+                    style: const TextStyle(fontWeight: FontWeight.w700, color: StitchdTheme.primaryGreen),
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   controller.isProvider
                       ? 'Accept, route, arrive, start, complete, or cancel from one trip-style view.'
-                      : 'Track the provider, message them, pay, or cancel from one cleaner booking flow.',
+                      : 'Track the supplier, message them, pay, or cancel from one cleaner booking flow.',
                   style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05),
                 ),
                 const SizedBox(height: 12),
@@ -4464,9 +5910,9 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
 
   Color _documentStatusColor(String status) {
     return switch (status) {
-      'approved' => KaziTheme.primaryGreen,
+      'approved' => StitchdTheme.primaryGreen,
       'rejected' => const Color(0xFFB42318),
-      _ => KaziTheme.accentGold,
+      _ => StitchdTheme.accentGold,
     };
   }
 
@@ -4477,8 +5923,8 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
 
     if (!controller.isProvider) {
       return const _AuthRequiredCard(
-        title: 'Sign in as a provider',
-        body: 'Provider availability, onboarding, and open jobs are now tied to the real backend provider role.',
+        title: 'Sign in as a supplier',
+        body: 'Supplier availability, onboarding, and open jobs are now tied to the real backend supplier role.',
         role: 'provider',
       );
     }
@@ -4496,16 +5942,16 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: KaziTheme.softGold,
+                      color: StitchdTheme.softGold,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
-                      'Provider launch desk',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                      'Supplier launch desk',
+                      style: TextStyle(fontWeight: FontWeight.w700, color: StitchdTheme.primaryGreen),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Provider hub with a calmer daily workflow', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05)),
+                  const Text('Supplier hub with a calmer daily workflow', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05)),
                   const SizedBox(height: 12),
                   const Text(
                     'Keep onboarding, document uploads, availability, and incoming jobs in one cleaner workspace that matches the new storefront feel.',
@@ -4532,7 +5978,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                           );
                         }
                       },
-                      child: const Text('Initialize provider onboarding'),
+                      child: const Text('Initialize supplier onboarding'),
                     )
                   else ...[
                     DropdownButtonFormField<String>(
@@ -4605,7 +6051,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                       margin: const EdgeInsets.only(top: 16),
                       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                       decoration: BoxDecoration(
-                        color: KaziTheme.surface,
+                        color: StitchdTheme.surface,
                         borderRadius: BorderRadius.circular(22),
                       ),
                       child: SwitchListTile(
@@ -4613,7 +6059,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                         title: const Text('Available now'),
                         subtitle: Text(
                           controller.providerProfileMissing
-                              ? 'Create a provider profile first'
+                              ? 'Create a supplier profile first'
                               : controller.providerAvailable
                                   ? 'Instant jobs enabled'
                                   : 'Paused for new assignments',
@@ -4638,7 +6084,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
               ),
             ),
             secondary: _SurfaceCard(
-              backgroundColor: KaziTheme.surface,
+              backgroundColor: StitchdTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -4650,11 +6096,11 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                     ),
                     child: const Text(
                       'Daily status',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: StitchdTheme.primaryGreen),
                     ),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Provider status', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+                  const Text('Supplier status', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 14),
                   _InlineStatus(
                     label: 'Verification',
@@ -4675,12 +6121,12 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
           const SizedBox(height: 24),
           const _SectionHeading(
             title: 'Verification uploads',
-            subtitle: 'Track the files you have sent for provider review directly from the provider hub.',
+            subtitle: 'Track the files you have sent for supplier review directly from the supplier hub.',
           ),
           const SizedBox(height: 12),
           if (controller.providerProfileMissing)
             const _SurfaceCard(
-              child: Text('Create a provider profile before uploading verification documents.'),
+              child: Text('Create a supplier profile before uploading verification documents.'),
             )
           else if (controller.providerDocuments.isEmpty)
             const _SurfaceCard(
@@ -4696,7 +6142,7 @@ class _ProviderHubPageState extends State<_ProviderHubPage> {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.description_outlined, color: KaziTheme.primaryGreen),
+                            const Icon(Icons.description_outlined, color: StitchdTheme.primaryGreen),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Column(
@@ -4819,7 +6265,7 @@ class _WalletPage extends StatefulWidget {
 }
 
 class _WalletPageState extends State<_WalletPage> {
-  String _ledgerView = 'Customer';
+  String _ledgerView = 'Client';
   final TextEditingController _referralCodeController = TextEditingController();
   bool _redeemingReferral = false;
 
@@ -4846,7 +6292,7 @@ class _WalletPageState extends State<_WalletPage> {
     final activePromos = controller.activePromos;
     final credits = history.where((entry) => entry.isCredit).length;
     final debits = history.length - credits;
-    final balanceValue = _ledgerView == 'Customer'
+    final balanceValue = _ledgerView == 'Client'
         ? _formatCurrencyFromCents(controller.currentUser?.walletBalanceCents ?? 0)
         : history.where((entry) => entry.isCredit).isEmpty
             ? 'R0'
@@ -4865,27 +6311,27 @@ class _WalletPageState extends State<_WalletPage> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
-                      color: KaziTheme.softGold,
+                      color: StitchdTheme.softGold,
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: const Text(
                       'Wallet and rewards',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: StitchdTheme.primaryGreen),
                     ),
                   ),
                   const SizedBox(height: 16),
                   const Text('A cleaner earnings and credits view', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800, height: 1.05)),
                   const SizedBox(height: 12),
                   Text(
-                    _ledgerView == 'Customer'
+                    _ledgerView == 'Client'
                         ? 'Check available credits, promo rewards, and transaction history without the old dashboard clutter.'
-                        : 'Switch to the provider view to scan earnings and payout context with the same lighter visual rhythm.',
+                        : 'Switch to the supplier view to scan earnings and payout context with the same lighter visual rhythm.',
                   ),
                   const SizedBox(height: 18),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: ['Customer', 'Provider']
+                    children: ['Client', 'Supplier']
                         .map(
                           (view) => ChoiceChip(
                             label: Text(view),
@@ -4909,7 +6355,7 @@ class _WalletPageState extends State<_WalletPage> {
               ),
             ),
             secondary: _SurfaceCard(
-              backgroundColor: KaziTheme.surface,
+              backgroundColor: StitchdTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -4921,7 +6367,7 @@ class _WalletPageState extends State<_WalletPage> {
                     ),
                     child: const Text(
                       'Balance snapshot',
-                      style: TextStyle(fontWeight: FontWeight.w700, color: KaziTheme.primaryGreen),
+                      style: TextStyle(fontWeight: FontWeight.w700, color: StitchdTheme.primaryGreen),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -4942,9 +6388,9 @@ class _WalletPageState extends State<_WalletPage> {
             maxColumns: 3,
             children: [
               _WalletStatCard(
-                title: _ledgerView == 'Customer' ? 'Available credits' : 'Available balance',
+                title: _ledgerView == 'Client' ? 'Available credits' : 'Available balance',
                 value: balanceValue,
-                detail: _ledgerView == 'Customer' ? 'Wallet balance from profile' : 'Derived from completed bookings',
+                detail: _ledgerView == 'Client' ? 'Wallet balance from profile' : 'Derived from completed bookings',
               ),
               _WalletStatCard(
                 title: 'Credits',
@@ -4972,7 +6418,7 @@ class _WalletPageState extends State<_WalletPage> {
               ),
             ),
             secondary: _SurfaceCard(
-              backgroundColor: KaziTheme.surface,
+              backgroundColor: StitchdTheme.surface,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -5082,7 +6528,7 @@ class _HeroMetaPill extends StatelessWidget {
         label,
         style: const TextStyle(
           fontWeight: FontWeight.w800,
-          color: KaziTheme.primaryGreen,
+          color: StitchdTheme.primaryGreen,
         ),
       ),
     );
@@ -5118,7 +6564,7 @@ class _AuthRequiredCard extends StatelessWidget {
                 const SizedBox(height: 20),
                 FilledButton(
                   onPressed: () => _showAuthSheet(context, initialRole: role),
-                  child: Text(role == 'provider' ? 'Sign in as provider' : 'Sign in'),
+                  child: Text('Sign in as ${_formatRoleLabel(role).toLowerCase()}'),
                 ),
               ],
             ),
@@ -5212,7 +6658,7 @@ class _NotificationsSheet extends StatelessWidget {
                                     height: 44,
                                     decoration: BoxDecoration(
                                       color: item.isRead
-                                          ? KaziTheme.surface
+                                          ? StitchdTheme.surface
                                           : const Color(0xFFE6F4EC),
                                       borderRadius: BorderRadius.circular(14),
                                     ),
@@ -5220,7 +6666,7 @@ class _NotificationsSheet extends StatelessWidget {
                                       _iconForNotification(item.type),
                                       color: item.isRead
                                           ? const Color(0xFF5A675F)
-                                          : KaziTheme.primaryGreen,
+                                          : StitchdTheme.primaryGreen,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -5391,7 +6837,7 @@ class _ServiceFlowCard extends StatelessWidget {
                                     color: Colors.white.withValues(alpha: 0.92),
                                     borderRadius: BorderRadius.circular(14),
                                   ),
-                                  child: Icon(data.icon, color: KaziTheme.primaryGreen, size: compact ? 18 : 22),
+                                  child: Icon(data.icon, color: StitchdTheme.primaryGreen, size: compact ? 18 : 22),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
@@ -5411,7 +6857,7 @@ class _ServiceFlowCard extends StatelessWidget {
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
-                                          color: KaziTheme.primaryGreen,
+                                          color: StitchdTheme.primaryGreen,
                                           fontWeight: FontWeight.w800,
                                           fontSize: compact ? 11 : 13,
                                         ),
@@ -5576,7 +7022,7 @@ class _BookingWorkflowCard extends StatelessWidget {
           const SizedBox(height: 16),
           LinearProgressIndicator(
             value: booking.status.progress,
-            backgroundColor: KaziTheme.surface,
+            backgroundColor: StitchdTheme.surface,
             color: booking.status.color,
           ),
           const SizedBox(height: 16),
@@ -5656,8 +7102,8 @@ class _DispatchSearchSheet extends StatelessWidget {
             _BookingTrackingMapCard(booking: booking),
             const SizedBox(height: 14),
             const LinearProgressIndicator(
-              color: KaziTheme.primaryGreen,
-              backgroundColor: KaziTheme.surface,
+              color: StitchdTheme.primaryGreen,
+              backgroundColor: StitchdTheme.surface,
             ),
             const SizedBox(height: 12),
             Text(
@@ -5782,7 +7228,7 @@ class _BookingChatSheetState extends State<_BookingChatSheet> {
 
       final launched = await launchUrl(Uri.parse('tel:${call.participantPhone}'));
       if (!launched) {
-        throw const KaziApiException('Could not open the phone dialer on this device.');
+        throw const StitchdApiException('Could not open the phone dialer on this device.');
       }
       await _loadThread();
     } catch (error) {
@@ -5876,7 +7322,7 @@ class _BookingChatSheetState extends State<_BookingChatSheet> {
                                   final message = _thread!.messages[index];
                                   final isSystemCall = message.messageType == 'call_log';
                                   return _SurfaceCard(
-                                    backgroundColor: isSystemCall ? const Color(0xFFFFF4D6) : KaziTheme.surface,
+                                    backgroundColor: isSystemCall ? const Color(0xFFFFF4D6) : StitchdTheme.surface,
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -5936,7 +7382,7 @@ class _IncomingJobCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      backgroundColor: KaziTheme.surface,
+      backgroundColor: StitchdTheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -5949,7 +7395,7 @@ class _IncomingJobCard extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Icon(Icons.work_outline, color: KaziTheme.primaryGreen),
+                child: const Icon(Icons.work_outline, color: StitchdTheme.primaryGreen),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -5958,7 +7404,7 @@ class _IncomingJobCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(data.category, style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w700)),
+          Text(data.category, style: const TextStyle(color: StitchdTheme.primaryGreen, fontWeight: FontWeight.w700)),
           const SizedBox(height: 10),
           _InlineStatus(label: 'Timing', value: data.timing),
           const SizedBox(height: 10),
@@ -5996,7 +7442,7 @@ class _AcceptedJobTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      backgroundColor: KaziTheme.surface,
+      backgroundColor: StitchdTheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -6009,7 +7455,7 @@ class _AcceptedJobTile extends StatelessWidget {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.check_circle_outline, color: KaziTheme.primaryGreen, size: 20),
+                child: const Icon(Icons.check_circle_outline, color: StitchdTheme.primaryGreen, size: 20),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -6048,7 +7494,7 @@ class _WalletHistoryTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: KaziTheme.surface,
+          color: StitchdTheme.surface,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -6057,7 +7503,7 @@ class _WalletHistoryTile extends StatelessWidget {
               backgroundColor: entry.isCredit ? const Color(0xFFE6F5EC) : const Color(0xFFFFECE8),
               child: Icon(
                 entry.isCredit ? Icons.arrow_downward : Icons.arrow_upward,
-                color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+                color: entry.isCredit ? StitchdTheme.primaryGreen : Colors.redAccent,
               ),
             ),
             const SizedBox(width: 12),
@@ -6075,7 +7521,7 @@ class _WalletHistoryTile extends StatelessWidget {
               entry.amount,
               style: TextStyle(
                 fontWeight: FontWeight.w700,
-                color: entry.isCredit ? KaziTheme.primaryGreen : Colors.redAccent,
+                color: entry.isCredit ? StitchdTheme.primaryGreen : Colors.redAccent,
               ),
             ),
           ],
@@ -6178,15 +7624,15 @@ class _SectionHeading extends StatelessWidget {
               width: 12,
               height: 12,
               decoration: const BoxDecoration(
-                color: KaziTheme.accentGold,
+                color: StitchdTheme.accentGold,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 8),
             Text(
-              'KAZI highlights',
+              'STITCHD highlights',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: KaziTheme.primaryGreen,
+                    color: StitchdTheme.primaryGreen,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 0.35,
                   ),
@@ -6217,8 +7663,8 @@ class _SectionHeading extends StatelessWidget {
             borderRadius: BorderRadius.circular(999),
             gradient: const LinearGradient(
               colors: [
-                KaziTheme.accentGold,
-                KaziTheme.primaryGreen,
+                StitchdTheme.accentGold,
+                StitchdTheme.primaryGreen,
               ],
             ),
           ),
@@ -6258,7 +7704,7 @@ class _MetricCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SurfaceCard(
-      backgroundColor: KaziTheme.surface,
+      backgroundColor: StitchdTheme.surface,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -6290,10 +7736,10 @@ class _WalletStatCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: KaziTheme.softGold,
+              color: StitchdTheme.softGold,
               borderRadius: BorderRadius.circular(999),
             ),
-            child: Text(title, style: const TextStyle(color: KaziTheme.primaryGreen, fontWeight: FontWeight.w700)),
+            child: Text(title, style: const TextStyle(color: StitchdTheme.primaryGreen, fontWeight: FontWeight.w700)),
           ),
           const Spacer(),
           Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
@@ -6422,7 +7868,7 @@ class _BookingData {
   final bool providerHasRated;
 
   bool get canPayOnline =>
-      (paymentMethod == 'CARD' || paymentMethod == 'EFT') && paymentStatus != 'PAID' && status != _BookingStatus.cancelled;
+      (paymentMethod == 'CARD' || paymentMethod == 'EFT' || paymentMethod == 'PAYFAST') && paymentStatus != 'PAID' && status != _BookingStatus.cancelled;
 
   bool get supportsLiveTracking =>
       status == _BookingStatus.matched || status == _BookingStatus.enRoute;
@@ -6572,7 +8018,7 @@ class _BookingTrackingMapCard extends StatelessWidget {
                 children: [
                   TileLayer(
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    userAgentPackageName: 'com.kazi.mobile',
+                    userAgentPackageName: 'com.stitchd.mobile',
                   ),
                   if (booking.hasPinnedCustomerLocation && booking.hasLiveTracking)
                     PolylineLayer(

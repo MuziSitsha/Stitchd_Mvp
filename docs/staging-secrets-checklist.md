@@ -1,4 +1,4 @@
-# KAZI Staging And Secrets Checklist
+# STITCHD Staging And Secrets Checklist
 
 Use this before staging deployment and secret loading. This is the operational version of the client checklist.
 
@@ -7,8 +7,8 @@ Use this before staging deployment and secret loading. This is the operational v
 - `PUBLIC_API_URL`
 - admin site URL
 - mobile app API base URL for test devices
-- Peach return URL
-- Peach webhook callback URL
+- PayFast return URL
+- PayFast webhook callback URL
 
 ## Backend Core
 
@@ -22,9 +22,10 @@ Use this before staging deployment and secret loading. This is the operational v
 ## South Africa Launch Integrations
 
 - `CLICKATELL_API_KEY`
-- `PEACH_PAYMENTS_ENTITY_ID`
-- `PEACH_PAYMENTS_SECRET`
-- `PEACH_PAYMENTS_MODE`
+- `PAYFAST_MERCHANT_ID`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
+- `PAYFAST_MODE`
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
 - `TWILIO_PHONE_NUMBER`
@@ -56,8 +57,8 @@ Use this before staging deployment and secret loading. This is the operational v
 
 ## Mobile Runtime Inputs
 
-- `KAZI_API_BASE_URL`
-- `KAZI_PAYMENT_RETURN_URL`
+- `STITCHD_API_BASE_URL`
+- `STITCHD_PAYMENT_RETURN_URL`
 - Firebase Android app values
 - Firebase iPhone app values
 

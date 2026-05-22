@@ -1,4 +1,4 @@
-# KAZI Go-Live Test Script
+# STITCHD Go-Live Test Script
 
 Run this script against staging first, then production. Do not mark launch-ready until every item below passes.
 

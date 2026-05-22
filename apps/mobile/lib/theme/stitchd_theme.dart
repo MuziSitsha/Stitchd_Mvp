@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-class KaziTheme {
+class StitchdTheme {
   static const primaryGreen = Color(0xFF006B3C);
   static const accentGold = Color(0xFFFFB81C);
   static const pageBackground = Color(0xFFFFFFFF);

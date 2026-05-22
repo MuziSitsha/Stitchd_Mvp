@@ -6,7 +6,7 @@ export class AppController {
   getHealth() {
     return {
       status: 'ok',
-      service: 'kazi-api',
+      service: 'stitchd-api',
       timestamp: new Date().toISOString(),
     };
   }

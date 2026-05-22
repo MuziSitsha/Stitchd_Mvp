@@ -1,10 +1,10 @@
-# KAZI Google Maps Integration Plan
+# STITCHD Google Maps Integration Plan
 
-This plan maps Google Maps integration onto the current KAZI codebase. The goal is to improve address entry, geocoding, ETA accuracy, and live tracking UX without replacing the existing booking model.
+This plan maps Google Maps integration onto the current STITCHD codebase. The goal is to improve address entry, geocoding, ETA accuracy, and live tracking UX without replacing the existing booking model.
 
 ## Recommendation
 
-Do not integrate Uber into KAZI.
+Do not integrate Uber into STITCHD.
 
 `Uber-style` in the brief should be implemented as:
 
@@ -14,18 +14,18 @@ Do not integrate Uber into KAZI.
 - route and ETA support
 - clean customer and provider mobile experience
 
-For this repo, the correct integration is Google Maps APIs plus the current KAZI booking and dispatch logic.
+For this repo, the correct integration is Google Maps APIs plus the current STITCHD booking and dispatch logic.
 
 ## Current Location Surface In The Repo
 
 The current code already supports the right data model for a first Google Maps integration:
 
-- booking address text is already sent from mobile in [apps/mobile/lib/app_api.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\app_api.dart)
-- booking latitude and longitude already exist in [apps/api/src/modules/bookings/entities/booking.entity.ts](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\api\src\modules\bookings\entities\booking.entity.ts)
-- provider live coordinates already exist in [apps/api/src/modules/bookings/bookings.service.ts](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\api\src\modules\bookings\bookings.service.ts)
-- the mobile app already sends provider tracking updates through [apps/mobile/lib/app_api.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\app_api.dart)
-- the mobile app currently opens a Google Maps URL fallback from [apps/mobile/lib/main.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\main.dart)
-- a Google Maps API key is already anticipated in [apps/api/src/config/app.config.ts](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\api\src\config\app.config.ts)
+- booking address text is already sent from mobile in [apps/mobile/lib/app_api.dart](../apps/mobile/lib/app_api.dart)
+- booking latitude and longitude already exist in [apps/api/src/modules/bookings/entities/booking.entity.ts](../apps/api/src/modules/bookings/entities/booking.entity.ts)
+- provider live coordinates already exist in [apps/api/src/modules/bookings/bookings.service.ts](../apps/api/src/modules/bookings/bookings.service.ts)
+- the mobile app already sends provider tracking updates through [apps/mobile/lib/app_api.dart](../apps/mobile/lib/app_api.dart)
+- the mobile app currently opens a Google Maps URL fallback from [apps/mobile/lib/main.dart](../apps/mobile/lib/main.dart)
+- a Google Maps API key is already anticipated in [apps/api/src/config/app.config.ts](../apps/api/src/config/app.config.ts)
 
 That means the integration should extend existing fields and flows, not redesign them.
 
@@ -49,8 +49,8 @@ Backend touchpoints:
 
 Mobile touchpoints:
 
-- replace the plain address field in the booking sheet inside [apps/mobile/lib/main.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\main.dart) with a searchable address picker
-- extend booking creation in [apps/mobile/lib/app_api.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\app_api.dart) to send `customerLat` and `customerLng` as well as `customerAddress`
+- replace the plain address field in the booking sheet inside [apps/mobile/lib/main.dart](../apps/mobile/lib/main.dart) with a searchable address picker
+- extend booking creation in [apps/mobile/lib/app_api.dart](../apps/mobile/lib/app_api.dart) to send `customerLat` and `customerLng` as well as `customerAddress`
 
 Data shape:
 
@@ -69,7 +69,7 @@ Why second:
 
 Mobile touchpoints:
 
-- add a map screen or modal for active bookings in [apps/mobile/lib/main.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\main.dart)
+- add a map screen or modal for active bookings in [apps/mobile/lib/main.dart](../apps/mobile/lib/main.dart)
 - render the customer pin and provider pin
 - keep the current `openTrackingMap` behavior as a fallback if the embedded map cannot load
 
@@ -144,8 +144,8 @@ Configuration:
 
 Update the booking request flow:
 
-- in [apps/mobile/lib/main.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\main.dart), replace the plain service address input with a place search flow
-- in [apps/mobile/lib/app_api.dart](c:\Users\nkazi\OneDrive\Desktop\kazi\apps\mobile\lib\app_api.dart), extend `createBooking` to submit `customerLat` and `customerLng`
+- in [apps/mobile/lib/main.dart](../apps/mobile/lib/main.dart), replace the plain service address input with a place search flow
+- in [apps/mobile/lib/app_api.dart](../apps/mobile/lib/app_api.dart), extend `createBooking` to submit `customerLat` and `customerLng`
 
 Update tracking UX:
 
@@ -160,11 +160,11 @@ Suggested mobile packages:
 
 ## Best Architecture Choice
 
-For KAZI, the cleanest architecture is:
+For STITCHD, the cleanest architecture is:
 
 - Google Places and Geocoding via the backend for controlled search and normalized addresses
 - Google Maps SDK in mobile for embedded map display
-- KAZI backend remains the source of truth for bookings, providers, and tracking state
+- STITCHD backend remains the source of truth for bookings, providers, and tracking state
 
 That keeps the product scalable and avoids binding core marketplace behavior to an outside transport platform.
 
@@ -192,4 +192,4 @@ Best practical path:
 3. Add embedded Google Maps tracking second.
 4. Add ETA and route polish third.
 
-That gives KAZI the `Uber-style` experience the brief is aiming for while staying aligned with the current repo and the Johannesburg services-marketplace use case.
+That gives STITCHD the `Uber-style` experience the brief is aiming for while staying aligned with the current repo and the Johannesburg services-marketplace use case.

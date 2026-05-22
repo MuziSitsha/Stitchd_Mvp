@@ -1,4 +1,4 @@
-# KAZI Git History Rewrite Plan
+# STITCHD Git History Rewrite Plan
 
 This plan removes previously committed secrets from git history after the cleanup commit is already pushed.
 
@@ -42,8 +42,8 @@ Example commands:
 
 ```powershell
 Set-Location 'c:\path\to\repo'
-git clone --mirror https://github.com/MuziSitsha/kazi-platform.git kazi-platform-mirror.git
-Set-Location '.\kazi-platform-mirror.git'
+git clone --mirror https://github.com/MuziSitsha/stitchd-platform.git stitchd-platform-mirror.git
+Set-Location '.\stitchd-platform-mirror.git'
 git filter-repo --path apps/mobile/android/app/google-services.json --path apps/mobile/ios/Runner/GoogleService-Info.plist --invert-paths
 ```
 

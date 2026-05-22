@@ -153,8 +153,8 @@ export class ChatService {
 
     const client = twilio(accountSid, authToken);
     const voiceResponse = new twiml.VoiceResponse();
-    voiceResponse.say('Kazi is connecting your booking call.');
-    voiceResponse.dial().conference(`kazi-booking-${bookingId}`);
+    voiceResponse.say('Stitchd is connecting your booking call.');
+    voiceResponse.dial().conference(`stitchd-booking-${bookingId}`);
 
     const conferenceTwiML = voiceResponse.toString();
 

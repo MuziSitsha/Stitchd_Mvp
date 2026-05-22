@@ -1,22 +1,22 @@
 {
-  "name": "kazi-platform",
+  "name": "stitchd-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "KAZI - On-Demand Services Platform for South Africa",
+  "description": "STITCHD - On-Demand Services Platform for South Africa",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "yarn workspace @kazi/api dev",
-    "dev:admin": "yarn workspace @kazi/admin dev",
-    "build:api": "yarn workspace @kazi/api build",
-    "build:admin": "yarn workspace @kazi/admin build",
+    "dev:api": "yarn workspace @stitchd/api dev",
+    "dev:admin": "yarn workspace @stitchd/admin dev",
+    "build:api": "yarn workspace @stitchd/api build",
+    "build:admin": "yarn workspace @stitchd/admin build",
     "preview:mobile:web": "py -3 apps/mobile/tool/preview_web_build.py",
     "lint": "yarn workspaces run lint",
     "test": "yarn workspaces run test",
-    "db:migrate": "yarn workspace @kazi/api migration:run",
-    "db:seed": "yarn workspace @kazi/api seed:run"
+    "db:migrate": "yarn workspace @stitchd/api migration:run",
+    "db:seed": "yarn workspace @stitchd/api seed:run"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

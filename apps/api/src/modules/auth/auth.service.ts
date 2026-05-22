@@ -155,7 +155,7 @@ export class AuthService {
       email: configuredEmail,
       phone: this.configService.get<string>('app.adminPhone') || '+27820000000',
       passwordHash,
-      firstName: this.configService.get<string>('app.adminFirstName') || 'KAZI',
+      firstName: this.configService.get<string>('app.adminFirstName') || 'STITCHD',
       lastName: this.configService.get<string>('app.adminLastName') || 'Admin',
     });
   }
@@ -184,7 +184,7 @@ export class AuthService {
           params: {
             apiKey,
             to: phone,
-            content: `Your KAZI verification code is: ${otp}. Valid for ${this.OTP_EXPIRY_MINUTES} minutes. Do not share this code.`,
+            content: `Your STITCHD verification code is: ${otp}. Valid for ${this.OTP_EXPIRY_MINUTES} minutes. Do not share this code.`,
           },
         },
       );

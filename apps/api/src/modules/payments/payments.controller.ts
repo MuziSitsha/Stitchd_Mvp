@@ -33,7 +33,7 @@ export class PaymentsController {
   }
 
   @Post('bookings/:bookingId/checkout')
-  @ApiOperation({ summary: 'Create a hosted Peach checkout session for a card or EFT booking' })
+  @ApiOperation({ summary: 'Create a hosted PayFast checkout session for an online booking payment' })
   initiateHostedCheckout(
     @Request() req,
     @Param('bookingId') bookingId: string,

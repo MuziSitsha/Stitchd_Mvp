@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
-class KaziApiException implements Exception {
-  const KaziApiException(this.message, {this.statusCode});
+class StitchdApiException implements Exception {
+  const StitchdApiException(this.message, {this.statusCode});
 
   final String message;
   final int? statusCode;
@@ -14,14 +14,14 @@ class KaziApiException implements Exception {
   String toString() => message;
 }
 
-class KaziApiClient {
-  KaziApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _resolveBaseUrl();
+class StitchdApiClient {
+  StitchdApiClient({String? baseUrl}) : baseUrl = baseUrl ?? _resolveBaseUrl();
 
   final String baseUrl;
-  static const _stagingWebApiBaseUrl = 'https://d1v0xfe0nj4abg.cloudfront.net/api/v1';
+  static const _stagingWebApiBaseUrl = 'https://api-staging.stitchd.co.za/api/v1';
 
   static String _resolveBaseUrl() {
-    const override = String.fromEnvironment('KAZI_API_BASE_URL');
+    const override = String.fromEnvironment('STITCHD_API_BASE_URL');
     if (override.isNotEmpty) {
       return override;
     }
@@ -51,7 +51,7 @@ class KaziApiClient {
     );
   }
 
-  Future<KaziSession> verifyOtp({
+  Future<StitchdSession> verifyOtp({
     required String phone,
     required String code,
     required String role,
@@ -66,7 +66,7 @@ class KaziApiClient {
       },
     ) as Map<String, dynamic>;
 
-    return KaziSession.fromJson(payload);
+    return StitchdSession.fromJson(payload);
   }
 
   Future<ApiUser> getMe(String accessToken) async {
@@ -165,6 +165,21 @@ class KaziApiClient {
     return payload
         .map((item) => ApiService.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<ApiPlannerExperience> getPlannerExperience({
+    String eventType = 'wedding',
+    String persona = 'client',
+  }) async {
+    final payload = await _request(
+      'GET',
+      '/planner/mvp',
+      queryParameters: {
+        'eventType': eventType,
+        'persona': persona,
+      },
+    ) as Map<String, dynamic>;
+    return ApiPlannerExperience.fromJson(payload);
   }
 
   Future<ApiBooking> createBooking({
@@ -440,7 +455,7 @@ class KaziApiClient {
       final decoded = response.body.isEmpty ? null : jsonDecode(response.body);
 
       if (response.statusCode >= 400) {
-        throw KaziApiException(
+        throw StitchdApiException(
           _extractMessage(decoded) ?? 'Upload failed with status ${response.statusCode}',
           statusCode: response.statusCode,
         );
@@ -448,9 +463,9 @@ class KaziApiClient {
 
       return ApiProviderDocumentUploadResult.fromJson(decoded as Map<String, dynamic>);
     } on TimeoutException {
-      throw const KaziApiException('The provider document upload timed out.');
+      throw const StitchdApiException('The provider document upload timed out.');
     } on http.ClientException {
-      throw KaziApiException('Could not reach KAZI API at $baseUrl.');
+      throw StitchdApiException('Could not reach STITCHD API at $baseUrl.');
     }
   }
 
@@ -484,7 +499,7 @@ class KaziApiClient {
       final decoded = responseText.isEmpty ? null : jsonDecode(responseText);
 
       if (materialized.statusCode >= 400) {
-        throw KaziApiException(
+        throw StitchdApiException(
           _extractMessage(decoded) ?? 'Request failed with status ${materialized.statusCode}',
           statusCode: materialized.statusCode,
         );
@@ -492,9 +507,9 @@ class KaziApiClient {
 
       return decoded;
     } on TimeoutException {
-      throw const KaziApiException('The API request timed out.');
+      throw const StitchdApiException('The API request timed out.');
     } on http.ClientException {
-      throw KaziApiException('Could not reach KAZI API at $baseUrl.');
+      throw StitchdApiException('Could not reach STITCHD API at $baseUrl.');
     }
   }
 
@@ -513,8 +528,8 @@ class KaziApiClient {
   }
 }
 
-class KaziSession {
-  const KaziSession({
+class StitchdSession {
+  const StitchdSession({
     required this.accessToken,
     required this.refreshToken,
     required this.isNewUser,
@@ -535,8 +550,8 @@ class KaziSession {
     };
   }
 
-  factory KaziSession.fromJson(Map<String, dynamic> json) {
-    return KaziSession(
+  factory StitchdSession.fromJson(Map<String, dynamic> json) {
+    return StitchdSession(
       accessToken: json['accessToken'] as String,
       refreshToken: json['refreshToken'] as String,
       isNewUser: json['isNewUser'] as bool? ?? false,
@@ -850,6 +865,201 @@ class ApiHostedCheckout {
       checkoutId: json['checkoutId'] as String?,
       checkoutUrl: json['checkoutUrl'] as String?,
       amountCents: (json['amountCents'] as num?)?.toInt(),
+    );
+  }
+}
+
+class ApiPlannerExperience {
+  const ApiPlannerExperience({
+    required this.eventType,
+    required this.persona,
+    required this.title,
+    required this.intro,
+    required this.strapline,
+    required this.budgetTotal,
+    required this.budgetAllocated,
+    required this.compatibilityScore,
+    required this.labourProgress,
+    required this.timelineStatus,
+    required this.weather,
+    required this.coach,
+    required this.personas,
+    required this.onboardingSteps,
+    required this.coreVendors,
+    required this.supportVendors,
+  });
+
+  final String eventType;
+  final String persona;
+  final String title;
+  final String intro;
+  final String strapline;
+  final int budgetTotal;
+  final int budgetAllocated;
+  final int compatibilityScore;
+  final String labourProgress;
+  final String timelineStatus;
+  final ApiPlannerWeather weather;
+  final ApiPlannerCoach coach;
+  final List<ApiPlannerPersona> personas;
+  final List<ApiPlannerStep> onboardingSteps;
+  final List<ApiPlannerVendor> coreVendors;
+  final List<ApiPlannerVendor> supportVendors;
+
+  factory ApiPlannerExperience.fromJson(Map<String, dynamic> json) {
+    final personas = json['personas'] as List<dynamic>? ?? const [];
+    final onboardingSteps = json['onboardingSteps'] as List<dynamic>? ?? const [];
+    final squad = json['squad'] as Map<String, dynamic>? ?? const {};
+    final core = squad['core'] as List<dynamic>? ?? const [];
+    final support = squad['support'] as List<dynamic>? ?? const [];
+
+    return ApiPlannerExperience(
+      eventType: json['eventType'] as String? ?? 'wedding',
+      persona: json['persona'] as String? ?? 'client',
+      title: json['title'] as String? ?? 'STITCHD Event',
+      intro: json['intro'] as String? ?? '',
+      strapline: json['strapline'] as String? ?? '',
+      budgetTotal: (json['budgetTotal'] as num?)?.toInt() ?? 0,
+      budgetAllocated: (json['budgetAllocated'] as num?)?.toInt() ?? 0,
+      compatibilityScore: (json['compatibilityScore'] as num?)?.toInt() ?? 0,
+      labourProgress: json['labourProgress'] as String? ?? '0/0',
+      timelineStatus: json['timelineStatus'] as String? ?? 'On Track',
+      weather: ApiPlannerWeather.fromJson(json['weather'] as Map<String, dynamic>? ?? const {}),
+      coach: ApiPlannerCoach.fromJson(json['coach'] as Map<String, dynamic>? ?? const {}),
+      personas: personas.map((item) => ApiPlannerPersona.fromJson(item as Map<String, dynamic>)).toList(),
+      onboardingSteps: onboardingSteps.map((item) => ApiPlannerStep.fromJson(item as Map<String, dynamic>)).toList(),
+      coreVendors: core.map((item) => ApiPlannerVendor.fromJson(item as Map<String, dynamic>)).toList(),
+      supportVendors: support.map((item) => ApiPlannerVendor.fromJson(item as Map<String, dynamic>)).toList(),
+    );
+  }
+}
+
+class ApiPlannerWeather {
+  const ApiPlannerWeather({
+    required this.label,
+    required this.temperature,
+    required this.rainChance,
+    required this.alert,
+  });
+
+  final String label;
+  final String temperature;
+  final int rainChance;
+  final String alert;
+
+  factory ApiPlannerWeather.fromJson(Map<String, dynamic> json) {
+    return ApiPlannerWeather(
+      label: json['label'] as String? ?? 'Clear',
+      temperature: json['temperature'] as String? ?? '--',
+      rainChance: (json['rainChance'] as num?)?.toInt() ?? 0,
+      alert: json['alert'] as String? ?? '',
+    );
+  }
+}
+
+class ApiPlannerCoach {
+  const ApiPlannerCoach({
+    required this.name,
+    required this.role,
+    required this.rating,
+    required this.eventsCompleted,
+  });
+
+  final String name;
+  final String role;
+  final double rating;
+  final int eventsCompleted;
+
+  factory ApiPlannerCoach.fromJson(Map<String, dynamic> json) {
+    return ApiPlannerCoach(
+      name: json['name'] as String? ?? 'Coach',
+      role: json['role'] as String? ?? '',
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      eventsCompleted: (json['eventsCompleted'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class ApiPlannerStep {
+  const ApiPlannerStep({
+    required this.id,
+    required this.title,
+    required this.description,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+
+  factory ApiPlannerStep.fromJson(Map<String, dynamic> json) {
+    return ApiPlannerStep(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+    );
+  }
+}
+
+class ApiPlannerPersona {
+  const ApiPlannerPersona({
+    required this.id,
+    required this.label,
+    required this.app,
+    required this.summary,
+  });
+
+  final String id;
+  final String label;
+  final String app;
+  final String summary;
+
+  factory ApiPlannerPersona.fromJson(Map<String, dynamic> json) {
+    return ApiPlannerPersona(
+      id: json['id'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      app: json['app'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+    );
+  }
+}
+
+class ApiPlannerVendor {
+  const ApiPlannerVendor({
+    required this.id,
+    required this.slot,
+    required this.subcategory,
+    required this.name,
+    required this.rating,
+    required this.reviewCount,
+    required this.priceLabel,
+    required this.score,
+    required this.status,
+    required this.imageKey,
+  });
+
+  final String id;
+  final String slot;
+  final String subcategory;
+  final String name;
+  final double rating;
+  final int reviewCount;
+  final String priceLabel;
+  final int score;
+  final String status;
+  final String imageKey;
+
+  factory ApiPlannerVendor.fromJson(Map<String, dynamic> json) {
+    return ApiPlannerVendor(
+      id: json['id'] as String? ?? '',
+      slot: json['slot'] as String? ?? '',
+      subcategory: json['subcategory'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      reviewCount: (json['reviewCount'] as num?)?.toInt() ?? 0,
+      priceLabel: json['priceLabel'] as String? ?? '',
+      score: (json['score'] as num?)?.toInt() ?? 0,
+      status: json['status'] as String? ?? 'optional',
+      imageKey: json['imageKey'] as String? ?? '',
     );
   }
 }

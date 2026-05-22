@@ -1,4 +1,4 @@
-# KAZI Live Integrations Execution Checklist
+# STITCHD Live Integrations Execution Checklist
 
 Use this document as the operational runbook for the live-integration phase.
 
@@ -26,7 +26,7 @@ Suggested owners:
 - Product: business decisions, launch scope, customer policy text
 - Engineering: environment wiring, deployments, end-to-end fixes
 - Ops: AWS, domains, secrets, deployment access
-- Finance: Peach setup, payout destination, settlement rules
+- Finance: PayFast setup, payout destination, settlement rules
 - Support: support contacts, escalation flow, cancellation wording
 
 ## Phase 1: Freeze Launch Inputs
@@ -89,7 +89,7 @@ Action:
 - decide staging API URL
 - decide staging admin URL
 - decide mobile API base URL for real-device testing
-- define Peach return URL and webhook callback URL
+- define PayFast return URL and webhook callback URL
 
 Expected output:
 
@@ -174,20 +174,20 @@ Validation:
 
 - booking call flow can be triggered in staging
 
-### Step 9. Start Peach Payments merchant setup
+### Step 9. Start PayFast merchant setup
 
 Owner: Finance and Engineering
 Dependency: Step 4
 Action:
 
-- create or finalize Peach merchant onboarding
+- create or finalize PayFast merchant onboarding
 - collect entity ID, secret, and mode
 - register staging return URL and webhook URL
 - store values in staging secrets
 
 Expected output:
 
-- working Peach staging credential set
+- working PayFast staging credential set
 
 Validation:
 
@@ -361,7 +361,7 @@ Dependency: Step 9 and Step 12
 Action:
 
 - create a booking requiring hosted checkout
-- open Peach hosted checkout
+- open PayFast hosted checkout
 - complete the payment
 - confirm callback and webhook handling
 - confirm booking payment status is updated correctly

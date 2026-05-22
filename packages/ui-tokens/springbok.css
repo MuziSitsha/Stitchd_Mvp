@@ -1,16 +1,16 @@
 :root {
-  --kazi-color-primary-green: #006b3c;
-  --kazi-color-accent-gold: #ffb81c;
-  --kazi-color-white: #ffffff;
-  --kazi-color-surface: #f6f7f4;
-  --kazi-color-text: #111111;
-  --kazi-color-muted-text: #4f5b53;
-  --kazi-color-border: #d9ded8;
-  --kazi-color-success: #1f7a45;
-  --kazi-color-warning: #d89b00;
+  --stitchd-color-primary-green: #006b3c;
+  --stitchd-color-accent-gold: #ffb81c;
+  --stitchd-color-white: #ffffff;
+  --stitchd-color-surface: #f6f7f4;
+  --stitchd-color-text: #111111;
+  --stitchd-color-muted-text: #4f5b53;
+  --stitchd-color-border: #d9ded8;
+  --stitchd-color-success: #1f7a45;
+  --stitchd-color-warning: #d89b00;
 
-  --kazi-radius-sm: 8px;
-  --kazi-radius-md: 14px;
-  --kazi-radius-lg: 22px;
-  --kazi-shadow-soft: 0 12px 32px rgba(17, 17, 17, 0.08);
+  --stitchd-radius-sm: 8px;
+  --stitchd-radius-md: 14px;
+  --stitchd-radius-lg: 22px;
+  --stitchd-shadow-soft: 0 12px 32px rgba(17, 17, 17, 0.08);
 }

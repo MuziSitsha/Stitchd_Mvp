@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import axios from 'axios';
+import crypto from 'crypto';
 import { Repository } from 'typeorm';
 import {
   BookingEntity,
@@ -74,8 +74,8 @@ export class PaymentsService {
     if (!booking) throw new NotFoundException('Booking not found');
     this.assertActorCanAccessBooking(booking, actor.id, actor.role);
 
-    if (![PaymentMethod.CARD, PaymentMethod.EFT].includes(booking.paymentMethod)) {
-      throw new ForbiddenException('Hosted checkout is only available for card and EFT bookings');
+    if (![PaymentMethod.CARD, PaymentMethod.EFT, PaymentMethod.PAYFAST].includes(booking.paymentMethod)) {
+      throw new ForbiddenException('Hosted checkout is only available for PayFast-backed online payments');
     }
 
     if (booking.paymentStatus === PaymentStatus.PAID) {
@@ -88,53 +88,50 @@ export class PaymentsService {
       };
     }
 
-    const entityId = this.configService.get<string>('app.peachPaymentsEntityId');
-    const secret = this.configService.get<string>('app.peachPaymentsSecret');
-    if (!entityId || !secret) {
-      throw new ForbiddenException('Peach Payments is not configured for this environment');
+    const merchantId = this.configService.get<string>('app.payfastMerchantId');
+    const merchantKey = this.configService.get<string>('app.payfastMerchantKey');
+    if (!merchantId || !merchantKey) {
+      throw new ForbiddenException('PayFast is not configured for this environment');
     }
 
     const payment = await this.ensurePaymentRecord(booking);
     const customer = await this.usersRepository.findOne({ where: { id: booking.customerId } });
     const amountCents = payment.amountCents || booking.finalPriceCents || booking.quotedPriceCents;
     const amount = (amountCents / 100).toFixed(2);
-    const baseUrl = this.getPeachBaseUrl();
+    const baseUrl = this.getPayfastBaseUrl();
     const merchantTransactionId = booking.id;
-    const notificationUrl = `${this.getPublicApiUrl()}/api/v1/payments/webhooks/peach`;
+    const notificationUrl = `${this.getPublicApiUrl()}/api/v1/payments/webhooks/payfast`;
     const returnUrl = dto.returnUrl || `${this.getPublicApiUrl()}/api/v1/payments/checkout/result`;
-    const params = new URLSearchParams({
-      entityId,
+    const cancelUrl = `${this.getPublicApiUrl()}/api/v1/payments/checkout/result?status=cancelled`;
+    const itemName = booking.bookingRef || 'STITCHD booking';
+    const paymentPayload = {
+      merchant_id: merchantId,
+      merchant_key: merchantKey,
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
+      notify_url: notificationUrl,
+      name_first: customer?.firstName || 'STITCHD',
+      name_last: customer?.lastName || 'Customer',
+      email_address: customer?.email || `${booking.customerId}@stitchd.local`,
+      m_payment_id: merchantTransactionId,
       amount,
-      currency: 'ZAR',
-      paymentType: 'DB',
-      merchantTransactionId,
-      notificationUrl,
-      shopperResultUrl: returnUrl,
-      'billing.country': 'ZA',
-      'billing.city': 'Johannesburg',
-      'customer.givenName': customer?.firstName || 'KAZI',
-      'customer.surname': customer?.lastName || 'Customer',
-      'customer.email': customer?.email || `${booking.customerId}@kazi.local`,
-    });
+      item_name: itemName,
+      item_description: `Payment for booking ${booking.bookingRef}`,
+      custom_str1: booking.paymentMethod,
+      custom_str2: booking.customerId,
+      custom_str3: booking.providerId || '',
+    };
+    const signature = this.createPayfastSignature(paymentPayload);
+    const checkoutUrl = `${baseUrl}/eng/process?${this.createPayfastQueryString({
+      ...paymentPayload,
+      signature,
+    })}`;
 
-    const response = await axios.post(`${baseUrl}/v1/checkouts`, params, {
-      headers: {
-        Authorization: `Bearer ${secret}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      timeout: 15000,
-    });
-
-    const checkoutId = response.data?.id as string | undefined;
-    if (!checkoutId) {
-      throw new ForbiddenException('Peach Payments did not return a checkout session');
-    }
-
-    payment.checkoutId = checkoutId;
-    payment.checkoutUrl = `${this.getPublicApiUrl()}/api/v1/payments/checkout/${checkoutId}`;
-    payment.gatewayReference = checkoutId;
-    payment.note = `Hosted checkout created for ${booking.paymentMethod}`;
-    booking.paymentGatewayRef = checkoutId;
+    payment.checkoutId = merchantTransactionId;
+    payment.checkoutUrl = checkoutUrl;
+    payment.gatewayReference = merchantTransactionId;
+    payment.note = `PayFast checkout created for ${booking.paymentMethod}`;
+    booking.paymentGatewayRef = merchantTransactionId;
 
     await this.bookingsRepository.save(booking);
     const savedPayment = await this.paymentsRepository.save(payment);
@@ -144,8 +141,8 @@ export class PaymentsService {
       paymentId: savedPayment.id,
       paymentMethod: booking.paymentMethod,
       status: savedPayment.status,
-      checkoutId,
-      checkoutUrl: savedPayment.checkoutUrl,
+      checkoutId: savedPayment.checkoutId,
+      checkoutUrl,
       amountCents,
     };
   }
@@ -210,8 +207,8 @@ export class PaymentsService {
     return this.paymentsRepository.save(payment);
   }
 
-  async confirmPeachWebhook(payload: Record<string, unknown>) {
-    const merchantTransactionId = this.getString(payload, 'merchantTransactionId');
+  async confirmPayfastWebhook(payload: Record<string, unknown>) {
+    const merchantTransactionId = this.getString(payload, 'm_payment_id');
     if (!merchantTransactionId) {
       return { received: true, ignored: true };
     }
@@ -222,74 +219,29 @@ export class PaymentsService {
     }
 
     const payment = await this.ensurePaymentRecord(booking);
-    const transactionId = this.getString(payload, 'id') || payment.checkoutId || payment.gatewayReference;
-    const resultCode = this.getNestedString(payload, ['result', 'code']) || this.getString(payload, 'result.code');
-    const resultDescription =
-      this.getNestedString(payload, ['result', 'description']) || this.getString(payload, 'result.description');
-    const isSuccess = this.isSuccessfulPeachResult(resultCode);
+    const transactionId = this.getString(payload, 'pf_payment_id') || payment.checkoutId || payment.gatewayReference;
+    const paymentStatus = this.getString(payload, 'payment_status');
+    const isSuccess = paymentStatus === 'COMPLETE';
 
     if (isSuccess) {
       await this.settleBookingCompletion(booking, {
-        actorId: 'system-peach',
+        actorId: 'system-payfast',
         actorRole: UserRole.ADMIN,
         gatewayReference: transactionId,
-        note: resultDescription || 'Peach webhook confirmed payment',
+        note: 'PayFast webhook confirmed payment',
       });
       return { received: true, status: PaymentStatus.PAID };
     }
 
     payment.status = PaymentStatus.FAILED;
     payment.gatewayReference = transactionId;
-    payment.note = resultDescription || resultCode || 'Peach webhook reported payment failure';
+    payment.note = paymentStatus || 'PayFast webhook reported payment failure';
     booking.paymentStatus = PaymentStatus.FAILED;
 
     await this.bookingsRepository.save(booking);
     await this.paymentsRepository.save(payment);
 
     return { received: true, status: PaymentStatus.FAILED };
-  }
-
-  async getHostedCheckoutHtml(checkoutId: string) {
-    const payment = await this.paymentsRepository.findOne({ where: { checkoutId } });
-    if (!payment?.checkoutId) {
-      throw new NotFoundException('Hosted checkout session not found');
-    }
-
-    const entityId = this.configService.get<string>('app.peachPaymentsEntityId');
-    if (!entityId) {
-      throw new ForbiddenException('Peach Payments is not configured for this environment');
-    }
-
-    const baseUrl = this.getPeachBaseUrl();
-    const resultUrl = `${this.getPublicApiUrl()}/api/v1/payments/checkout/result`;
-
-    return `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KAZI Secure Payment</title>
-    <script src="${baseUrl}/v1/paymentWidgets.js?checkoutId=${payment.checkoutId}"></script>
-    <style>
-      body { font-family: Arial, sans-serif; background: #f6f7f4; color: #111111; margin: 0; padding: 24px; }
-      main { max-width: 720px; margin: 0 auto; background: #ffffff; border-radius: 24px; padding: 32px; box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
-      h1 { margin-top: 0; color: #006b3c; }
-      p { line-height: 1.5; }
-      .meta { margin: 16px 0 24px; padding: 16px; border-radius: 16px; background: #f6f7f4; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <h1>KAZI secure checkout</h1>
-      <p>Complete your ${payment.paymentMethod.toUpperCase()} payment to confirm the booking.</p>
-      <div class="meta">
-        <strong>Amount:</strong> R${(payment.amountCents / 100).toFixed(2)}<br />
-        <strong>Booking:</strong> ${payment.bookingId}
-      </div>
-      <form action="${resultUrl}" class="paymentWidgets" data-brands="VISA MASTER EFT_SECURE"></form>
-    </main>
-  </body>
-</html>`;
   }
 
   getCheckoutResultHtml({
@@ -304,7 +256,7 @@ export class PaymentsService {
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>KAZI Payment Status</title>
+    <title>STITCHD Payment Status</title>
     <style>
       body { font-family: Arial, sans-serif; background: #f6f7f4; color: #111111; margin: 0; padding: 24px; }
       main { max-width: 720px; margin: 0 auto; background: #ffffff; border-radius: 24px; padding: 32px; box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
@@ -315,7 +267,7 @@ export class PaymentsService {
   <body>
     <main>
       <h1>Payment submitted</h1>
-      <p>Your payment request has been handed back to KAZI. You can return to the app and refresh the booking status.</p>
+      <p>Your PayFast payment request has been handed back to STITCHD. You can return to the app and refresh the booking status.</p>
       ${transactionId ? `<p><strong>Transaction:</strong> <code>${transactionId}</code></p>` : ''}
       ${resourcePath ? `<p><strong>Resource:</strong> <code>${resourcePath}</code></p>` : ''}
     </main>
@@ -351,18 +303,32 @@ export class PaymentsService {
     return this.paymentsRepository.save(payment);
   }
 
-  private getPeachBaseUrl() {
-    const mode = this.configService.get<string>('app.peachPaymentsMode');
-    return mode === 'live' ? 'https://oppwa.com' : 'https://test.oppwa.com';
+  private getPayfastBaseUrl() {
+    const mode = this.configService.get<string>('app.payfastMode');
+    return mode === 'live' ? 'https://www.payfast.co.za' : 'https://sandbox.payfast.co.za';
   }
 
   private getPublicApiUrl() {
     return (this.configService.get<string>('app.publicApiUrl') || 'http://localhost:3001').replace(/\/$/, '');
   }
 
-  private isSuccessfulPeachResult(code?: string | null) {
-    if (!code) return false;
-    return /^000\.000\./.test(code) || /^000\.100\.1/.test(code) || /^000\.[36]/.test(code);
+  private createPayfastQueryString(payload: Record<string, string>) {
+    return Object.entries(payload)
+      .filter(([, value]) => value.trim().length > 0)
+      .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value.trim())}`)
+      .join('&');
+  }
+
+  private createPayfastSignature(payload: Record<string, string>) {
+    const filtered = Object.entries(payload)
+      .filter(([, value]) => value.trim().length > 0)
+      .sort(([left], [right]) => left.localeCompare(right));
+    const phrase = this.configService.get<string>('app.payfastPassphrase')?.trim();
+    const serialized = filtered
+      .map(([key, value]) => `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, '+')}`)
+      .join('&');
+    const toSign = phrase ? `${serialized}&passphrase=${encodeURIComponent(phrase).replace(/%20/g, '+')}` : serialized;
+    return crypto.createHash('md5').update(toSign).digest('hex');
   }
 
   private getString(payload: Record<string, unknown>, key: string) {
@@ -370,15 +336,4 @@ export class PaymentsService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  private getNestedString(payload: Record<string, unknown>, path: string[]) {
-    let current: unknown = payload;
-    for (const segment of path) {
-      if (typeof current !== 'object' || current === null || !(segment in current)) {
-        return undefined;
-      }
-      current = (current as Record<string, unknown>)[segment];
-    }
-
-    return typeof current === 'string' && current.length > 0 ? current : undefined;
-  }
 }

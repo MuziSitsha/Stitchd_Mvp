@@ -1,4 +1,4 @@
-name: KAZI CI
+name: STITCHD CI
 
 on:
   push:
@@ -42,19 +42,19 @@ jobs:
 
       - name: Lint API
         if: steps.eslint-config.outputs.present == 'true'
-        run: yarn workspace @kazi/api lint
+        run: yarn workspace @stitchd/api lint
 
       - name: Test API
-        run: yarn workspace @kazi/api test --passWithNoTests
+        run: yarn workspace @stitchd/api test --passWithNoTests
         env:
           NODE_ENV: test
           DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
 
       - name: Build API
-        run: yarn workspace @kazi/api build
+        run: yarn workspace @stitchd/api build
 
       - name: Build Admin
-        run: yarn workspace @kazi/admin build
+        run: yarn workspace @stitchd/admin build
 
       - name: Install Mobile Dependencies
         working-directory: apps/mobile

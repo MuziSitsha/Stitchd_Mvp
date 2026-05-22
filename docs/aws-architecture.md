@@ -1,4 +1,4 @@
-# KAZI AWS Architecture
+# STITCHD AWS Architecture
 
 ## Region
 
@@ -75,7 +75,7 @@
 
 ```env
 NODE_ENV=production
-DATABASE_URL=postgresql://kazi_app:[PASSWORD]@[RDS-ENDPOINT]:5432/kazi_db
+DATABASE_URL=postgresql://stitchd_app:[PASSWORD]@[RDS-ENDPOINT]:5432/stitchd_db
 REDIS_HOST=[ELASTICACHE-ENDPOINT]
 REDIS_PORT=6379
 REDIS_PASSWORD=
@@ -85,8 +85,8 @@ JWT_REFRESH_EXPIRES_IN=30d
 AWS_REGION=af-south-1
 AWS_ACCESS_KEY_ID=[DEPLOY_OR_APP_KEY]
 AWS_SECRET_ACCESS_KEY=[DEPLOY_OR_APP_SECRET]
-AWS_S3_BUCKET_NAME=kazi-uploads
-ALLOWED_ORIGINS=https://admin.kazi.co.za
+AWS_S3_BUCKET_NAME=stitchd-uploads
+ALLOWED_ORIGINS=https://admin.stitchd.co.za
 DEFAULT_COMMISSION_RATE=0.15
 ```
 

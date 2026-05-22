@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--api-base-url",
         default=DEFAULT_API_BASE_URL,
-        help="Value passed to KAZI_API_BASE_URL during the build step.",
+        help="Value passed to STITCHD_API_BASE_URL during the build step.",
     )
     parser.add_argument(
         "--skip-build",
@@ -44,7 +44,7 @@ def build_web(api_base_url: str) -> None:
         "flutter",
         "build",
         "web",
-        f"--dart-define=KAZI_API_BASE_URL={api_base_url}",
+        f"--dart-define=STITCHD_API_BASE_URL={api_base_url}",
     ]
     print("Running:", " ".join(command))
     subprocess.run(command, cwd=PROJECT_ROOT, check=True)

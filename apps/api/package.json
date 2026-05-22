@@ -1,7 +1,7 @@
 {
-  "name": "@kazi/api",
+  "name": "@stitchd/api",
   "version": "1.0.0",
-  "description": "KAZI Backend API - NestJS",
+  "description": "STITCHD Backend API - NestJS",
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",

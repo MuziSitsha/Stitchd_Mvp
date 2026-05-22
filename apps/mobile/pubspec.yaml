@@ -1,5 +1,5 @@
-name: kazi_mobile
-description: KAZI Android and iOS app foundation for customer and provider flows.
+name: stitchd_mobile
+description: STITCHD Android and iOS app foundation for customer and provider flows.
 publish_to: none
 
 version: 1.0.0+1

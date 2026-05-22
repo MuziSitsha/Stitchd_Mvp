@@ -23,7 +23,7 @@ class ProviderDocumentInputDto {
   @MaxLength(180)
   fileName: string;
 
-  @ApiProperty({ example: 'https://s3.af-south-1.amazonaws.com/kazi-uploads/id-front.jpg', required: false })
+  @ApiProperty({ example: 'https://s3.af-south-1.amazonaws.com/stitchd-uploads/id-front.jpg', required: false })
   @IsOptional()
   @IsUrl()
   fileUrl?: string;

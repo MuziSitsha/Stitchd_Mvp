@@ -1,6 +1,6 @@
 {
-    "name": "kazi_mobile",
-    "short_name": "kazi_mobile",
+    "name": "stitchd_mobile",
+    "short_name": "stitchd_mobile",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

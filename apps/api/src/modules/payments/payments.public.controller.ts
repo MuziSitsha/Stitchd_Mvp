@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, Param, Post, Query, Res, Body } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Res } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { Response } from 'express';
 import { PaymentsService } from './payments.service';
@@ -7,12 +7,6 @@ import { PaymentsService } from './payments.service';
 @Controller('payments')
 export class PaymentsPublicController {
   constructor(private readonly paymentsService: PaymentsService) {}
-
-  @Get('checkout/:checkoutId')
-  async renderCheckout(@Param('checkoutId') checkoutId: string, @Res() res: Response) {
-    const html = await this.paymentsService.getHostedCheckoutHtml(checkoutId);
-    res.type('html').send(html);
-  }
 
   @Get('checkout/result')
   renderCheckoutResult(
@@ -24,9 +18,9 @@ export class PaymentsPublicController {
     res.type('html').send(html);
   }
 
-  @Post('webhooks/peach')
+  @Post('webhooks/payfast')
   @HttpCode(200)
-  confirmPeachWebhook(@Body() payload: Record<string, unknown>) {
-    return this.paymentsService.confirmPeachWebhook(payload);
+  confirmPayfastWebhook(@Body() payload: Record<string, unknown>) {
+    return this.paymentsService.confirmPayfastWebhook(payload);
   }
 }

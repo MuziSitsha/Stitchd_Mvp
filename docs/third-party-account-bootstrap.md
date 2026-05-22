@@ -1,8 +1,8 @@
-# KAZI Third-Party Account Bootstrap
+# STITCHD Third-Party Account Bootstrap
 
 Use `sales@gubudo.com` as the owner email for the launch accounts where possible.
 
-This document is the exact order to follow while creating the third-party services needed for KAZI launch and handover.
+This document is the exact order to follow while creating the third-party services needed for STITCHD launch and handover.
 
 ## What Can Be Done Now
 
@@ -16,7 +16,7 @@ This document is the exact order to follow while creating the third-party servic
 - Firebase project creation and push setup
 - Google Maps project and API key creation
 - Twilio account setup and number purchase
-- Peach Payments merchant onboarding
+- PayFast merchant onboarding
 - Clickatell account setup
 - AWS account access and service provisioning
 
@@ -82,7 +82,7 @@ Collect:
 
 - `CLICKATELL_API_KEY`
 
-### 5. Peach Payments
+### 5. PayFast
 
 Start merchant onboarding as early as possible.
 
@@ -93,9 +93,10 @@ Why:
 
 Collect:
 
-- `PEACH_PAYMENTS_ENTITY_ID`
-- `PEACH_PAYMENTS_SECRET`
-- `PEACH_PAYMENTS_MODE`
+- `PAYFAST_MERCHANT_ID`
+- `PAYFAST_MERCHANT_KEY`
+- `PAYFAST_PASSPHRASE`
+- `PAYFAST_MODE`
 
 ### 6. AWS
 
@@ -125,9 +126,9 @@ Collect:
 
 Use simple names so handover stays clean:
 
-- Firebase project: `kazi-staging`
-- Google Cloud project: `kazi-staging`
-- AWS environment: `kazi-staging`
+- Firebase project: `stitchd-staging`
+- Google Cloud project: `stitchd-staging`
+- AWS environment: `stitchd-staging`
 - API domain: `api-staging.<client-domain>`
 - Admin domain: `admin-staging.<client-domain>`
 
@@ -141,5 +142,5 @@ Recommended repo order after account creation:
 2. Google Maps
 3. Clickatell
 4. Twilio
-5. Peach Payments
+5. PayFast
 6. AWS staging deployment
