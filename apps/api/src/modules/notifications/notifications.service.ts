@@ -98,18 +98,25 @@ export class NotificationsService {
       return null;
     }
 
-    if (getApps().length > 0) {
-      return getApp();
-    }
+    try {
+      if (getApps().length > 0) {
+        return getApp();
+      }
 
-    return initializeApp({
-      credential: cert({
+      return initializeApp({
+        credential: cert({
+          projectId,
+          clientEmail,
+          privateKey,
+        }),
         projectId,
-        clientEmail,
-        privateKey,
-      }),
-      projectId,
-    });
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Firebase push disabled because the provided Firebase credentials are invalid: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+      return null;
+    }
   }
 
   private async sendPushNotification(notification: NotificationEntity) {
