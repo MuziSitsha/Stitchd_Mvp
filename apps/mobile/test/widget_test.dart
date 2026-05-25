@@ -16,6 +16,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('Home'), findsWidgets);
-    expect(find.text('Browse all services'), findsOneWidget);
+    expect(find.text('Bookings'), findsOneWidget);
+    expect(find.text('Wallet'), findsOneWidget);
   });
 }
