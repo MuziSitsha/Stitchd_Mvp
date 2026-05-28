@@ -1,16 +1,18 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 
-import plannerImage from '../../mobile/assets/service-images/maid-service.jpg';
-import venueImage from '../../mobile/assets/service-images/home-cleaning.jpg';
-import photographyImage from '../../mobile/assets/service-images/appliance-repair.jpg';
-import cateringImage from '../../mobile/assets/service-images/handyman-assist.jpg';
-import floralsImage from '../../mobile/assets/service-images/spa-and-massage.jpg';
-import entertainmentImage from '../../mobile/assets/service-images/book-a-mechanic.jpg';
-import mcImage from '../../mobile/assets/service-images/urgent-electrical.jpg';
-import glamImage from '../../mobile/assets/service-images/salon-at-home.jpg';
-import transportImage from '../../mobile/assets/service-images/pest-control.jpg';
-import decorImage from '../../mobile/assets/service-images/deep-cleaning.jpg';
-import tentImage from '../../mobile/assets/service-images/garden-and-outdoor.jpg';
+const plannerImage = 'https://upload.wikimedia.org/wikipedia/commons/4/44/Wedding_planner.jpg';
+const venueImage = 'https://upload.wikimedia.org/wikipedia/commons/f/fa/Cape_Town_Wedding_South_Africa_1.jpg';
+const photographyImage = 'https://upload.wikimedia.org/wikipedia/commons/3/31/Wedding_photographer_at_work.jpg';
+const cateringImage = 'https://upload.wikimedia.org/wikipedia/commons/9/9b/NIgerian_food.jpg';
+const floralsImage = 'https://upload.wikimedia.org/wikipedia/commons/3/38/Wedding_table_SA2.jpg';
+const entertainmentImage = 'https://upload.wikimedia.org/wikipedia/commons/9/94/DJ_Ready_D_2023.jpg';
+const mcImage = 'https://upload.wikimedia.org/wikipedia/commons/a/a7/Ghana_MC_%287714956838%29.jpg';
+const glamImage = 'https://upload.wikimedia.org/wikipedia/commons/0/02/White_wedding_ceremony_-_Bride%27s_makeup_-_Northern_Nigeria_-_2026_%286%29.jpg';
+const transportImage = 'https://upload.wikimedia.org/wikipedia/commons/1/16/Chev_wedding_car_SA.jpg';
+const decorImage = 'https://upload.wikimedia.org/wikipedia/commons/6/68/Wedding_table_SA1.jpg';
+const tentImage = 'https://upload.wikimedia.org/wikipedia/commons/a/af/Marquee_tents_for_events.jpg';
+const coachCoordinatorImage = 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Event_coordinator_Mr._Mothusi_Sekhomba.jpg';
+const coachPortraitImage = 'https://upload.wikimedia.org/wikipedia/commons/4/44/African_woman_portrait.jpg';
 
 type IconProps = {
   className?: string;
@@ -89,7 +91,7 @@ function BriefcaseIcon({ className }: IconProps) {
 function CloudIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18 18a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 18Z" />
+      <path className="weatherCloudPath" d="M18 18a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 18Z" />
     </svg>
   );
 }
@@ -97,15 +99,15 @@ function CloudIcon({ className }: IconProps) {
 function SunIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2" />
-      <path d="M12 20v2" />
-      <path d="m4.93 4.93 1.41 1.41" />
-      <path d="m17.66 17.66 1.41 1.41" />
-      <path d="M2 12h2" />
-      <path d="M20 12h2" />
-      <path d="m6.34 17.66-1.41 1.41" />
-      <path d="m19.07 4.93-1.41 1.41" />
+      <circle className="weatherSunCore" cx="12" cy="12" r="4" />
+      <path className="weatherSunRay" d="M12 2v2" />
+      <path className="weatherSunRay" d="M12 20v2" />
+      <path className="weatherSunRay" d="m4.93 4.93 1.41 1.41" />
+      <path className="weatherSunRay" d="m17.66 17.66 1.41 1.41" />
+      <path className="weatherSunRay" d="M2 12h2" />
+      <path className="weatherSunRay" d="M20 12h2" />
+      <path className="weatherSunRay" d="m6.34 17.66-1.41 1.41" />
+      <path className="weatherSunRay" d="m19.07 4.93-1.41 1.41" />
     </svg>
   );
 }
@@ -113,10 +115,10 @@ function SunIcon({ className }: IconProps) {
 function RainIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
-      <path d="M8 19v2" />
-      <path d="M12 18v4" />
-      <path d="M16 19v2" />
+      <path className="weatherRainCloud" d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
+      <path className="weatherRainDrop" d="M8 19v2" />
+      <path className="weatherRainDrop" d="M12 18v4" />
+      <path className="weatherRainDrop" d="M16 19v2" />
     </svg>
   );
 }
@@ -124,8 +126,8 @@ function RainIcon({ className }: IconProps) {
 function StormIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
-      <path d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
-      <path d="m13 12-3 5h3l-2 5 5-7h-3l2-3" />
+      <path className="weatherStormCloud" d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
+      <path className="weatherStormBolt" d="m13 12-3 5h3l-2 5 5-7h-3l2-3" />
     </svg>
   );
 }
@@ -627,12 +629,12 @@ const eventNames: Record<EventType, string> = {
   birthday: 'Ayanda 30th Celebration',
 };
 
-const coachByEvent: Record<EventType, { name: string; role: string; score: string; events: number }> = {
-  wedding: { name: 'Merk Clo', role: 'Lead Planner and Strategist', score: '4.9', events: 127 },
-  lobola: { name: 'Nono Dube', role: 'Tradition and Family Coordinator', score: '4.8', events: 94 },
-  funeral: { name: 'Sizwe K', role: 'Family Support and Logistics Coach', score: '4.9', events: 156 },
-  corporate: { name: 'Karabo M', role: 'Event Operations Lead', score: '4.7', events: 203 },
-  birthday: { name: 'Tumi N', role: 'Celebration Curator', score: '4.8', events: 88 },
+const coachByEvent: Record<EventType, { name: string; role: string; score: string; events: number; image: string; cardLabel: string }> = {
+  wedding: { name: 'Muzi Clo', role: 'Lead Planner and Strategist', score: '4.9', events: 127, image: coachCoordinatorImage, cardLabel: 'Elite Coach' },
+  lobola: { name: 'Nono Dube', role: 'Tradition and Family Coordinator', score: '4.8', events: 94, image: coachPortraitImage, cardLabel: 'Culture Coach' },
+  funeral: { name: 'Sizwe K', role: 'Family Support and Logistics Coach', score: '4.9', events: 156, image: coachCoordinatorImage, cardLabel: 'Care Coach' },
+  corporate: { name: 'Karabo M', role: 'Event Operations Lead', score: '4.7', events: 203, image: coachCoordinatorImage, cardLabel: 'Ops Coach' },
+  birthday: { name: 'Tumi N', role: 'Celebration Curator', score: '4.8', events: 88, image: coachPortraitImage, cardLabel: 'Vibe Coach' },
 };
 
 const weatherByEvent: Record<EventType, { label: string; temperature: string; rainChance: number; alert: string }> = {
@@ -788,7 +790,7 @@ function getMetricColor(value: string) {
   if (value === 'On Track') return 'is-green';
   if (value === 'Behind') return 'is-gold';
   if (value === 'At Risk') return 'is-red';
-  if (value === 'Centralised') return 'is-purple';
+  if (value === 'Centralised') return 'is-gold';
   return '';
 }
 
@@ -829,63 +831,7 @@ function wrapVendorArtworkText(value: string, maxLineLength: number) {
 }
 
 function getVendorArtwork(vendor: VendorCardData) {
-  const palettes: Record<VendorStatus, { accent: string; glow: string; panel: string }> = {
-    secured: { accent: '#55f5b6', glow: '#183e37', panel: '#0e1417' },
-    booked: { accent: '#f5c465', glow: '#463415', panel: '#16120c' },
-    optional: { accent: '#b68cff', glow: '#2d1c4a', panel: '#130f1e' },
-    recommended: { accent: '#d7b1ff', glow: '#3d2453', panel: '#170f22' },
-    at_risk: { accent: '#ff8a96', glow: '#4a1d26', panel: '#1c0f13' },
-  };
-  const palette = palettes[vendor.status];
-  const slot = vendor.slot.toLowerCase();
-  const motif = slot.includes('venue')
-    ? '<path d="M120 490h400v-34L336 278 120 456Z" fill="#ffffff" fill-opacity="0.08"/><path d="M166 490V382h56v108" fill="#ffffff" fill-opacity="0.08"/><path d="M418 490V382h56v108" fill="#ffffff" fill-opacity="0.08"/>'
-    : slot.includes('photo')
-      ? '<circle cx="320" cy="376" r="118" fill="#ffffff" fill-opacity="0.07"/><circle cx="320" cy="376" r="62" fill="#ffffff" fill-opacity="0.11"/><circle cx="320" cy="376" r="18" fill="#ffffff" fill-opacity="0.22"/>'
-      : slot.includes('catering') || slot.includes('cake') || slot.includes('bar')
-        ? '<rect x="138" y="430" width="364" height="22" rx="11" fill="#ffffff" fill-opacity="0.1"/><rect x="172" y="382" width="296" height="36" rx="18" fill="#ffffff" fill-opacity="0.08"/><circle cx="230" cy="364" r="14" fill="#ffffff" fill-opacity="0.14"/><circle cx="320" cy="352" r="14" fill="#ffffff" fill-opacity="0.14"/><circle cx="410" cy="364" r="14" fill="#ffffff" fill-opacity="0.14"/>'
-        : slot.includes('floral') || slot.includes('decor')
-          ? '<circle cx="214" cy="346" r="52" fill="#ffffff" fill-opacity="0.07"/><circle cx="272" cy="312" r="46" fill="#ffffff" fill-opacity="0.08"/><circle cx="352" cy="334" r="54" fill="#ffffff" fill-opacity="0.07"/><circle cx="412" cy="300" r="42" fill="#ffffff" fill-opacity="0.08"/><rect x="286" y="364" width="28" height="124" rx="14" fill="#ffffff" fill-opacity="0.1"/>'
-          : slot.includes('transport')
-            ? '<path d="M154 438h308l30 52H124l30-52Z" fill="#ffffff" fill-opacity="0.08"/><rect x="194" y="388" width="228" height="42" rx="18" fill="#ffffff" fill-opacity="0.08"/><circle cx="204" cy="486" r="22" fill="#ffffff" fill-opacity="0.14"/><circle cx="436" cy="486" r="22" fill="#ffffff" fill-opacity="0.14"/>'
-            : slot.includes('tent')
-              ? '<path d="M132 488 320 272l188 216H132Z" fill="#ffffff" fill-opacity="0.08"/><path d="M218 488 320 350l102 138H218Z" fill="#ffffff" fill-opacity="0.12"/>'
-              : '<rect x="154" y="330" width="332" height="122" rx="40" fill="#ffffff" fill-opacity="0.07"/><rect x="186" y="362" width="268" height="58" rx="29" fill="#ffffff" fill-opacity="0.09"/><circle cx="320" cy="300" r="44" fill="#ffffff" fill-opacity="0.06"/>';
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 760">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#0b0d14" />
-          <stop offset="55%" stop-color="${palette.panel}" />
-          <stop offset="100%" stop-color="#090a10" />
-        </linearGradient>
-        <radialGradient id="glow" cx="0.85" cy="0.18" r="0.9">
-          <stop offset="0%" stop-color="${palette.glow}" stop-opacity="0.92" />
-          <stop offset="100%" stop-color="${palette.glow}" stop-opacity="0" />
-        </radialGradient>
-        <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
-          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-      <rect width="640" height="760" rx="48" fill="url(#bg)" />
-      <rect width="640" height="760" rx="48" fill="url(#glow)" />
-      <circle cx="528" cy="124" r="118" fill="${palette.accent}" opacity="0.14" />
-      <circle cx="108" cy="660" r="160" fill="${palette.accent}" opacity="0.1" />
-      <path d="M40 584C148 512 250 482 382 492c90 8 166 28 214 68" stroke="${palette.accent}" stroke-opacity="0.14" stroke-width="2" fill="none" />
-      <path d="M32 628C148 548 270 510 414 522c74 6 142 24 190 54" stroke="#ffffff" stroke-opacity="0.07" stroke-width="2" fill="none" />
-      <rect x="34" y="34" width="572" height="692" rx="42" fill="url(#shine)" />
-      <rect x="42" y="42" width="154" height="34" rx="17" fill="#ffffff" fill-opacity="0.08" />
-      <rect x="42" y="92" width="84" height="84" rx="24" fill="#ffffff" fill-opacity="0.05" />
-      <text x="64" y="64" fill="#ffffff" fill-opacity="0.8" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="2.4">${vendor.slot.toUpperCase()}</text>
-      <text x="64" y="144" fill="#ffffff" fill-opacity="0.18" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">${vendor.score}</text>
-      ${motif}
-      <rect x="42" y="646" width="164" height="40" rx="20" fill="#ffffff" fill-opacity="0.08" />
-      <text x="64" y="672" fill="${palette.accent}" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2.8">CURATED MATCH</text>
-    </svg>
-  `;
-
-  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+  return `url("${vendor.image}")`;
 }
 
 function formatPlannerDateLabel(dateValue: string) {
@@ -917,7 +863,7 @@ function calculatePlanningProgress(eventDate: string, planningStartDate: string)
 }
 
 function getWeatherTone(rainChance: number) {
-  if (rainChance > 40) return 'is-purple';
+  if (rainChance > 40) return 'is-gold';
   if (rainChance < 20) return 'is-green';
   return '';
 }
@@ -955,10 +901,12 @@ function buildWeatherAlert(eventType: EventType, rainChance: number, label: stri
 }
 
 function WeatherGlyph({ iconKey, className }: { iconKey: WeatherIconKey; className?: string }) {
-  if (iconKey === 'sun') return <SunIcon className={className} />;
-  if (iconKey === 'rain') return <RainIcon className={className} />;
-  if (iconKey === 'storm') return <StormIcon className={className} />;
-  return <CloudIcon className={className} />;
+  const glyphClassName = [className, `weatherTone-${iconKey}`].filter(Boolean).join(' ');
+
+  if (iconKey === 'sun') return <SunIcon className={glyphClassName} />;
+  if (iconKey === 'rain') return <RainIcon className={glyphClassName} />;
+  if (iconKey === 'storm') return <StormIcon className={glyphClassName} />;
+  return <CloudIcon className={glyphClassName} />;
 }
 
 function getCoachInitials(name: string) {
@@ -1096,6 +1044,8 @@ export function App() {
         role: plannerExperience.coach.role,
         score: plannerExperience.coach.rating.toFixed(1),
         events: plannerExperience.coach.eventsCompleted,
+        image: coachByEvent[selectedEventType].image,
+        cardLabel: coachByEvent[selectedEventType].cardLabel,
       }
     : selectedEventType === 'birthday'
       ? null
@@ -1877,30 +1827,40 @@ export function App() {
 
             {selectedCoach ? (
               <div className="coachCard glassPanel">
-                <div className="coachAvatar" aria-hidden="true">{getCoachInitials(selectedCoach.name)}</div>
-                <div className="coachInfo">
-                  <span className="minorLabel">COACH</span>
-                  <strong>{selectedCoach.name}</strong>
-                  <p>{selectedCoach.role}</p>
-                  <div className="coachMeta">
-                    <span className="scorePill">{selectedCoach.score}</span>
-                    <span>{selectedCoach.events} events</span>
+                <div className="coachAvatar" aria-hidden="true" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.46) 100%), url(${selectedCoach.image})` }}>
+                  <span className="coachAvatarLabel">{selectedCoach.cardLabel}</span>
+                  <div className="coachAvatarScore">
+                    <span>OVR</span>
+                    <strong>{selectedCoach.score}</strong>
                   </div>
                 </div>
-                <div className="coachActions">
-                  <button type="button" className="ghostButton coachButton" onClick={() => setCoachProfileOpen(true)}>View Profile &gt;</button>
+                <div className="coachCardContent">
+                  <div className="coachInfo">
+                    <span className="minorLabel">COACH</span>
+                    <strong>{selectedCoach.name}</strong>
+                    <p>{selectedCoach.role}</p>
+                    <div className="coachMeta">
+                      <span className="scorePill">Rated {selectedCoach.score}</span>
+                      <span>{selectedCoach.events} events led</span>
+                    </div>
+                  </div>
+                  <div className="coachActions">
+                    <button type="button" className="ghostButton coachButton" onClick={() => setCoachProfileOpen(true)}>View Profile &gt;</button>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="coachCard coachCardEmpty glassPanel">
                 <div className="coachAvatar coachAvatarEmpty" aria-hidden="true">+</div>
-                <div className="coachInfo">
-                  <span className="minorLabel">COACH</span>
-                  <strong>Find a Coach</strong>
-                  <p>Get a curated planning partner assigned to this event.</p>
-                </div>
-                <div className="coachActions">
-                  <button type="button" className="ghostButton coachButton" onClick={() => setPlannerToast('Coach matching will open after the next shortlist refresh.')}>Assign Coach &gt;</button>
+                <div className="coachCardContent">
+                  <div className="coachInfo">
+                    <span className="minorLabel">COACH</span>
+                    <strong>Find a Coach</strong>
+                    <p>Get a curated planning partner assigned to this event.</p>
+                  </div>
+                  <div className="coachActions">
+                    <button type="button" className="ghostButton coachButton" onClick={() => setPlannerToast('Coach matching will open after the next shortlist refresh.')}>Assign Coach &gt;</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1978,14 +1938,29 @@ export function App() {
                 <>
                   <div className="vendorGrid vendorGridCore">
                     {selectedBoard.core.map((vendor) => (
-                      <article key={vendor.id} className={`vendorCard ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.05) 0%, rgba(8,8,14,0.82) 72%, rgba(8,8,14,0.95) 100%), ${getVendorArtwork(vendor)}` }}>
-                        <div className="vendorScore">{vendor.score}</div>
-                        <span className="vendorSlot">{vendor.slot}</span>
-                        <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                        <div className="vendorFooter">
-                          <strong>{vendor.name}</strong>
-                          <p>{vendor.subcategory}</p>
-                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
+                      <article key={vendor.id} className={`vendorCard ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`}>
+                        <div className="vendorCardMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.16) 100%), ${getVendorArtwork(vendor)}` }}>
+                          <div className="vendorMediaTop">
+                            <span className="vendorSlot">{vendor.slot}</span>
+                            <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
+                          </div>
+                          <div className="vendorMediaScore">
+                            <span className="minorLabel">Match</span>
+                            <strong className="vendorScore">{vendor.score}</strong>
+                          </div>
+                        </div>
+                        <div className="vendorCardBody">
+                          <div className="vendorHeaderRow">
+                            <div className="vendorIdentity">
+                              <strong>{vendor.name}</strong>
+                              <p>{vendor.subcategory}</p>
+                            </div>
+                            <div className="vendorPriceBlock">
+                              <span className="minorLabel">From</span>
+                              <strong className="vendorPrice">{vendor.priceLabel}</strong>
+                            </div>
+                          </div>
+                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount} reviews)</span></div>
                           <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
                             {[
                               { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
@@ -1999,7 +1974,6 @@ export function App() {
                               </button>
                             ))}
                           </div>
-                          <div className="vendorPrice">{vendor.priceLabel}</div>
                         </div>
                       </article>
                     ))}
@@ -2019,14 +1993,29 @@ export function App() {
 
                   <div className="vendorGrid vendorGridSupport">
                     {selectedBoard.support.map((vendor) => (
-                      <article key={vendor.id} className={`vendorCard vendorCardSupport ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.08) 0%, rgba(8,8,14,0.84) 74%, rgba(8,8,14,0.95) 100%), ${getVendorArtwork(vendor)}` }}>
-                        <div className="vendorScore">{vendor.score}</div>
-                        <span className="vendorSlot">{vendor.slot}</span>
-                        <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                        <div className="vendorFooter">
-                          <strong>{vendor.name}</strong>
-                          <p>{vendor.subcategory}</p>
-                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
+                      <article key={vendor.id} className={`vendorCard vendorCardSupport ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`}>
+                        <div className="vendorCardMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.16) 100%), ${getVendorArtwork(vendor)}` }}>
+                          <div className="vendorMediaTop">
+                            <span className="vendorSlot">{vendor.slot}</span>
+                            <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
+                          </div>
+                          <div className="vendorMediaScore">
+                            <span className="minorLabel">Match</span>
+                            <strong className="vendorScore">{vendor.score}</strong>
+                          </div>
+                        </div>
+                        <div className="vendorCardBody">
+                          <div className="vendorHeaderRow">
+                            <div className="vendorIdentity">
+                              <strong>{vendor.name}</strong>
+                              <p>{vendor.subcategory}</p>
+                            </div>
+                            <div className="vendorPriceBlock">
+                              <span className="minorLabel">From</span>
+                              <strong className="vendorPrice">{vendor.priceLabel}</strong>
+                            </div>
+                          </div>
+                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount} reviews)</span></div>
                           <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
                             {[
                               { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
@@ -2043,7 +2032,6 @@ export function App() {
                               <PlusIcon className="plannerIcon" />
                             </button>
                           </div>
-                          <div className="vendorPrice">{vendor.priceLabel}</div>
                         </div>
                       </article>
                     ))}

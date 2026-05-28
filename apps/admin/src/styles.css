@@ -1,31 +1,31 @@
 :root {
-  --bg-primary: #0a0a10;
-  --bg-card: rgba(16, 16, 24, 0.92);
-  --bg-card-hover: rgba(24, 24, 36, 0.98);
-  --bg-sidebar: rgba(14, 14, 22, 0.95);
-  --bg-overlay: rgba(0, 0, 0, 0.65);
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --accent: #7c3aed;
-  --accent-light: #9f67ff;
-  --accent-glow: rgba(124, 58, 237, 0.35);
-  --gold: #ffd700;
-  --gold-dim: rgba(255, 215, 0, 0.7);
+  --bg-primary: #f6f1dd;
+  --bg-card: rgba(250, 246, 231, 0.96);
+  --bg-card-hover: rgba(253, 249, 237, 0.98);
+  --bg-sidebar: rgba(244, 238, 217, 0.98);
+  --bg-overlay: rgba(18, 44, 27, 0.22);
+  --bg-glass: rgba(249, 244, 226, 0.9);
+  --accent: #006b3c;
+  --accent-light: #0f7f4c;
+  --accent-glow: rgba(0, 107, 60, 0.2);
+  --gold: #ffb81c;
+  --gold-dim: rgba(255, 184, 28, 0.78);
   --status-secured: #10b981;
-  --status-booked: #f59e0b;
-  --status-optional: #7c3aed;
+  --status-booked: #cf9a2c;
+  --status-optional: #7a9651;
   --status-risk: #ef4444;
-  --status-pending: #94a3b8;
-  --status-recommended: #9f67ff;
-  --text-primary: #ffffff;
-  --text-secondary: rgba(255, 255, 255, 0.6);
-  --text-tertiary: rgba(255, 255, 255, 0.35);
-  --text-disabled: rgba(255, 255, 255, 0.2);
-  --border: rgba(255, 255, 255, 0.08);
-  --border-card: rgba(255, 255, 255, 0.12);
-  --border-active: rgba(124, 58, 237, 0.6);
-  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.5);
+  --status-pending: #8f9c8a;
+  --status-recommended: #b58a2f;
+  --text-primary: #102116;
+  --text-secondary: rgba(16, 33, 22, 0.64);
+  --text-tertiary: rgba(16, 33, 22, 0.42);
+  --text-disabled: rgba(16, 33, 22, 0.24);
+  --border: rgba(22, 60, 34, 0.1);
+  --border-card: rgba(22, 60, 34, 0.16);
+  --border-active: rgba(28, 107, 61, 0.42);
+  --shadow-card: 0 12px 36px rgba(30, 52, 34, 0.08);
   --shadow-glow: 0 0 0 2px var(--accent), 0 0 20px var(--accent-glow);
-  --shadow-gold: 0 0 12px rgba(255, 215, 0, 0.25);
+  --shadow-gold: 0 0 12px rgba(181, 138, 47, 0.22);
   --transition: all 0.18s ease;
   --transition-slow: all 0.35s ease;
 }
@@ -35,13 +35,13 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', 'Aptos', sans-serif;
   background:
-    radial-gradient(circle at 14% 12%, rgba(255, 215, 0, 0.12), transparent 8%),
-    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.08), transparent 7%),
-    radial-gradient(circle at 72% 12%, rgba(255, 215, 0, 0.08), transparent 9%),
-    radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.06), transparent 8%),
+    radial-gradient(circle at 14% 12%, rgba(255, 184, 28, 0.2), transparent 10%),
+    radial-gradient(circle at 22% 18%, rgba(0, 107, 60, 0.09), transparent 9%),
+    radial-gradient(circle at 72% 12%, rgba(255, 184, 28, 0.16), transparent 10%),
+    radial-gradient(circle at 84% 22%, rgba(0, 107, 60, 0.07), transparent 9%),
     radial-gradient(circle at top left, var(--accent-glow), transparent 24%),
-    radial-gradient(circle at 85% 12%, rgba(255, 215, 0, 0.16), transparent 18%),
-    linear-gradient(180deg, var(--bg-primary) 0%, rgba(13, 17, 27, 1) 48%, var(--bg-primary) 100%);
+    radial-gradient(circle at 85% 12%, rgba(255, 184, 28, 0.24), transparent 20%),
+    linear-gradient(180deg, #fbf7e9 0%, #f4ecd2 48%, #f6f1dd 100%);
   color: var(--text-primary);
   overflow-x: hidden;
 }
@@ -86,13 +86,13 @@ textarea {
 .pageGlowLeft {
   top: 80px;
   left: -120px;
-  background: rgba(124, 58, 237, 0.28);
+  background: rgba(28, 107, 61, 0.18);
 }
 
 .pageGlowRight {
   top: 200px;
   right: -90px;
-  background: rgba(249, 183, 85, 0.18);
+  background: rgba(181, 138, 47, 0.14);
 }
 
 .modeRail {
@@ -102,7 +102,7 @@ textarea {
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(10, 10, 16, 0.75);
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.08), rgba(255, 255, 255, 0.78) 40%, rgba(255, 184, 28, 0.12) 100%);
   backdrop-filter: blur(18px);
 }
 
@@ -121,6 +121,8 @@ textarea {
   gap: 16px;
   min-width: min(100%, 320px);
   padding: 14px 18px;
+  border: 1px solid rgba(0, 107, 60, 0.12);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 239, 0.94) 48%, rgba(255, 243, 214, 0.92) 100%);
 }
 
 .sessionRail strong,
@@ -139,10 +141,10 @@ textarea {
   gap: 24px;
   padding: 36px;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
-    radial-gradient(circle at 14% 18%, rgba(124, 58, 237, 0.18), transparent 22%),
-    radial-gradient(circle at 78% 12%, rgba(255, 215, 0, 0.08), transparent 20%),
-    rgba(11, 13, 21, 0.82);
+    linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 248, 241, 0.88)),
+    radial-gradient(circle at 14% 18%, rgba(28, 107, 61, 0.12), transparent 22%),
+    radial-gradient(circle at 78% 12%, rgba(181, 138, 47, 0.12), transparent 20%),
+    rgba(250, 251, 246, 0.96);
 }
 
 .authHeroPanel,
@@ -171,7 +173,7 @@ textarea {
 
 .authHeroPanel > p {
   max-width: 64ch;
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-secondary);
   font-size: 1.08rem;
   line-height: 1.6;
 }
@@ -186,11 +188,11 @@ textarea {
   padding: 18px;
   min-height: 132px;
   align-content: space-between;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(17, 21, 32, 0.84));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 247, 239, 0.88));
 }
 
 .authFeatureCard p {
-  color: rgba(255, 255, 255, 0.72);
+  color: var(--text-secondary);
   line-height: 1.55;
 }
 
@@ -207,7 +209,7 @@ textarea {
   text-align: left;
   border: 1px solid var(--border);
   border-radius: 20px;
-  background: linear-gradient(180deg, rgba(21, 25, 37, 0.86), rgba(14, 17, 27, 0.92));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(246, 248, 241, 0.9));
   color: var(--text-primary);
 }
 
@@ -231,7 +233,7 @@ textarea {
 }
 
 .authRoleCard:hover {
-  border-color: rgba(159, 103, 255, 0.35);
+  border-color: rgba(28, 107, 61, 0.28);
   transform: translateY(-2px);
 }
 
@@ -240,8 +242,8 @@ textarea {
   padding: 28px;
   gap: 20px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(17, 21, 32, 0.92)),
-    rgba(17, 21, 32, 0.88);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 248, 241, 0.92)),
+    rgba(255, 255, 255, 0.96);
 }
 
 .authEntryCard h2 {
@@ -250,13 +252,13 @@ textarea {
 }
 
 .authEntryCard > p {
-  color: rgba(255, 255, 255, 0.78);
+  color: var(--text-secondary);
   line-height: 1.55;
 }
 
 .authEntryCard label {
   gap: 10px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--text-primary);
   font-weight: 600;
 }
 
@@ -289,15 +291,19 @@ textarea {
 
 .modePill.is-active {
   color: var(--text-primary);
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.82), rgba(159, 103, 255, 0.92));
-  box-shadow: 0 18px 40px rgba(124, 58, 237, 0.25);
+  background: linear-gradient(135deg, rgba(28, 107, 61, 0.14), rgba(45, 138, 77, 0.18));
+  box-shadow: 0 18px 40px rgba(28, 107, 61, 0.14);
 }
 
 .glassPanel,
 .glassPanelNested,
 .addSupplierCard {
   border: 1px solid var(--border);
-  background: rgba(11, 13, 21, 0.76);
+  background:
+    linear-gradient(180deg, rgba(251, 247, 233, 0.98), rgba(241, 232, 203, 0.95)),
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.18), transparent 36%),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.1), transparent 32%),
+    var(--bg-card);
   backdrop-filter: blur(16px);
   box-shadow: var(--shadow-card);
 }
@@ -308,7 +314,7 @@ textarea {
 
 .glassPanelNested {
   border-radius: 22px;
-  background: rgba(17, 21, 32, 0.82);
+  background: linear-gradient(180deg, rgba(249, 244, 225, 0.96), rgba(238, 228, 195, 0.94));
 }
 
 .minorLabel,
@@ -339,6 +345,7 @@ textarea {
   gap: 20px;
   align-items: center;
   padding: 22px 26px;
+  background: linear-gradient(135deg, rgba(28, 107, 61, 0.05), rgba(255, 255, 255, 0.92) 35%, rgba(181, 138, 47, 0.1) 100%);
 }
 
 .brandPanel {
@@ -363,8 +370,8 @@ textarea {
   width: 46px;
   height: 46px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.86);
   color: var(--text-primary);
 }
 
@@ -386,9 +393,9 @@ textarea {
     display: grid;
     gap: 10px;
     padding: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-card);
     border-radius: 18px;
-    background: rgba(11, 13, 21, 0.88);
+  background: rgba(255, 255, 255, 0.94);
 }
 
 .plannerNavTab {
@@ -403,37 +410,50 @@ textarea {
 
 .plannerNavTab.is-active {
   color: var(--text-primary);
-  border-color: var(--accent-light);
+  border-color: var(--gold);
 }
 
 .coachCard {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 16px;
+  grid-template-columns: minmax(132px, 160px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 20px;
   padding: 18px;
   border-radius: 28px;
   min-width: 0;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(11, 13, 21, 0.92)),
-    rgba(11, 13, 21, 0.82);
+    radial-gradient(circle at top left, rgba(255, 184, 28, 0.2), transparent 26%),
+    radial-gradient(circle at bottom right, rgba(0, 107, 60, 0.16), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 247, 239, 0.92)),
+    rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(181, 138, 47, 0.18);
+  box-shadow: 0 22px 44px rgba(30, 52, 34, 0.12);
+}
+
+.coachCardContent {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 14px;
+  min-width: 0;
 }
 
 .coachInfo {
   min-width: 0;
-  flex: 1;
 }
 
 .coachActions {
-  margin-left: auto;
+  justify-self: start;
 }
 
 .coachButton {
-  padding: 12px 18px;
+  padding: 12px 20px;
   white-space: nowrap;
+  max-width: 100%;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-card);
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.08), rgba(255, 255, 255, 0.94) 58%, rgba(255, 184, 28, 0.12) 100%);
+  color: var(--text-primary);
 }
 
 .coachCardEmpty {
@@ -441,35 +461,94 @@ textarea {
 }
 
 .coachAvatar {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 196px;
+  padding: 14px;
+  border-radius: 22px;
+  background-color: rgba(20, 36, 26, 0.92);
+  background-size: cover;
+  background-position: center top;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 38px rgba(30, 52, 34, 0.18);
+  overflow: hidden;
+}
+
+.coachAvatar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(16, 33, 22, 0.18));
+  pointer-events: none;
+}
+
+.coachAvatar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.coachAvatarLabel {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(16, 33, 22, 0.66);
+  color: rgba(255, 255, 255, 0.92);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.63rem;
+  font-weight: 800;
+  backdrop-filter: blur(10px);
+}
+
+.coachAvatarScore {
+  display: inline-grid;
+  justify-items: start;
+  gap: 4px;
+  width: fit-content;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(16, 33, 22, 0.74);
+  color: #ffffff;
+  backdrop-filter: blur(10px);
+}
+
+.coachAvatarScore span {
+  font-size: 0.62rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.coachAvatarScore strong {
+  font-size: 1.7rem;
+  line-height: 0.95;
+  color: #ffffff;
+}
+
+.coachAvatarEmpty {
+  background: rgba(28, 107, 61, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(28, 107, 61, 0.16);
+  min-height: 84px;
   display: grid;
   place-items: center;
-  width: 84px;
-  height: 84px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18), transparent 28%),
-    linear-gradient(135deg, rgba(123, 58, 237, 0.95), rgba(35, 38, 78, 0.98));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 38px rgba(32, 18, 66, 0.28);
-  font-weight: 800;
-  font-size: 1.75rem;
-  letter-spacing: -0.04em;
-}
-.coachAvatarEmpty {
-  background: rgba(124, 58, 237, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(159, 103, 255, 0.22);
 }
 
 .coachInfo strong {
   display: block;
-  font-size: 1.55rem;
-  line-height: 1.05;
-  margin-top: 4px;
+  font-size: clamp(1.95rem, 2.2vw, 2.35rem);
+  line-height: 0.92;
+  margin-top: 6px;
+  max-width: 8ch;
 }
 
 .coachInfo p {
-  margin-top: 6px;
+  margin-top: 10px;
   max-width: 18ch;
-  line-height: 1.35;
+  line-height: 1.4;
+  font-size: 0.98rem;
 }
 
 .coachCard strong,
@@ -501,7 +580,7 @@ textarea {
 .authHint,
 .documentRow p,
 .opsHero p {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-secondary);
 }
 
 .coachMeta {
@@ -509,18 +588,26 @@ textarea {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 12px;
-  color: rgba(255, 255, 255, 0.65);
+  margin-top: 16px;
+  color: var(--text-secondary);
   font-size: 0.9rem;
+}
+
+.coachMeta span:not(.scorePill) {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(22, 60, 34, 0.08);
 }
 
 .scorePill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: 999px;
-  color: #f6d27e;
-  background: rgba(124, 58, 237, 0.34);
+  color: #9b6a00;
+  background: rgba(255, 184, 28, 0.28);
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -528,23 +615,23 @@ textarea {
   position: relative;
   min-height: 300px;
   overflow: hidden;
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(244, 247, 239, 0.92);
 }
 
 .vendorCardShimmer {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  background: linear-gradient(90deg, rgba(236, 241, 230, 0.3), rgba(255, 255, 255, 0.78), rgba(236, 241, 230, 0.3));
   transform: translateX(-100%);
   animation: shimmer 1.4s infinite;
 }
 
 .vendorCard.is-compare-armed {
-  box-shadow: 0 0 0 2px rgba(159, 103, 255, 0.95), 0 0 28px rgba(124, 58, 237, 0.28);
+  box-shadow: 0 0 0 2px rgba(28, 107, 61, 0.78), 0 0 28px rgba(28, 107, 61, 0.16);
 }
 
 .vendorCard.is-compare-target {
-  box-shadow: inset 0 0 0 1px rgba(159, 103, 255, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(181, 138, 47, 0.28);
 }
 
 .vendorCard.is-hidden-pending {
@@ -569,6 +656,11 @@ textarea {
   gap: 18px;
   align-items: center;
   padding: 20px 24px;
+  background:
+    linear-gradient(135deg, rgba(0, 107, 60, 0.14), rgba(249, 243, 220, 0.96) 26%, rgba(255, 184, 28, 0.24) 100%),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.14), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(255, 184, 28, 0.22), transparent 30%),
+    rgba(248, 241, 216, 0.96);
 }
 
 .heroStrip h1 {
@@ -592,9 +684,9 @@ textarea {
 .eventChip {
   padding: 12px 16px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--border-card);
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.08), rgba(255, 255, 255, 0.96) 55%, rgba(255, 184, 28, 0.12) 100%);
+  color: var(--text-secondary);
   font-weight: 700;
 }
 
@@ -602,13 +694,18 @@ textarea {
 .primaryButton,
 .messageButton {
   color: #ffffff;
-  background: linear-gradient(135deg, #8a56f7 0%, #5e2ebf 100%);
-  box-shadow: 0 18px 40px rgba(124, 58, 237, 0.28);
+  background: linear-gradient(135deg, #006b3c 0%, #118553 72%, #d7a11f 100%);
+  box-shadow: 0 18px 40px rgba(0, 107, 60, 0.18);
 }
 
 .heroSummary {
   padding: 22px;
   border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 201, 72, 0.98), rgba(255, 184, 28, 0.9)),
+    radial-gradient(circle at top left, rgba(255, 232, 170, 0.34), transparent 38%),
+    rgba(255, 184, 28, 0.92);
+  border: 1px solid rgba(255, 184, 28, 0.28);
 }
 
 .plannerLayout {
@@ -631,6 +728,18 @@ textarea {
   min-width: 0;
 }
 
+.plannerMainBoard {
+  padding: 20px;
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(247, 240, 214, 0.98), rgba(236, 225, 188, 0.96)),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.12), transparent 30%),
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.22), transparent 34%),
+    rgba(244, 235, 206, 0.96);
+  box-shadow: 0 18px 42px rgba(30, 52, 34, 0.08);
+}
+
 .summaryCard,
 .alertCard,
 .opsHeroBadge {
@@ -638,10 +747,30 @@ textarea {
   min-width: 0;
 }
 
+.summaryCard {
+  border-color: rgba(28, 107, 61, 0.12);
+  background:
+    linear-gradient(180deg, rgba(243, 247, 232, 0.98), rgba(226, 235, 215, 0.96)),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.18), transparent 34%),
+    rgba(234, 242, 223, 0.96);
+}
+
+.plannerLeftRail .summaryCard:nth-child(even) {
+  border-color: rgba(181, 138, 47, 0.14);
+  background:
+    linear-gradient(180deg, rgba(252, 239, 202, 0.98), rgba(238, 223, 176, 0.95)),
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.24), transparent 36%),
+    rgba(247, 233, 192, 0.96);
+}
+
 .widgetHeader {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(28, 107, 61, 0.06), rgba(181, 138, 47, 0.08));
+  width: fit-content;
 }
 
 .widgetIcon {
@@ -663,8 +792,8 @@ textarea {
 }
 
 .summaryCardAccent {
-  border-color: rgba(245, 201, 108, 0.22);
-  background: linear-gradient(180deg, rgba(31, 20, 41, 0.86), rgba(16, 13, 22, 0.86));
+  border-color: rgba(181, 138, 47, 0.22);
+  background: linear-gradient(180deg, rgba(251, 247, 232, 0.96), rgba(241, 233, 205, 0.92));
 }
 
 .progressTrack {
@@ -672,7 +801,7 @@ textarea {
   height: 10px;
   margin: 16px 0 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(28, 107, 61, 0.08);
   overflow: hidden;
 }
 
@@ -680,7 +809,7 @@ textarea {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #6f35ec 0%, #a471ff 100%);
+  background: linear-gradient(90deg, #1c6b3d 0%, #3ea45f 100%);
 }
 
 .progressTrack span.is-over {
@@ -692,11 +821,11 @@ textarea {
   justify-content: space-between;
   gap: 10px;
   font-size: 0.88rem;
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--text-secondary);
 }
 
 .splitMeta.emphasised {
-  color: #b68cff;
+  color: var(--gold);
   font-weight: 700;
 }
 
@@ -710,11 +839,11 @@ textarea {
 .chemistryBars span {
   height: 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(28, 107, 61, 0.08);
 }
 
 .chemistryBars .is-filled {
-  background: linear-gradient(90deg, #8260ff, #49c8b1);
+  background: linear-gradient(90deg, #1c6b3d, #b58a2f);
 }
 
 .sectionHeadingRow,
@@ -735,6 +864,13 @@ textarea {
   flex-wrap: wrap;
 }
 
+.plannerMainBoard > .sectionHeadingRow:not(.supportHeading) {
+  padding: 16px 18px;
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.18), rgba(242, 238, 210, 0.96) 40%, rgba(255, 184, 28, 0.22) 100%);
+}
+
 .sectionHeadingRow h2,
 .sectionHeader h2,
 .providerCard h3 {
@@ -742,16 +878,20 @@ textarea {
 }
 
 .supportHeading {
-  margin-top: 4px;
+  margin-top: 8px;
+  padding: 18px 20px;
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.16), rgba(246, 237, 211, 0.96) 40%, rgba(255, 184, 28, 0.24) 100%);
 }
 
 .ghostButton,
 .secondaryButton {
   padding: 12px 16px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.82);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(249, 250, 245, 0.96);
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
 }
 
 .primaryButton {
@@ -767,27 +907,54 @@ textarea {
 }
 
 .vendorGridCore {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 18px;
+  border: 1px solid rgba(28, 107, 61, 0.1);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(220, 236, 205, 0.98), rgba(233, 242, 219, 0.94)),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.2), transparent 30%);
 }
 
 .vendorGridSupport {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  padding: 18px;
+  border: 1px solid rgba(181, 138, 47, 0.12);
+  border-radius: 26px;
+  background:
+    linear-gradient(180deg, rgba(250, 233, 186, 0.98), rgba(246, 237, 208, 0.94)),
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.24), transparent 32%);
 }
 
-.vendorCard,
+.vendorCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(112px, 132px) minmax(0, 1fr);
+  gap: 16px;
+  min-height: 236px;
+  min-width: 0;
+  padding: 14px;
+  border-radius: 24px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(239, 247, 230, 0.98), rgba(222, 234, 209, 0.96)),
+    radial-gradient(circle at top left, rgba(0, 107, 60, 0.16), transparent 32%);
+  border: 1px solid var(--border-card);
+}
+
 .addSupplierCard {
   position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 304px;
+  min-height: 280px;
   min-width: 0;
   padding: 16px;
   border-radius: 24px;
   overflow: hidden;
   isolation: isolate;
-  background-size: cover;
-  background-position: center;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(22, 60, 34, 0.12);
 }
 
 .vendorCardSupport,
@@ -795,74 +962,138 @@ textarea {
   min-height: 280px;
 }
 
-.vendorCardSupport .vendorScore {
-  font-size: 1.95rem;
+.vendorCardSupport {
+  min-height: 228px;
+  background:
+    linear-gradient(180deg, rgba(250, 239, 205, 0.98), rgba(235, 227, 193, 0.96)),
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.2), transparent 30%);
+  box-shadow: 0 16px 34px rgba(30, 52, 34, 0.08);
 }
 
-.vendorCardSupport .statusBadge {
-  margin-top: 8px;
-  padding: 5px 9px;
-  font-size: 0.66rem;
-}
-
-.vendorCardSupport .vendorFooter {
-  right: 14px;
-  left: 14px;
-}
-
-.vendorCardSupport .vendorFooter strong {
-  font-size: 1rem;
-}
-
-.vendorCardSupport .vendorFooter p {
-  font-size: 0.92rem;
-}
-
-.vendorCardSupport .vendorMetaRow,
-.vendorCardSupport .vendorActions {
-  font-size: 0.82rem;
-}
-
-.vendorCardSupport .vendorActions {
+.vendorCardSupport .vendorHeaderRow {
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
-.vendorCardSupport .vendorActionButton {
-  width: 26px;
-  height: 26px;
+.vendorCardSupport .vendorPriceBlock {
+  justify-items: start;
+  text-align: left;
+  min-width: 0;
 }
 
-.vendorCard::after {
+.vendorCardSupport .vendorIdentity strong,
+.vendorCardSupport .vendorIdentity p {
+  max-width: none;
+}
+
+.vendorCardSupport .vendorMetaRow {
+  margin-top: 2px;
+}
+
+.vendorCardSupport .vendorActions {
+  margin-top: 8px;
+}
+
+.vendorCardSupport.cardRecommended {
+  border-color: rgba(181, 138, 47, 0.28);
+}
+
+.vendorCardSupport .vendorCardMedia {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
+}
+
+.vendorCardMedia {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  padding: 12px;
+  border-radius: 18px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  color: #ffffff;
+}
+
+.vendorCardMedia::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(8, 8, 14, 0) 0%, rgba(8, 8, 14, 0.85) 78%, rgba(8, 8, 14, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(16, 33, 22, 0.08), rgba(16, 33, 22, 0.4));
   pointer-events: none;
 }
 
-.vendorCard > * {
+.vendorCardMedia > * {
   position: relative;
   z-index: 1;
 }
 
+.vendorMediaTop {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.vendorMediaScore {
+  display: inline-grid;
+  gap: 4px;
+  width: fit-content;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: rgba(16, 33, 22, 0.38);
+  backdrop-filter: blur(10px);
+}
+
+.vendorMediaScore .minorLabel {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.vendorCardBody {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 4px 4px 4px 0;
+}
+
+.vendorHeaderRow {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.vendorIdentity {
+  min-width: 0;
+}
+
 .vendorCard:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(28, 107, 61, 0.22);
+  box-shadow: 0 18px 36px rgba(30, 52, 34, 0.12);
 }
 
 .vendorScore {
-  font-size: 2.25rem;
+  margin: 0;
+  font-size: 1.8rem;
   font-weight: 900;
   color: #ffffff;
 }
 
 .vendorSlot {
-  display: block;
-  margin-top: -4px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(16, 33, 22, 0.34);
+  backdrop-filter: blur(10px);
 }
 
 .statusBadge,
@@ -881,24 +1112,24 @@ textarea {
 
 .status-secured,
 .statusPill.approved {
-  color: #6ef5bf;
-  background: rgba(16, 185, 129, 0.16);
+  color: #1c6b3d;
+  background: rgba(16, 185, 129, 0.12);
 }
 
 .status-booked,
 .statusPill.pending {
-  color: #f4bf63;
-  background: rgba(245, 158, 11, 0.18);
+  color: #9e741f;
+  background: rgba(181, 138, 47, 0.14);
 }
 
 .status-optional {
-  color: #c6a2ff;
-  background: rgba(124, 58, 237, 0.22);
+  color: #587338;
+  background: rgba(122, 150, 81, 0.16);
 }
 
 .status-recommended {
-  color: #f3d8ff;
-  background: rgba(147, 91, 255, 0.26);
+  color: #9e741f;
+  background: rgba(194, 154, 60, 0.16);
 }
 
 .status-at_risk {
@@ -906,28 +1137,48 @@ textarea {
   background: rgba(239, 68, 68, 0.18);
 }
 
-.vendorFooter {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  left: 16px;
-}
-
-.vendorFooter strong,
+.vendorIdentity strong,
 .vendorPrice {
   display: block;
 }
 
-.vendorFooter p,
+.vendorIdentity strong {
+  font-size: 1.15rem;
+  line-height: 1.18;
+  max-width: none;
+}
+
+.vendorIdentity p {
+  max-width: none;
+  line-height: 1.34;
+}
+
+.vendorIdentity p,
 .vendorMetaRow,
-.vendorActions {
-  margin: 4px 0 0;
+.vendorActions,
+.vendorPrice {
+  margin: 0;
 }
 
 .vendorMetaRow,
 .vendorActions {
-  color: rgba(255, 255, 255, 0.75);
+  color: var(--text-secondary);
   font-size: 0.88rem;
+}
+
+.vendorMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.vendorPriceBlock {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  text-align: left;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .plannerIcon {
@@ -939,47 +1190,48 @@ textarea {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 10px;
-  opacity: 0.82;
+  margin-top: auto;
+  opacity: 1;
 }
 
 .vendorActionButton {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(22, 60, 34, 0.14);
+  background: rgba(248, 250, 244, 0.9);
+  color: var(--text-primary);
 }
 
 .vendorActionButton:hover {
-  border-color: rgba(255, 255, 255, 0.32);
-  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(28, 107, 61, 0.32);
+  background: rgba(239, 245, 236, 0.96);
 }
 
 .supportAddButton {
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   margin-left: auto;
   border-radius: 999px;
-  border: 1px solid rgba(159, 103, 255, 0.4);
-  background: rgba(124, 58, 237, 0.22);
-  color: var(--text-primary);
+  border: 1px solid rgba(28, 107, 61, 0.24);
+  background: rgba(28, 107, 61, 0.1);
+  color: var(--accent);
 }
 
 .supportAddButton:hover {
-  border-color: rgba(159, 103, 255, 0.72);
-  background: rgba(124, 58, 237, 0.38);
+  border-color: rgba(28, 107, 61, 0.42);
+  background: rgba(28, 107, 61, 0.18);
 }
 
 .vendorPrice {
-  margin-top: 12px;
   font-size: 1.1rem;
   font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.05;
 }
 
 .cardRecommended {
@@ -988,13 +1240,13 @@ textarea {
 
 @keyframes pulse-border {
   0% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.42);
+    box-shadow: 0 0 0 0 rgba(181, 138, 47, 0.3);
   }
   50% {
-    box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.14);
+    box-shadow: 0 0 0 4px rgba(181, 138, 47, 0.1);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(124, 58, 237, 0);
+    box-shadow: 0 0 0 0 rgba(181, 138, 47, 0);
   }
 }
 
@@ -1002,8 +1254,8 @@ textarea {
   display: grid;
   align-content: start;
   gap: 12px;
-  background: linear-gradient(180deg, rgba(13, 15, 25, 0.96), rgba(20, 17, 32, 0.88));
-  border: 1px solid rgba(245, 201, 108, 0.24);
+  background: linear-gradient(180deg, rgba(255, 250, 238, 0.96), rgba(249, 244, 228, 0.92));
+  border: 1px solid rgba(181, 138, 47, 0.24);
   grid-column: span 2;
   min-height: 280px;
 }
@@ -1015,7 +1267,7 @@ textarea {
 }
 
 .alertSparkle {
-  color: #f5c96c;
+  color: var(--gold);
   font-size: 1rem;
 }
 
@@ -1023,9 +1275,9 @@ textarea {
   display: grid;
   place-items: center;
   gap: 8px;
-  border: 1.5px dashed rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.02);
-  color: rgba(255, 255, 255, 0.72);
+  border: 1.5px dashed rgba(28, 107, 61, 0.22);
+  background: rgba(251, 252, 248, 0.96);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.12em;
 }
@@ -1040,11 +1292,11 @@ textarea {
   z-index: 20;
   margin-left: auto;
   padding: 12px 16px;
-  border: 1px solid rgba(159, 103, 255, 0.35);
+  border: 1px solid rgba(28, 107, 61, 0.2);
   border-radius: 999px;
-  background: rgba(20, 16, 32, 0.94);
-  color: #f4edff;
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--text-primary);
+  box-shadow: 0 18px 40px rgba(30, 52, 34, 0.1);
 }
 
 .tabPanelGrid {
@@ -1056,6 +1308,10 @@ textarea {
 .tabInsightCard,
 .budgetPanel {
   padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(252, 253, 249, 0.98), rgba(245, 248, 239, 0.94)),
+    radial-gradient(circle at top right, rgba(28, 107, 61, 0.06), transparent 32%),
+    rgba(255, 255, 255, 0.96);
 }
 
 .tabInsightCard {
@@ -1092,14 +1348,14 @@ textarea {
 .modalListMeta {
   align-items: center;
   flex-wrap: wrap;
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-secondary);
   font-size: 0.9rem;
 }
 
 .inspirationCard {
   background:
-    linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(255, 255, 255, 0.02)),
-    rgba(17, 21, 32, 0.88);
+    linear-gradient(135deg, rgba(28, 107, 61, 0.08), rgba(181, 138, 47, 0.08)),
+    rgba(255, 255, 255, 0.96);
 }
 
 .tagRow {
@@ -1113,8 +1369,8 @@ textarea {
   align-items: center;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.78);
+  background: rgba(28, 107, 61, 0.08);
+  color: var(--text-secondary);
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1139,7 +1395,7 @@ textarea {
 .messageBubble {
   padding: 16px;
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(250, 251, 246, 0.96);
 }
 
 .budgetLineMeta {
@@ -1207,16 +1463,16 @@ textarea {
 }
 
 .threadPill {
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(0, 107, 60, 0.16);
   border-radius: 999px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.76);
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.08), rgba(255, 255, 255, 0.96) 58%, rgba(255, 184, 28, 0.1) 100%);
+  color: var(--text-secondary);
 }
 
 .threadPill.is-active {
-  background: rgba(124, 58, 237, 0.22);
-  border-color: rgba(159, 103, 255, 0.42);
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.18), rgba(255, 184, 28, 0.2));
+  border-color: rgba(0, 107, 60, 0.3);
   color: #ffffff;
 }
 
@@ -1227,7 +1483,7 @@ textarea {
   height: 22px;
   margin-left: 8px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 184, 28, 0.22);
 }
 
 .messageBubble strong,
@@ -1249,11 +1505,11 @@ textarea {
 .messageBubble small {
   display: block;
   margin-top: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-tertiary);
 }
 
 .sender-supplier {
-  border: 1px solid rgba(159, 103, 255, 0.18);
+  border: 1px solid rgba(28, 107, 61, 0.18);
 }
 
 .sender-coach {
@@ -1263,7 +1519,7 @@ textarea {
 .weatherGlyph {
   width: 26px;
   height: 26px;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .forecastGlyph {
@@ -1272,19 +1528,64 @@ textarea {
   color: currentColor;
 }
 
+.weatherTone-sun,
+.forecastGlyph.weatherTone-sun {
+  color: #d3a11f;
+}
+
+.weatherTone-cloud,
+.forecastGlyph.weatherTone-cloud {
+  color: #7f8781;
+}
+
+.weatherTone-rain,
+.forecastGlyph.weatherTone-rain {
+  color: #7f8781;
+}
+
+.weatherTone-storm,
+.forecastGlyph.weatherTone-storm {
+  color: #6d746f;
+}
+
+.weatherSunCore,
+.weatherSunRay {
+  stroke: currentColor;
+}
+
+.weatherCloudPath {
+  stroke: currentColor;
+}
+
+.weatherRainCloud {
+  stroke: #7f8781;
+}
+
+.weatherRainDrop {
+  stroke: #608293;
+}
+
+.weatherStormCloud {
+  stroke: #6d746f;
+}
+
+.weatherStormBolt {
+  stroke: #b58a2f;
+}
+
 .weatherHero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin: 16px 0;
+  gap: 16px;
+  margin: 18px 0 16px;
 }
 
 .weatherStatusRow {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  margin-top: -2px;
-  color: rgba(255, 255, 255, 0.62);
+  margin-top: 2px;
+  color: var(--text-secondary);
   font-size: 0.78rem;
 }
 
@@ -1295,28 +1596,42 @@ textarea {
 .weatherIcon {
   display: grid;
   place-items: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.06);
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgba(28, 107, 61, 0.12), rgba(181, 138, 47, 0.16));
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.weatherHero strong {
+  font-size: clamp(2.8rem, 5vw, 4rem);
+  line-height: 0.95;
+}
+
+.weatherHero p {
+  margin-top: 8px;
+  font-size: 1.05rem;
+  color: var(--text-secondary);
 }
 
 .forecastStrip {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
-  gap: 8px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
   min-width: 0;
 }
 
 .forecastDay {
   display: grid;
   gap: 6px;
-  padding: 12px 6px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.04);
+  padding: 14px 8px;
+  border-radius: 20px;
+  background: rgba(248, 250, 244, 0.96);
+  border: 1px solid rgba(22, 60, 34, 0.08);
   text-align: center;
-  color: rgba(255, 255, 255, 0.64);
+  color: var(--text-secondary);
   min-width: 0;
 }
 
@@ -1338,6 +1653,8 @@ textarea {
 .forecastDay.is-active {
   border: 1px solid var(--border-active);
   color: var(--text-primary);
+  background: linear-gradient(180deg, rgba(250, 252, 247, 0.98), rgba(242, 248, 236, 0.98));
+  box-shadow: 0 16px 30px rgba(30, 52, 34, 0.08);
 }
 
 .statusBar {
@@ -1346,6 +1663,21 @@ textarea {
   gap: 16px;
   align-items: center;
   padding: 18px 24px;
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  background:
+    linear-gradient(135deg, rgba(28, 107, 61, 0.07), rgba(255, 255, 255, 0.95) 42%, rgba(181, 138, 47, 0.12) 100%),
+    rgba(255, 255, 255, 0.96);
+}
+
+.statusMetric {
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid rgba(22, 60, 34, 0.08);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.statusMetric:nth-child(2n) {
+  background: linear-gradient(180deg, rgba(250, 246, 231, 0.72), rgba(255, 255, 255, 0.6));
 }
 
 .statusMetric p,
@@ -1361,7 +1693,7 @@ textarea {
 }
 
 .statusMetricIcon {
-  color: rgba(255, 255, 255, 0.74);
+  color: var(--accent);
 }
 
 .statusMetric strong {
@@ -1375,7 +1707,7 @@ textarea {
 }
 
 .is-purple {
-  color: var(--accent-light);
+  color: var(--gold);
 }
 
 .is-red {
@@ -1388,7 +1720,9 @@ textarea {
   gap: 10px;
   padding: 14px 18px;
   border-radius: 999px;
-  white-space: nowrap;
+  color: #ffffff;
+  background: linear-gradient(135deg, #006b3c 0%, #118553 100%);
+  box-shadow: 0 16px 30px rgba(0, 107, 60, 0.2);
 }
 
 .messageButton span {
@@ -1397,7 +1731,7 @@ textarea {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.24);
 }
 
 .opsHero {
@@ -1621,7 +1955,7 @@ textarea {
 }
 
 .documentLink {
-  color: #bea0ff;
+  color: var(--accent);
   font-weight: 800;
   text-decoration: none;
 }
@@ -1641,7 +1975,7 @@ textarea {
 
 .statusOk {
   background: rgba(16, 185, 129, 0.12);
-  color: #8df5cc;
+  color: var(--accent);
 }
 
 .statusError {
@@ -1650,8 +1984,8 @@ textarea {
 }
 
 .emptyState {
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.66);
+  background: rgba(249, 250, 245, 0.96);
+  color: var(--text-secondary);
 }
 
 .primaryButton:hover,
@@ -1691,11 +2025,11 @@ textarea {
   }
 
   .vendorGridCore {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .vendorGridSupport {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .dashboardGrid {
@@ -1748,7 +2082,7 @@ textarea {
   }
 
   .coachCard {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: minmax(132px, 160px) minmax(0, 1fr);
   }
 
   .alertCard {
@@ -1757,6 +2091,31 @@ textarea {
 
   .tabPanelGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .plannerLeftRail,
+  .plannerSidebar,
+  .statsGrid,
+  .forecastStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .splitMeta,
+  .weatherStatusRow {
+    flex-wrap: wrap;
+  }
+
+  .sectionHeadingRow,
+  .sectionHeader,
+  .providerHeader,
+  .providerMeta,
+  .documentRow,
+  .actionRow,
+  .paymentRow,
+  .settingsGroupHeader {
+    align-items: flex-start;
   }
 }
 
@@ -1790,10 +2149,27 @@ textarea {
 
   .vendorGridCore,
   .vendorGridSupport,
-  .forecastStrip,
   .metricsGrid,
   .settingsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+  }
+
+  .forecastStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .vendorCard {
+    grid-template-columns: minmax(96px, 116px) minmax(0, 1fr);
+  }
+
+  .vendorHeaderRow {
+    grid-template-columns: 1fr;
+  }
+
+  .vendorPriceBlock {
+    justify-items: start;
+    text-align: left;
+    min-width: 0;
   }
 
   .paymentRow,
@@ -1859,6 +2235,44 @@ textarea {
   }
 }
 
+@media (max-width: 560px) {
+  .coachCard {
+    grid-template-columns: 1fr;
+  }
+
+  .coachAvatar {
+    min-height: 180px;
+  }
+
+  .coachInfo strong,
+  .coachInfo p {
+    max-width: none;
+  }
+
+  .vendorCard,
+  .vendorCardSupport {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    gap: 12px;
+  }
+
+  .vendorCardMedia {
+    min-height: 200px;
+  }
+
+  .vendorCardBody {
+    padding: 0;
+  }
+
+  .vendorActions {
+    justify-content: space-between;
+  }
+
+  .supportAddButton {
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 480px) {
   .stitchdShell {
     padding: 16px;
@@ -1894,24 +2308,38 @@ textarea {
   }
 
   .coachCard {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     padding: 14px;
   }
 
+  .coachCardContent {
+    gap: 12px;
+  }
+
   .coachAvatar {
-    width: 58px;
-    height: 58px;
-    font-size: 1.2rem;
+    min-height: 168px;
   }
 
   .coachInfo strong {
     font-size: 1.15rem;
+    max-width: none;
   }
 
-  .coachInfo p,
+  .coachInfo p {
+    max-width: none;
+    font-size: 0.9rem;
+  }
+
   .coachMeta {
-    display: none;
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: 0.82rem;
+  }
+
+  .coachButton {
+    padding: 10px 14px;
   }
 
   .alertCard {

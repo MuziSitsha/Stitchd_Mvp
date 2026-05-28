@@ -471,7 +471,7 @@ const plannerSurfaces: Record<PlannerEventType, PlannerSurfaceData> = {
       },
     },
     coachProfile: {
-      name: 'Merk Clo',
+      name: 'Muzi Clo',
       role: 'Lead Planner and Strategist',
       rating: 4.9,
       eventsCompleted: 127,
@@ -541,7 +541,7 @@ const plannerSurfaces: Record<PlannerEventType, PlannerSurfaceData> = {
           updatedAt: '2026-10-20T07:42:00.000Z',
           messages: [
             { id: 'tm3', sender: 'supplier', senderName: 'Taste Affair', text: 'Can we lock the guest count by Wednesday for final staffing?', timestamp: '2026-10-20T07:42:00.000Z' },
-            { id: 'tm4', sender: 'coach', senderName: 'Merk Clo', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
+            { id: 'tm4', sender: 'coach', senderName: 'Muzi Clo', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
           ],
         },
         {
