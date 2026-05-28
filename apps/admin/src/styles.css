@@ -35,10 +35,19 @@ body {
   min-height: 100vh;
   font-family: 'Segoe UI', 'Aptos', sans-serif;
   background:
+    radial-gradient(circle at 14% 12%, rgba(255, 215, 0, 0.12), transparent 8%),
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.08), transparent 7%),
+    radial-gradient(circle at 72% 12%, rgba(255, 215, 0, 0.08), transparent 9%),
+    radial-gradient(circle at 84% 22%, rgba(255, 255, 255, 0.06), transparent 8%),
     radial-gradient(circle at top left, var(--accent-glow), transparent 24%),
     radial-gradient(circle at 85% 12%, rgba(255, 215, 0, 0.16), transparent 18%),
     linear-gradient(180deg, var(--bg-primary) 0%, rgba(13, 17, 27, 1) 48%, var(--bg-primary) 100%);
   color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 * {
@@ -53,9 +62,15 @@ textarea {
 
 .stitchdShell {
   position: relative;
-  max-width: 1600px;
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px;
+}
+
+.authShell {
+  display: grid;
+  align-items: center;
+  min-height: 100vh;
 }
 
 .pageGlow {
@@ -82,13 +97,173 @@ textarea {
 
 .modeRail {
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 18px;
   padding: 8px;
   border: 1px solid var(--border);
   border-radius: 999px;
   background: rgba(10, 10, 16, 0.75);
   backdrop-filter: blur(18px);
+}
+
+.topRail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.sessionRail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-width: min(100%, 320px);
+  padding: 14px 18px;
+}
+
+.sessionRail strong,
+.sessionRail p {
+  margin: 0;
+}
+
+.sessionRail p {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.authGate {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 420px);
+  gap: 24px;
+  padding: 36px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0.01)),
+    radial-gradient(circle at 14% 18%, rgba(124, 58, 237, 0.18), transparent 22%),
+    radial-gradient(circle at 78% 12%, rgba(255, 215, 0, 0.08), transparent 20%),
+    rgba(11, 13, 21, 0.82);
+}
+
+.authHeroPanel,
+.authEntryCard {
+  display: grid;
+  gap: 18px;
+}
+
+.authHeroPanel {
+  align-content: start;
+}
+
+.authHeroPanel h1,
+.authHeroPanel p,
+.authEntryCard h2,
+.authEntryCard p {
+  margin: 0;
+}
+
+.authHeroPanel h1 {
+  max-width: 12ch;
+  font-size: clamp(2.4rem, 5vw, 4.4rem);
+  line-height: 0.96;
+  letter-spacing: -0.04em;
+}
+
+.authHeroPanel > p {
+  max-width: 64ch;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 1.08rem;
+  line-height: 1.6;
+}
+
+.authFeatureStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.authFeatureCard {
+  padding: 18px;
+  min-height: 132px;
+  align-content: space-between;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(17, 21, 32, 0.84));
+}
+
+.authFeatureCard p {
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+}
+
+.authRoleGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.authRoleCard {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(21, 25, 37, 0.86), rgba(14, 17, 27, 0.92));
+  color: var(--text-primary);
+}
+
+.authRoleCard strong {
+  font-size: 1.2rem;
+  line-height: 1.15;
+}
+
+.authRoleCard strong,
+.authRoleCard p {
+  margin: 0;
+}
+
+.authRoleCard p {
+  color: var(--text-secondary);
+}
+
+.authRoleCard.is-active {
+  border-color: var(--border-active);
+  box-shadow: var(--shadow-glow);
+}
+
+.authRoleCard:hover {
+  border-color: rgba(159, 103, 255, 0.35);
+  transform: translateY(-2px);
+}
+
+.authEntryCard {
+  align-self: center;
+  padding: 28px;
+  gap: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(17, 21, 32, 0.92)),
+    rgba(17, 21, 32, 0.88);
+}
+
+.authEntryCard h2 {
+  font-size: 2rem;
+  line-height: 1.02;
+}
+
+.authEntryCard > p {
+  color: rgba(255, 255, 255, 0.78);
+  line-height: 1.55;
+}
+
+.authEntryCard label {
+  gap: 10px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 600;
+}
+
+.authActionsRow {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .modePill,
@@ -160,16 +335,36 @@ textarea {
 
 .plannerHeader {
   display: grid;
-  grid-template-columns: minmax(180px, 220px) 1fr minmax(260px, 320px);
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr) minmax(280px, 340px);
   gap: 20px;
   align-items: center;
   padding: 22px 26px;
+}
+
+.brandPanel {
+  display: block;
+}
+.brandPanelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .brandWordmark {
   font-size: clamp(2.2rem, 4vw, 3.6rem);
   line-height: 0.9;
   letter-spacing: 0.16em;
+  color: var(--text-primary);
+}
+.headerMenuButton {
+  display: none;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
 }
 
@@ -186,6 +381,14 @@ textarea {
   justify-content: center;
   gap: 16px;
   flex-wrap: wrap;
+}
+.plannerNav.is-open {
+    display: grid;
+    gap: 10px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 18px;
+    background: rgba(11, 13, 21, 0.88);
 }
 
 .plannerNavTab {
@@ -204,22 +407,69 @@ textarea {
 }
 
 .coachCard {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 14px;
-  padding: 14px;
-  border-radius: 24px;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 28px;
+  min-width: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(11, 13, 21, 0.92)),
+    rgba(11, 13, 21, 0.82);
+}
+
+.coachInfo {
+  min-width: 0;
+  flex: 1;
+}
+
+.coachActions {
+  margin-left: auto;
+}
+
+.coachButton {
+  padding: 12px 18px;
+  white-space: nowrap;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.coachCardEmpty {
+  border-style: dashed;
 }
 
 .coachAvatar {
   display: grid;
   place-items: center;
-  width: 74px;
-  height: 74px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(123, 58, 237, 0.75), rgba(35, 38, 78, 0.95));
+  width: 84px;
+  height: 84px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.18), transparent 28%),
+    linear-gradient(135deg, rgba(123, 58, 237, 0.95), rgba(35, 38, 78, 0.98));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 20px 38px rgba(32, 18, 66, 0.28);
   font-weight: 800;
-  font-size: 1.35rem;
+  font-size: 1.75rem;
+  letter-spacing: -0.04em;
+}
+.coachAvatarEmpty {
+  background: rgba(124, 58, 237, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(159, 103, 255, 0.22);
+}
+
+.coachInfo strong {
+  display: block;
+  font-size: 1.55rem;
+  line-height: 1.05;
+  margin-top: 4px;
+}
+
+.coachInfo p {
+  margin-top: 6px;
+  max-width: 18ch;
+  line-height: 1.35;
 }
 
 .coachCard strong,
@@ -257,8 +507,9 @@ textarea {
 .coachMeta {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 8px;
+  margin-top: 12px;
   color: rgba(255, 255, 255, 0.65);
   font-size: 0.9rem;
 }
@@ -273,18 +524,56 @@ textarea {
   font-size: 0.82rem;
   font-weight: 800;
 }
+.vendorCardLoading {
+  position: relative;
+  min-height: 300px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vendorCardShimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+  transform: translateX(-100%);
+  animation: shimmer 1.4s infinite;
+}
+
+.vendorCard.is-compare-armed {
+  box-shadow: 0 0 0 2px rgba(159, 103, 255, 0.95), 0 0 28px rgba(124, 58, 237, 0.28);
+}
+
+.vendorCard.is-compare-target {
+  box-shadow: inset 0 0 0 1px rgba(159, 103, 255, 0.38);
+}
+
+.vendorCard.is-hidden-pending {
+  opacity: 0;
+  transform: translateY(18px) scale(0.98);
+  pointer-events: none;
+}
+
+.vendorCard.is-revealed {
+  transition: opacity 220ms ease, transform 220ms ease, box-shadow 180ms ease;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
 
 .heroStrip {
   display: grid;
   grid-template-columns: minmax(280px, 1.2fr) minmax(260px, 1fr) minmax(240px, 0.8fr);
   gap: 18px;
   align-items: center;
-  padding: 26px;
+  padding: 20px 24px;
 }
 
 .heroStrip h1 {
   margin: 8px 0 12px;
-  font-size: clamp(2rem, 5vw, 3.3rem);
+  font-size: clamp(1.7rem, 4vw, 2.7rem);
   line-height: 0.95;
 }
 
@@ -324,8 +613,9 @@ textarea {
 
 .plannerLayout {
   display: grid;
-  grid-template-columns: 240px 1fr 290px;
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(320px, 360px);
   gap: 18px;
+  align-items: start;
 }
 
 .plannerLeftRail,
@@ -338,12 +628,14 @@ textarea {
 .documentList {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .summaryCard,
 .alertCard,
 .opsHeroBadge {
   padding: 20px;
+  min-width: 0;
 }
 
 .widgetHeader {
@@ -440,6 +732,7 @@ textarea {
 
 .sectionHeadingRow {
   align-items: end;
+  flex-wrap: wrap;
 }
 
 .sectionHeadingRow h2,
@@ -468,24 +761,30 @@ textarea {
 
 .vendorGrid {
   display: grid;
-  gap: 14px;
+  gap: 18px;
+  min-width: 0;
+  align-items: stretch;
 }
 
 .vendorGridCore {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
 .vendorGridSupport {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(220px, 1.2fr) repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .vendorCard,
 .addSupplierCard {
   position: relative;
-  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  min-height: 304px;
+  min-width: 0;
   padding: 16px;
   border-radius: 24px;
   overflow: hidden;
+  isolation: isolate;
   background-size: cover;
   background-position: center;
   border: 1px solid rgba(255, 255, 255, 0.12);
@@ -493,7 +792,44 @@ textarea {
 
 .vendorCardSupport,
 .addSupplierCard {
-  min-height: 250px;
+  min-height: 280px;
+}
+
+.vendorCardSupport .vendorScore {
+  font-size: 1.95rem;
+}
+
+.vendorCardSupport .statusBadge {
+  margin-top: 8px;
+  padding: 5px 9px;
+  font-size: 0.66rem;
+}
+
+.vendorCardSupport .vendorFooter {
+  right: 14px;
+  left: 14px;
+}
+
+.vendorCardSupport .vendorFooter strong {
+  font-size: 1rem;
+}
+
+.vendorCardSupport .vendorFooter p {
+  font-size: 0.92rem;
+}
+
+.vendorCardSupport .vendorMetaRow,
+.vendorCardSupport .vendorActions {
+  font-size: 0.82rem;
+}
+
+.vendorCardSupport .vendorActions {
+  gap: 8px;
+}
+
+.vendorCardSupport .vendorActionButton {
+  width: 26px;
+  height: 26px;
 }
 
 .vendorCard::after {
@@ -515,7 +851,7 @@ textarea {
 }
 
 .vendorScore {
-  font-size: 2.5rem;
+  font-size: 2.25rem;
   font-weight: 900;
   color: #ffffff;
 }
@@ -601,6 +937,7 @@ textarea {
 
 .vendorActions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
   opacity: 0.82;
@@ -667,6 +1004,8 @@ textarea {
   gap: 12px;
   background: linear-gradient(180deg, rgba(13, 15, 25, 0.96), rgba(20, 17, 32, 0.88));
   border: 1px solid rgba(245, 201, 108, 0.24);
+  grid-column: span 2;
+  min-height: 280px;
 }
 
 .alertCardHeader {
@@ -695,11 +1034,262 @@ textarea {
   font-size: 2rem;
 }
 
+.plannerToast {
+  position: sticky;
+  top: 18px;
+  z-index: 20;
+  margin-left: auto;
+  padding: 12px 16px;
+  border: 1px solid rgba(159, 103, 255, 0.35);
+  border-radius: 999px;
+  background: rgba(20, 16, 32, 0.94);
+  color: #f4edff;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.tabPanelGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.tabInsightCard,
+.budgetPanel {
+  padding: 20px;
+}
+
+.tabInsightCard {
+  display: grid;
+  gap: 12px;
+  min-height: 220px;
+}
+
+.tabInsightHeader,
+.tabInsightMeta,
+.budgetHeader,
+.budgetLineItem,
+.budgetLineMeta,
+.overlayHeader,
+.modalListItem,
+.modalListMeta,
+.comparisonRow,
+.threadPickerRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tabInsightHeader,
+.budgetHeader,
+.overlayHeader,
+.modalListItem,
+.comparisonRow {
+  align-items: start;
+}
+
+.tabInsightMeta,
+.budgetLineMeta,
+.modalListMeta {
+  align-items: center;
+  flex-wrap: wrap;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.9rem;
+}
+
+.inspirationCard {
+  background:
+    linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(255, 255, 255, 0.02)),
+    rgba(17, 21, 32, 0.88);
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.miniTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.budgetPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.budgetLineList,
+.modalList,
+.comparisonGrid,
+.messageThread {
+  display: grid;
+  gap: 12px;
+}
+
+.budgetLineItem,
+.modalListItem,
+.comparisonRow,
+.messageBubble {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.budgetLineMeta {
+  justify-content: end;
+  text-align: right;
+}
+
+.overlayShell,
+.drawerShell {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(10px);
+}
+
+.overlaySheet {
+  align-items: end;
+}
+
+.overlayPanel,
+.drawerPanel {
+  width: min(860px, 100%);
+  max-height: min(88vh, 920px);
+  padding: 22px;
+  overflow: auto;
+}
+
+.bottomSheetPanel {
+  width: min(920px, 100%);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.compactList .compactItem {
+  align-items: center;
+}
+
+.comparisonRow {
+  align-items: center;
+}
+
+.comparisonRow strong {
+  flex: 1;
+  text-align: center;
+}
+
+.drawerShell {
+  justify-items: end;
+}
+
+.drawerPanel {
+  height: 100%;
+  width: min(520px, 100%);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.threadPickerRow {
+  flex-wrap: wrap;
+  margin: 18px 0 4px;
+}
+
+.threadPill {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.threadPill.is-active {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: rgba(159, 103, 255, 0.42);
+  color: #ffffff;
+}
+
+.threadPill span {
+  display: inline-grid;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  margin-left: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.messageBubble strong,
+.messageBubble p,
+.messageBubble small,
+.budgetLineItem strong,
+.budgetLineItem p,
+.modalListItem strong,
+.modalListItem p,
+.comparisonRow span,
+.comparisonRow strong {
+  margin: 0;
+}
+
+.messageBubble p {
+  margin-top: 8px;
+}
+
+.messageBubble small {
+  display: block;
+  margin-top: 10px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.sender-supplier {
+  border: 1px solid rgba(159, 103, 255, 0.18);
+}
+
+.sender-coach {
+  border: 1px solid rgba(245, 201, 108, 0.18);
+}
+
+.weatherGlyph {
+  width: 26px;
+  height: 26px;
+  color: #ffffff;
+}
+
+.forecastGlyph {
+  width: 16px;
+  height: 16px;
+  color: currentColor;
+}
+
 .weatherHero {
   display: flex;
   align-items: center;
   gap: 14px;
   margin: 16px 0;
+}
+
+.weatherStatusRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: -2px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.78rem;
+}
+
+.weatherStatusRow span {
+  min-width: 0;
 }
 
 .weatherIcon {
@@ -709,24 +1299,35 @@ textarea {
   height: 56px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
-  font-size: 1.7rem;
 }
 
 .forecastStrip {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
   gap: 8px;
   margin-top: 16px;
+  min-width: 0;
 }
 
 .forecastDay {
   display: grid;
   gap: 6px;
-  padding: 12px 8px;
+  padding: 12px 6px;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.04);
   text-align: center;
   color: rgba(255, 255, 255, 0.64);
+  min-width: 0;
+}
+
+.forecastDay strong {
+  font-size: clamp(1.4rem, 2vw, 2rem);
+  line-height: 1;
+}
+
+.forecastDay span,
+.forecastDay small {
+  overflow-wrap: anywhere;
 }
 
 .forecastIcon {
@@ -827,6 +1428,120 @@ label {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+}
+
+.journeyFeed {
+  display: grid;
+  gap: 14px;
+}
+
+.journeyCard {
+  display: grid;
+  gap: 16px;
+}
+
+.journeyCardHeader,
+.journeyMetaGrid,
+.journeySettlementSummary,
+.journeyNotificationRow {
+  display: grid;
+  gap: 10px;
+}
+
+.journeyCardHeader {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.journeyCardHeader p,
+.journeyStage p,
+.journeyNotificationRow span,
+.journeySettlementSummary span,
+.journeyMetaGrid span,
+.journeyMetaGrid strong,
+.journeyNotificationRow small {
+  margin: 0;
+}
+
+.journeyMetaGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.journeyMetaGrid div,
+.journeyNotificationRow {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.journeyMetaGrid span,
+.journeySettlementSummary span,
+.journeyNotificationRow small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.8rem;
+}
+
+.journeyStageRail {
+  display: grid;
+  gap: 10px;
+}
+
+.journeyStage {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 14px 16px 14px 42px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.journeyStage.is-active {
+  border: 1px solid rgba(124, 58, 237, 0.45);
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--text-primary);
+}
+
+.journeyStage.is-done {
+  border: 1px solid rgba(16, 185, 129, 0.26);
+}
+
+.journeyStageDot {
+  position: absolute;
+  top: 18px;
+  left: 16px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.04);
+}
+
+.journeyStage.is-active .journeyStageDot {
+  background: var(--accent-light);
+}
+
+.journeyStage.is-done .journeyStageDot {
+  background: var(--status-secured);
+}
+
+.journeyFooter {
+  display: grid;
+  gap: 14px;
+}
+
+.journeySettlementSummary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.journeyNotifications {
+  display: grid;
+  gap: 10px;
+}
+
+.journeyNotificationRow {
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: start;
 }
 
 .statCard,
@@ -957,9 +1672,17 @@ textarea {
   transform: none;
 }
 
-@media (max-width: 1360px) {
+@media (max-width: 1280px) {
+  .plannerHeader {
+    grid-template-columns: minmax(180px, 220px) 1fr;
+  }
+
+  .coachCard {
+    grid-column: 1 / -1;
+  }
+
   .plannerLayout {
-    grid-template-columns: 220px 1fr;
+    grid-template-columns: minmax(260px, 300px) 1fr;
   }
 
   .plannerSidebar {
@@ -968,7 +1691,7 @@ textarea {
   }
 
   .vendorGridCore {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .vendorGridSupport {
@@ -978,9 +1701,18 @@ textarea {
   .dashboardGrid {
     grid-template-columns: 1fr;
   }
+
+  .authGate {
+    grid-template-columns: 1fr;
+  }
+
+  .authFeatureStrip {
+    grid-template-columns: 1fr;
+  }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1100px) {
+  .topRail,
   .plannerHeader,
   .heroStrip,
   .opsHero,
@@ -999,6 +1731,63 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .plannerSidebar {
+    order: 3;
+  }
+
+  .plannerMainBoard {
+    order: 2;
+  }
+
+  .plannerLeftRail {
+    order: 1;
+  }
+
+  .coachButton {
+    display: none;
+  }
+
+  .coachCard {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .alertCard {
+    grid-column: span 2;
+  }
+
+  .tabPanelGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .headerMenuButton {
+    display: inline-grid;
+  }
+
+  .plannerNav {
+    display: none;
+  }
+
+  .plannerNav.is-open {
+    display: grid;
+  }
+
+  .plannerNavTab {
+    width: 100%;
+    text-align: left;
+    padding: 10px 0;
+  }
+
+  .authRoleGrid,
+  .heroStrip,
+  .plannerHeader,
+  .opsHero,
+  .opsPanel,
+  .statusBar {
+    grid-template-columns: 1fr;
+  }
+
   .vendorGridCore,
   .vendorGridSupport,
   .forecastStrip,
@@ -1014,17 +1803,63 @@ textarea {
   .actionRow,
   .sectionHeader,
   .sectionHeadingRow,
-  .settingsGroupHeader {
+  .settingsGroupHeader,
+  .weatherStatusRow,
+  .tabInsightHeader,
+  .tabInsightMeta,
+  .budgetHeader,
+  .budgetLineItem,
+  .budgetLineMeta,
+  .overlayHeader,
+  .modalListItem,
+  .modalListMeta,
+  .comparisonRow {
     flex-direction: column;
+  }
+
+  .journeyCardHeader,
+  .journeyMetaGrid,
+  .journeySettlementSummary,
+  .journeyNotificationRow {
+    grid-template-columns: 1fr;
   }
 
   .paymentMeta {
     justify-items: start;
     text-align: left;
   }
+
+  .alertCard {
+    grid-column: span 2;
+  }
+
+  .overlayShell,
+  .drawerShell {
+    padding: 16px;
+  }
+
+  .drawerPanel,
+  .overlayPanel {
+    width: 100%;
+    border-radius: 24px;
+  }
+
+  .authGate {
+    padding: 24px;
+  }
+
+  .authHeroPanel h1 {
+    max-width: none;
+  }
+
+  .authActionsRow,
+  .sessionRail {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 480px) {
   .stitchdShell {
     padding: 16px;
   }
@@ -1045,6 +1880,10 @@ textarea {
     font-size: 2rem;
   }
 
+  .authEntryCard {
+    padding: 22px;
+  }
+
   .modeRail {
     width: 100%;
     justify-content: space-between;
@@ -1052,5 +1891,30 @@ textarea {
 
   .modePill {
     flex: 1;
+  }
+
+  .coachCard {
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .coachAvatar {
+    width: 58px;
+    height: 58px;
+    font-size: 1.2rem;
+  }
+
+  .coachInfo strong {
+    font-size: 1.15rem;
+  }
+
+  .coachInfo p,
+  .coachMeta {
+    display: none;
+  }
+
+  .alertCard {
+    grid-column: span 1;
   }
 }

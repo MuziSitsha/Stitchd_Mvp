@@ -1,5 +1,5 @@
-import { Controller, Get, Query } from '@nestjs/common';
-import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import { ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 
 import { PlannerService, PlannerEventType, PlannerPersona } from './planner.service';
 
@@ -17,5 +17,26 @@ export class PlannerController {
     @Query('persona') persona?: PlannerPersona,
   ) {
     return this.plannerService.getMvpExperience(eventType, persona);
+  }
+
+  @Get('surface')
+  @ApiOperation({ summary: 'Get the richer planner client surface for an event type' })
+  @ApiQuery({ name: 'eventType', required: false, enum: ['wedding', 'lobola', 'funeral', 'corporate', 'birthday'] })
+  getPlannerSurface(@Query('eventType') eventType?: PlannerEventType) {
+    return this.plannerService.getSurfaceExperience(eventType);
+  }
+
+  @Post('auto-pick')
+  @ApiOperation({ summary: 'Get AI auto-pick planner squad suggestions' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        eventType: { type: 'string', enum: ['wedding', 'lobola', 'funeral', 'corporate', 'birthday'] },
+      },
+    },
+  })
+  autoPick(@Body() body: { eventType?: PlannerEventType }) {
+    return this.plannerService.getAutoPickExperience(body.eventType);
   }
 }

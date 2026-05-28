@@ -94,11 +94,66 @@ function CloudIcon({ className }: IconProps) {
   );
 }
 
+function SunIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2" />
+      <path d="M12 20v2" />
+      <path d="m4.93 4.93 1.41 1.41" />
+      <path d="m17.66 17.66 1.41 1.41" />
+      <path d="M2 12h2" />
+      <path d="M20 12h2" />
+      <path d="m6.34 17.66-1.41 1.41" />
+      <path d="m19.07 4.93-1.41 1.41" />
+    </svg>
+  );
+}
+
+function RainIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
+      <path d="M8 19v2" />
+      <path d="M12 18v4" />
+      <path d="M16 19v2" />
+    </svg>
+  );
+}
+
+function StormIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M18 16a4 4 0 0 0 0-8 5.5 5.5 0 0 0-10.7-1.5A4.5 4.5 0 1 0 6 16Z" />
+      <path d="m13 12-3 5h3l-2 5 5-7h-3l2-3" />
+    </svg>
+  );
+}
+
 function PlusIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
       <path d="M12 5v14" />
       <path d="M5 12h14" />
+    </svg>
+  );
+}
+
+function MenuIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M4 7h16" />
+      <path d="M4 12h16" />
+      <path d="M4 17h16" />
+    </svg>
+  );
+}
+
+function CloseIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="m6 6 12 12" />
+      <path d="M18 6 6 18" />
     </svg>
   );
 }
@@ -197,6 +252,40 @@ type RecentPayment = {
   updatedAt: string;
 };
 
+type BookingJourneyStage = {
+  key: string;
+  label: string;
+  status: 'done' | 'active' | 'upcoming';
+  timestamp?: string;
+  note: string;
+};
+
+type BookingJourneyNotification = {
+  id: string;
+  type: string;
+  audience: 'customer' | 'provider';
+  message: string;
+  timestamp: string;
+};
+
+type BookingJourney = {
+  id: string;
+  bookingRef: string;
+  service: string;
+  type: 'instant' | 'scheduled';
+  customerName: string;
+  providerName: string;
+  currentStage: string;
+  paymentMethod: string;
+  paymentStatus: RecentPayment['status'];
+  amountCents: number;
+  commissionCents: number;
+  providerEarningsCents: number;
+  scheduledAt?: string;
+  stages: BookingJourneyStage[];
+  notifications: BookingJourneyNotification[];
+};
+
 type AdminAuthResponse = {
   accessToken: string;
   refreshToken: string;
@@ -208,9 +297,16 @@ type AdminAuthResponse = {
 };
 
 type SurfaceMode = 'planner' | 'ops';
+type AuthRole = 'client' | 'supplier' | 'coach' | 'admin';
 type PlannerTab = 'squad' | 'suppliers' | 'budget' | 'inspiration' | 'marketplace';
 type EventType = 'wedding' | 'lobola' | 'funeral' | 'corporate' | 'birthday';
 type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk';
+
+type MockSession = {
+  role: AuthRole;
+  identity: string;
+  contact: string;
+};
 
 type VendorCardData = {
   id: string;
@@ -264,6 +360,168 @@ type PlannerExperience = {
   };
 };
 
+type WeatherIconKey = 'sun' | 'cloud' | 'rain' | 'storm';
+
+type ForecastDay = {
+  day: string;
+  temperature: string;
+  rainChance: number;
+  iconKey: WeatherIconKey;
+  isEventDay: boolean;
+};
+
+type LiveWeatherSnapshot = {
+  locationLabel: string;
+  current: {
+    label: string;
+    temperature: string;
+    rainChance: number;
+    iconKey: WeatherIconKey;
+  };
+  forecast: ForecastDay[];
+  shouldAlert: boolean;
+  alertMessage: string;
+  fetchedAt: number;
+};
+
+type SupplierBrowseItem = {
+  id: string;
+  slot: string;
+  name: string;
+  subcategory: string;
+  priceLabel: string;
+  rating: number;
+  reviewCount: number;
+  score: number;
+  status: VendorStatus;
+  imageKey: string;
+  compatibilityNote: string;
+};
+
+type PlannerWeatherForecast = {
+  date: string;
+  dayAbbr: string;
+  condition: string;
+  iconKey: WeatherIconKey;
+  tempC: number;
+  rainChancePct: number;
+  isEventDay: boolean;
+};
+
+type PlannerWeatherAlert = {
+  type: 'rain' | 'heat' | 'wind';
+  title: string;
+  recommendation: string;
+  ctaLabel: string;
+  browseCategory: string;
+};
+
+type BudgetLineItem = {
+  id: string;
+  label: string;
+  owner: string;
+  amount: number;
+  status: 'paid' | 'booked' | 'quote' | 'pending';
+  dueLabel: string;
+};
+
+type InspirationBoardItem = {
+  id: string;
+  title: string;
+  theme: string;
+  note: string;
+  matchedSupplierIds: string[];
+};
+
+type MarketplaceFeature = {
+  id: string;
+  title: string;
+  category: string;
+  location: string;
+  description: string;
+  priceHint: string;
+};
+
+type MessageEntry = {
+  id: string;
+  sender: 'coach' | 'supplier' | 'client';
+  senderName: string;
+  text: string;
+  timestamp: string;
+};
+
+type MessageThread = {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  slot: string;
+  unreadCount: number;
+  lastMessage: string;
+  updatedAt: string;
+  messages: MessageEntry[];
+};
+
+type ClashCandidate = {
+  currentVendorId: string;
+  challengerVendorId: string;
+  summary: string;
+  winnerVendorId: string;
+  communityChoicePct: number;
+  comparison: Array<{ label: string; current: string; challenger: string }>;
+};
+
+type PlannerCoachProfile = {
+  name: string;
+  role: string;
+  rating: number;
+  eventsCompleted: number;
+  bio: string;
+  specialties: string[];
+  nextAvailable: string;
+};
+
+type PlannerSurfaceData = {
+  locationLabel: string;
+  unreadCount: number;
+  weather: {
+    forecast: PlannerWeatherForecast[];
+    shouldAlert: boolean;
+    alert?: PlannerWeatherAlert;
+  };
+  coachProfile: PlannerCoachProfile;
+  suppliers: {
+    shortlist: SupplierBrowseItem[];
+    browseCategories: Array<{ key: string; label: string; description: string }>;
+  };
+  budget: {
+    total: number;
+    allocated: number;
+    lines: BudgetLineItem[];
+  };
+  inspiration: {
+    boards: InspirationBoardItem[];
+    insight: string;
+  };
+  marketplace: {
+    featured: MarketplaceFeature[];
+  };
+  messages: {
+    threads: MessageThread[];
+  };
+  swapOptions: Record<string, SupplierBrowseItem[]>;
+  clashCandidates: ClashCandidate[];
+  autoPick: {
+    core: PlannerVendorPayload[];
+    support: PlannerVendorPayload[];
+  };
+};
+
+type PlannerAutoPickResponse = {
+  title: string;
+  core: PlannerVendorPayload[];
+  support: PlannerVendorPayload[];
+};
+
 const plannerActionIcons = [TeamIcon, ChatIcon, DocumentIcon, CalendarIcon, BellIcon];
 
 const statusMetricIcons = {
@@ -300,6 +558,21 @@ function mapPlannerVendor(vendor: PlannerVendorPayload): VendorCardData {
     score: vendor.score,
     status: vendor.status,
     image: plannerImageByKey[vendor.imageKey] || plannerImage,
+  };
+}
+
+function mapBrowseSupplierToVendor(supplier: SupplierBrowseItem): VendorCardData {
+  return {
+    id: supplier.id,
+    slot: supplier.slot,
+    subcategory: supplier.subcategory,
+    name: supplier.name,
+    rating: supplier.rating,
+    reviewCount: supplier.reviewCount,
+    priceLabel: supplier.priceLabel,
+    score: supplier.score,
+    status: supplier.status,
+    image: plannerImageByKey[supplier.imageKey] || plannerImage,
   };
 }
 
@@ -376,6 +649,14 @@ const plannerScheduleByEvent: Record<EventType, { eventDate: string; planningSta
   funeral: { eventDate: '2026-06-03', planningStartDate: '2026-05-20' },
   corporate: { eventDate: '2026-08-18', planningStartDate: '2026-03-10' },
   birthday: { eventDate: '2026-06-20', planningStartDate: '2026-04-01' },
+};
+
+const weatherCoordinatesByEvent: Record<EventType, { latitude: number; longitude: number; locationLabel: string }> = {
+  wedding: { latitude: -26.2041, longitude: 28.0473, locationLabel: 'Johannesburg, Gauteng' },
+  lobola: { latitude: -25.7479, longitude: 28.2293, locationLabel: 'Pretoria, Gauteng' },
+  funeral: { latitude: -29.8587, longitude: 31.0218, locationLabel: 'Durban, KwaZulu-Natal' },
+  corporate: { latitude: -33.9249, longitude: 18.4241, locationLabel: 'Cape Town, Western Cape' },
+  birthday: { latitude: -26.1076, longitude: 28.0567, locationLabel: 'Sandton, Gauteng' },
 };
 
 const vendorBoard: Record<EventType, { core: VendorCardData[]; support: VendorCardData[] }> = {
@@ -523,6 +804,90 @@ function formatStars(rating: number) {
   return `★ ${rating.toFixed(1)}`;
 }
 
+function wrapVendorArtworkText(value: string, maxLineLength: number) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let currentLine = '';
+
+  words.forEach((word) => {
+    const candidate = currentLine ? `${currentLine} ${word}` : word;
+
+    if (candidate.length <= maxLineLength || !currentLine) {
+      currentLine = candidate;
+      return;
+    }
+
+    lines.push(currentLine);
+    currentLine = word;
+  });
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.slice(0, 2);
+}
+
+function getVendorArtwork(vendor: VendorCardData) {
+  const palettes: Record<VendorStatus, { accent: string; glow: string; panel: string }> = {
+    secured: { accent: '#55f5b6', glow: '#183e37', panel: '#0e1417' },
+    booked: { accent: '#f5c465', glow: '#463415', panel: '#16120c' },
+    optional: { accent: '#b68cff', glow: '#2d1c4a', panel: '#130f1e' },
+    recommended: { accent: '#d7b1ff', glow: '#3d2453', panel: '#170f22' },
+    at_risk: { accent: '#ff8a96', glow: '#4a1d26', panel: '#1c0f13' },
+  };
+  const palette = palettes[vendor.status];
+  const slot = vendor.slot.toLowerCase();
+  const motif = slot.includes('venue')
+    ? '<path d="M120 490h400v-34L336 278 120 456Z" fill="#ffffff" fill-opacity="0.08"/><path d="M166 490V382h56v108" fill="#ffffff" fill-opacity="0.08"/><path d="M418 490V382h56v108" fill="#ffffff" fill-opacity="0.08"/>'
+    : slot.includes('photo')
+      ? '<circle cx="320" cy="376" r="118" fill="#ffffff" fill-opacity="0.07"/><circle cx="320" cy="376" r="62" fill="#ffffff" fill-opacity="0.11"/><circle cx="320" cy="376" r="18" fill="#ffffff" fill-opacity="0.22"/>'
+      : slot.includes('catering') || slot.includes('cake') || slot.includes('bar')
+        ? '<rect x="138" y="430" width="364" height="22" rx="11" fill="#ffffff" fill-opacity="0.1"/><rect x="172" y="382" width="296" height="36" rx="18" fill="#ffffff" fill-opacity="0.08"/><circle cx="230" cy="364" r="14" fill="#ffffff" fill-opacity="0.14"/><circle cx="320" cy="352" r="14" fill="#ffffff" fill-opacity="0.14"/><circle cx="410" cy="364" r="14" fill="#ffffff" fill-opacity="0.14"/>'
+        : slot.includes('floral') || slot.includes('decor')
+          ? '<circle cx="214" cy="346" r="52" fill="#ffffff" fill-opacity="0.07"/><circle cx="272" cy="312" r="46" fill="#ffffff" fill-opacity="0.08"/><circle cx="352" cy="334" r="54" fill="#ffffff" fill-opacity="0.07"/><circle cx="412" cy="300" r="42" fill="#ffffff" fill-opacity="0.08"/><rect x="286" y="364" width="28" height="124" rx="14" fill="#ffffff" fill-opacity="0.1"/>'
+          : slot.includes('transport')
+            ? '<path d="M154 438h308l30 52H124l30-52Z" fill="#ffffff" fill-opacity="0.08"/><rect x="194" y="388" width="228" height="42" rx="18" fill="#ffffff" fill-opacity="0.08"/><circle cx="204" cy="486" r="22" fill="#ffffff" fill-opacity="0.14"/><circle cx="436" cy="486" r="22" fill="#ffffff" fill-opacity="0.14"/>'
+            : slot.includes('tent')
+              ? '<path d="M132 488 320 272l188 216H132Z" fill="#ffffff" fill-opacity="0.08"/><path d="M218 488 320 350l102 138H218Z" fill="#ffffff" fill-opacity="0.12"/>'
+              : '<rect x="154" y="330" width="332" height="122" rx="40" fill="#ffffff" fill-opacity="0.07"/><rect x="186" y="362" width="268" height="58" rx="29" fill="#ffffff" fill-opacity="0.09"/><circle cx="320" cy="300" r="44" fill="#ffffff" fill-opacity="0.06"/>';
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 760">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#0b0d14" />
+          <stop offset="55%" stop-color="${palette.panel}" />
+          <stop offset="100%" stop-color="#090a10" />
+        </linearGradient>
+        <radialGradient id="glow" cx="0.85" cy="0.18" r="0.9">
+          <stop offset="0%" stop-color="${palette.glow}" stop-opacity="0.92" />
+          <stop offset="100%" stop-color="${palette.glow}" stop-opacity="0" />
+        </radialGradient>
+        <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.16" />
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="640" height="760" rx="48" fill="url(#bg)" />
+      <rect width="640" height="760" rx="48" fill="url(#glow)" />
+      <circle cx="528" cy="124" r="118" fill="${palette.accent}" opacity="0.14" />
+      <circle cx="108" cy="660" r="160" fill="${palette.accent}" opacity="0.1" />
+      <path d="M40 584C148 512 250 482 382 492c90 8 166 28 214 68" stroke="${palette.accent}" stroke-opacity="0.14" stroke-width="2" fill="none" />
+      <path d="M32 628C148 548 270 510 414 522c74 6 142 24 190 54" stroke="#ffffff" stroke-opacity="0.07" stroke-width="2" fill="none" />
+      <rect x="34" y="34" width="572" height="692" rx="42" fill="url(#shine)" />
+      <rect x="42" y="42" width="154" height="34" rx="17" fill="#ffffff" fill-opacity="0.08" />
+      <rect x="42" y="92" width="84" height="84" rx="24" fill="#ffffff" fill-opacity="0.05" />
+      <text x="64" y="64" fill="#ffffff" fill-opacity="0.8" font-family="Segoe UI, Arial, sans-serif" font-size="18" letter-spacing="2.4">${vendor.slot.toUpperCase()}</text>
+      <text x="64" y="144" fill="#ffffff" fill-opacity="0.18" font-family="Segoe UI, Arial, sans-serif" font-size="58" font-weight="700">${vendor.score}</text>
+      ${motif}
+      <rect x="42" y="646" width="164" height="40" rx="20" fill="#ffffff" fill-opacity="0.08" />
+      <text x="64" y="672" fill="${palette.accent}" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="2.8">CURATED MATCH</text>
+    </svg>
+  `;
+
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
 function formatPlannerDateLabel(dateValue: string) {
   return new Intl.DateTimeFormat('en-ZA', {
     day: '2-digit',
@@ -557,6 +922,73 @@ function getWeatherTone(rainChance: number) {
   return '';
 }
 
+function getWeatherIcon(rainChance: number): WeatherIconKey {
+  if (rainChance >= 70) return 'storm';
+  if (rainChance > 40) return 'rain';
+  if (rainChance < 20) return 'sun';
+  return 'cloud';
+}
+
+function getWeatherDescriptor(weatherCode: number) {
+  if ([95, 96, 99].includes(weatherCode)) return { label: 'Thunderstorms', iconKey: 'storm' as WeatherIconKey };
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(weatherCode)) return { label: 'Rain Showers', iconKey: 'rain' as WeatherIconKey };
+  if ([1, 2, 3, 45, 48].includes(weatherCode)) return { label: 'Cloudy', iconKey: 'cloud' as WeatherIconKey };
+  return { label: 'Clear', iconKey: 'sun' as WeatherIconKey };
+}
+
+function buildWeatherAlert(eventType: EventType, rainChance: number, label: string) {
+  if (rainChance >= 60) {
+    if (eventType === 'wedding') return 'High rain risk at your current location. Keep tenting and indoor ceremony backup on standby.';
+    if (eventType === 'funeral') return 'Live forecast shows wet conditions. Covered seating and walkway protection should be prioritised.';
+    if (eventType === 'lobola') return 'Rain risk is elevated. Confirm family transport timing and marquee backup before arrivals begin.';
+    if (eventType === 'corporate') return 'Weather disruption risk is up. Tighten guest arrival flow and covered access planning.';
+    return 'Rain risk is elevated at the current location. Build in weather cover and supplier contingency.';
+  }
+
+  if (rainChance <= 20) {
+    if (eventType === 'corporate') return 'Weather is currently stable. Focus operations on AV timing, access control, and guest flow.';
+    if (eventType === 'birthday') return 'Weather is currently stable. Outdoor setup, shade, and drinks stations remain the main comfort levers.';
+    return `Current local weather is stable with ${label.toLowerCase()}. Keep the fallback plan visible, but conditions are favorable.`;
+  }
+
+  return `Local conditions are showing ${label.toLowerCase()}. Keep suppliers aligned and maintain a weather backup path.`;
+}
+
+function WeatherGlyph({ iconKey, className }: { iconKey: WeatherIconKey; className?: string }) {
+  if (iconKey === 'sun') return <SunIcon className={className} />;
+  if (iconKey === 'rain') return <RainIcon className={className} />;
+  if (iconKey === 'storm') return <StormIcon className={className} />;
+  return <CloudIcon className={className} />;
+}
+
+function getCoachInitials(name: string) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('');
+}
+
+function getInitialMockSession() {
+  const stored = localStorage.getItem('stitchd.mock.session');
+
+  if (!stored) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(stored) as MockSession;
+    if (!parsed.role || !parsed.identity || !parsed.contact) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export function App() {
   const [apiBaseUrl, setApiBaseUrl] = useState(getInitialApiBaseUrl);
   const [email, setEmail] = useState(() => localStorage.getItem('stitchd.admin.email') || 'admin@stitchd.co.za');
@@ -566,6 +998,7 @@ export function App() {
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
+  const [bookingJourneys, setBookingJourneys] = useState<BookingJourney[]>([]);
   const [pendingProviders, setPendingProviders] = useState<PendingProvider[]>([]);
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -573,11 +1006,32 @@ export function App() {
   const [statusMessage, setStatusMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [showDeveloperSettings, setShowDeveloperSettings] = useState(false);
+  const [mockSession, setMockSession] = useState<MockSession | null>(getInitialMockSession);
+  const [authRole, setAuthRole] = useState<AuthRole>('client');
+  const [authIdentifier, setAuthIdentifier] = useState('');
+  const [authOtp, setAuthOtp] = useState('');
+  const [authStep, setAuthStep] = useState<'identify' | 'verify'>('identify');
+  const [authNotice, setAuthNotice] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>('planner');
   const [activeTab, setActiveTab] = useState<PlannerTab>('squad');
   const [selectedEventType, setSelectedEventType] = useState<EventType>('wedding');
   const [plannerExperience, setPlannerExperience] = useState<PlannerExperience | null>(null);
+  const [plannerSurface, setPlannerSurface] = useState<PlannerSurfaceData | null>(null);
+  const [plannerBoardOverride, setPlannerBoardOverride] = useState<{ core: VendorCardData[]; support: VendorCardData[] } | null>(null);
+  const [liveWeather, setLiveWeather] = useState<LiveWeatherSnapshot | null>(null);
+  const [browseCategory, setBrowseCategory] = useState<string | null>(null);
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null);
+  const [swapVendorId, setSwapVendorId] = useState<string | null>(null);
+  const [clashVendorId, setClashVendorId] = useState<string | null>(null);
+  const [compareVendorId, setCompareVendorId] = useState<string | null>(null);
+  const [coachProfileOpen, setCoachProfileOpen] = useState(false);
+  const [plannerToast, setPlannerToast] = useState('');
   const [plannerLoading, setPlannerLoading] = useState(false);
+  const [aiPicking, setAiPicking] = useState(false);
+  const [revealedVendorIds, setRevealedVendorIds] = useState<string[]>([]);
+  const [revealSequenceActive, setRevealSequenceActive] = useState(false);
 
   const payoutProfileReady = Boolean(
     settings?.businessLegalName?.trim()
@@ -643,15 +1097,31 @@ export function App() {
         score: plannerExperience.coach.rating.toFixed(1),
         events: plannerExperience.coach.eventsCompleted,
       }
-    : coachByEvent[selectedEventType];
-  const selectedWeather = plannerExperience?.weather || weatherByEvent[selectedEventType];
+    : selectedEventType === 'birthday'
+      ? null
+      : coachByEvent[selectedEventType];
+  const fallbackWeather = plannerExperience?.weather || weatherByEvent[selectedEventType];
+  const eventForecast = liveWeather?.forecast.find((day) => day.isEventDay)
+    || liveWeather?.forecast[0]
+    || plannerSurface?.weather.forecast.find((day) => day.isEventDay)
+    || plannerSurface?.weather.forecast[0];
+  const selectedWeather = eventForecast
+    ? {
+        ...fallbackWeather,
+        label: liveWeather?.current.label || ('condition' in eventForecast ? eventForecast.condition : fallbackWeather.label),
+        temperature: liveWeather?.current.temperature || ('tempC' in eventForecast ? `${eventForecast.tempC}°` : eventForecast.temperature),
+        rainChance: liveWeather?.current.rainChance || ('rainChancePct' in eventForecast ? eventForecast.rainChancePct : eventForecast.rainChance),
+        alert: liveWeather?.alertMessage || plannerSurface?.weather.alert?.recommendation || buildWeatherAlert(selectedEventType, 'rainChancePct' in eventForecast ? eventForecast.rainChancePct : eventForecast.rainChance, liveWeather?.current.label || ('condition' in eventForecast ? eventForecast.condition : fallbackWeather.label)),
+      }
+    : fallbackWeather;
   const selectedSchedule = plannerScheduleByEvent[selectedEventType];
-  const selectedBoard = plannerExperience
+  const resolvedBoard = plannerExperience
     ? {
         core: plannerExperience.squad.core.map(mapPlannerVendor),
         support: plannerExperience.squad.support.map(mapPlannerVendor),
       }
     : vendorBoard[selectedEventType];
+  const selectedBoard = plannerBoardOverride || resolvedBoard;
   const allocatedAmount = selectedBoard.core.concat(selectedBoard.support).reduce((total, vendor) => {
     const numeric = Number(vendor.priceLabel.replace(/[^0-9]/g, ''));
     return total + (Number.isFinite(numeric) ? numeric : 0);
@@ -665,16 +1135,105 @@ export function App() {
   const timelineValue = plannerExperience?.timelineStatus || (selectedWeather.rainChance > 50 && selectedEventType !== 'corporate' ? 'Behind' : 'On Track');
   const daysToEvent = calculateDayDifference(selectedSchedule.eventDate);
   const planningProgress = calculatePlanningProgress(selectedSchedule.eventDate, selectedSchedule.planningStartDate);
-  const forecastDays = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+  const forecastDays = liveWeather?.forecast || plannerSurface?.weather.forecast.map((day) => ({
+    day: day.dayAbbr,
+    temperature: `${day.tempC}°`,
+    rainChance: day.rainChancePct,
+    iconKey: day.iconKey,
+    isEventDay: day.isEventDay,
+  })) || ['Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
     const rainChance = Math.max(selectedWeather.rainChance - (index * 12), 8);
     return {
       day,
       temperature: `${selectedEventType === 'birthday' ? 26 - index : 21 + index}°`,
       rainChance,
-      icon: rainChance > 40 ? '☂' : rainChance < 20 ? '☀' : '☁',
+      iconKey: getWeatherIcon(rainChance),
       isEventDay: index === 2,
     };
   });
+  const messageThreads = plannerSurface?.messages.threads || [];
+  const activeThread = activeThreadId ? messageThreads.find((thread) => thread.id === activeThreadId) || null : null;
+  const activeClash = plannerSurface?.clashCandidates.find((item) => item.currentVendorId === clashVendorId) || null;
+  const swapChoices = swapVendorId ? plannerSurface?.swapOptions[swapVendorId] || [] : [];
+  const compareLeadVendor = compareVendorId
+    ? selectedBoard.core.concat(selectedBoard.support).find((vendor) => vendor.id === compareVendorId) || null
+    : null;
+  const activeWeatherAlert = liveWeather?.shouldAlert
+    ? {
+        title: 'Weather alert',
+        recommendation: liveWeather.alertMessage,
+        ctaLabel: 'View Tent Suppliers >',
+        browseCategory: 'tents',
+      }
+    : plannerSurface?.weather.alert;
+  const shouldShowWeatherAlert = liveWeather?.shouldAlert || (plannerSurface?.weather.shouldAlert && plannerSurface.weather.alert);
+  const canAccessOps = mockSession?.role === 'admin';
+  const authRoleConfig: Record<AuthRole, { label: string; prompt: string; placeholder: string; helper: string; value: string }> = {
+    client: {
+      label: 'Client',
+      prompt: 'Phone number',
+      placeholder: '+27 82 123 4567',
+      helper: 'Clients sign in before building or reviewing their event plan.',
+      value: 'Planner access',
+    },
+    supplier: {
+      label: 'Supplier',
+      prompt: 'Phone number',
+      placeholder: '+27 82 123 4567',
+      helper: 'Suppliers sign in before they can view bookings, messages, and workflow updates.',
+      value: 'Bookings and messages',
+    },
+    coach: {
+      label: 'Coach',
+      prompt: 'Phone number',
+      placeholder: '+27 82 123 4567',
+      helper: 'Coaches sign in before reviewing squad fit, messaging, and planning notes.',
+      value: 'Planning oversight',
+    },
+    admin: {
+      label: 'Admin',
+      prompt: 'Work email',
+      placeholder: 'admin@stitchd.co.za',
+      helper: 'Admins sign in before opening the planner or operations console.',
+      value: 'Platform control',
+    },
+  };
+  const authFeatureCards = [
+    { label: 'One secure entry', value: 'Planner, suppliers, and operations begin from one controlled sign-in surface.' },
+    { label: 'Role-aware access', value: 'Each user lands in the right workspace with a cleaner first-touch experience.' },
+    { label: 'Launch-ready presentation', value: 'The entry flow now matches the product tone expected in client review sessions.' },
+  ];
+  const browseSuppliers = useMemo(() => {
+    if (!browseCategory || !plannerSurface) return [] as SupplierBrowseItem[];
+
+    const baseItems = [
+      ...plannerSurface.suppliers.shortlist,
+      ...Object.values(plannerSurface.swapOptions).flat(),
+    ];
+
+    const deduped = baseItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index);
+    if (browseCategory === 'all') return deduped;
+
+    const term = browseCategory.toLowerCase();
+    const filtered = deduped.filter((item) => {
+      const haystack = `${item.slot} ${item.name} ${item.subcategory}`.toLowerCase();
+      return haystack.includes(term)
+        || (term === 'tents' && /(tent|marquee|cover)/.test(haystack));
+    });
+
+    if (term === 'tents') {
+      return [...filtered].sort((left, right) => right.rating - left.rating || right.score - left.score);
+    }
+
+    return filtered;
+  }, [browseCategory, plannerSurface]);
+
+  useEffect(() => {
+    if (!plannerToast) return undefined;
+
+    const timeout = window.setTimeout(() => setPlannerToast(''), 3200);
+    return () => window.clearTimeout(timeout);
+  }, [plannerToast]);
 
   useEffect(() => {
     localStorage.setItem('stitchd.admin.apiBaseUrl', apiBaseUrl);
@@ -693,30 +1252,60 @@ export function App() {
   }, [adminIdentity]);
 
   useEffect(() => {
+    if (mockSession) {
+      localStorage.setItem('stitchd.mock.session', JSON.stringify(mockSession));
+      return;
+    }
+
+    localStorage.removeItem('stitchd.mock.session');
+  }, [mockSession]);
+
+  useEffect(() => {
+    if (!canAccessOps && surfaceMode === 'ops') {
+      setSurfaceMode('planner');
+    }
+  }, [canAccessOps, surfaceMode]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
+  }, [activeTab, selectedEventType, surfaceMode]);
+
+  useEffect(() => {
     if (!token.trim()) return;
     void loadDashboard();
   }, []);
 
   useEffect(() => {
-    if (surfaceMode !== 'planner') return;
+    if (surfaceMode !== 'planner' || !mockSession) return;
 
     let cancelled = false;
+    const persona = mockSession.role;
 
     async function loadPlannerExperience() {
       setPlannerLoading(true);
+      setPlannerBoardOverride(null);
       try {
-        const response = await fetch(`${apiBaseUrl}/planner/mvp?eventType=${selectedEventType}&persona=admin`);
-        if (!response.ok) {
-          throw new Error(`Planner request failed with status ${response.status}`);
+        const [experienceResponse, surfaceResponse] = await Promise.all([
+          fetch(`${apiBaseUrl}/planner/mvp?eventType=${selectedEventType}&persona=${persona}`),
+          fetch(`${apiBaseUrl}/planner/surface?eventType=${selectedEventType}`),
+        ]);
+        if (!experienceResponse.ok || !surfaceResponse.ok) {
+          throw new Error('Planner request failed');
         }
 
-        const payload = await response.json() as PlannerExperience;
+        const [payload, surfacePayload] = await Promise.all([
+          experienceResponse.json() as Promise<PlannerExperience>,
+          surfaceResponse.json() as Promise<PlannerSurfaceData>,
+        ]);
         if (!cancelled) {
           setPlannerExperience(payload);
+          setPlannerSurface(surfacePayload);
+          setActiveThreadId(null);
         }
       } catch {
         if (!cancelled) {
           setPlannerExperience(null);
+          setPlannerSurface(null);
         }
       } finally {
         if (!cancelled) {
@@ -730,7 +1319,95 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, [apiBaseUrl, selectedEventType, surfaceMode]);
+  }, [apiBaseUrl, mockSession, selectedEventType, surfaceMode]);
+
+  useEffect(() => {
+    if (surfaceMode !== 'planner') return;
+
+    const withinWindow = daysToEvent <= 10;
+    if (!withinWindow) {
+      setLiveWeather(null);
+      return;
+    }
+
+    const cacheKey = `stitchd.weather.${selectedEventType}.${selectedSchedule.eventDate}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as LiveWeatherSnapshot;
+        if (Date.now() - parsed.fetchedAt < 3 * 60 * 60 * 1000) {
+          setLiveWeather(parsed);
+          return;
+        }
+      } catch {
+        localStorage.removeItem(cacheKey);
+      }
+    }
+
+    const controller = new AbortController();
+    const location = weatherCoordinatesByEvent[selectedEventType];
+
+    async function loadLiveWeather() {
+      try {
+        const response = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&daily=temperature_2m_max,precipitation_probability_max,weather_code&forecast_days=5&timezone=auto`,
+          { signal: controller.signal },
+        );
+        if (!response.ok) {
+          throw new Error('Weather request failed');
+        }
+
+        const payload = await response.json() as {
+          current: { temperature_2m: number; weather_code: number };
+          daily: {
+            time: string[];
+            temperature_2m_max: number[];
+            precipitation_probability_max: number[];
+            weather_code: number[];
+          };
+        };
+
+        const forecast = payload.daily.time.map((date, index) => {
+          const descriptor = getWeatherDescriptor(payload.daily.weather_code[index] || 0);
+          const dateValue = new Date(date);
+          return {
+            day: new Intl.DateTimeFormat('en-ZA', { weekday: 'short' }).format(dateValue),
+            temperature: `${Math.round(payload.daily.temperature_2m_max[index] || 0)}°`,
+            rainChance: payload.daily.precipitation_probability_max[index] || 0,
+            iconKey: descriptor.iconKey,
+            isEventDay: date === selectedSchedule.eventDate,
+          };
+        });
+
+        const currentDescriptor = getWeatherDescriptor(payload.current.weather_code || 0);
+        const eventDay = forecast.find((day) => day.isEventDay) || forecast[0];
+        const nextSnapshot: LiveWeatherSnapshot = {
+          locationLabel: plannerSurface?.locationLabel || location.locationLabel,
+          current: {
+            label: currentDescriptor.label,
+            temperature: `${Math.round(payload.current.temperature_2m)}°`,
+            rainChance: eventDay?.rainChance || 0,
+            iconKey: currentDescriptor.iconKey,
+          },
+          forecast,
+          shouldAlert: (eventDay?.rainChance || 0) > 50,
+          alertMessage: buildWeatherAlert(selectedEventType, eventDay?.rainChance || 0, currentDescriptor.label),
+          fetchedAt: Date.now(),
+        };
+
+        setLiveWeather(nextSnapshot);
+        localStorage.setItem(cacheKey, JSON.stringify(nextSnapshot));
+      } catch {
+        setLiveWeather(null);
+      }
+    }
+
+    void loadLiveWeather();
+
+    return () => {
+      controller.abort();
+    };
+  }, [daysToEvent, plannerSurface?.locationLabel, selectedEventType, selectedSchedule.eventDate, surfaceMode]);
 
   async function request<T>(path: string, init?: RequestInit, accessToken = token) {
     const response = await fetch(`${apiBaseUrl}${path}`, {
@@ -791,17 +1468,19 @@ export function App() {
     setStatusMessage('');
 
     try {
-      const [settingsResponse, pendingResponse, metricsResponse, recentPaymentsResponse] = await Promise.all([
+      const [settingsResponse, pendingResponse, metricsResponse, recentPaymentsResponse, bookingJourneysResponse] = await Promise.all([
         request<PlatformSettings>('/admin/settings', undefined, accessToken),
         request<PendingProvider[]>('/admin/providers/pending-verification', undefined, accessToken),
         request<DashboardMetrics>('/admin/dashboard-metrics', undefined, accessToken),
         request<RecentPayment[]>('/admin/payments/recent', undefined, accessToken),
+        request<BookingJourney[]>('/admin/bookings/journey', undefined, accessToken),
       ]);
 
       setSettings(settingsResponse);
       setPendingProviders(pendingResponse);
       setMetrics(metricsResponse);
       setRecentPayments(recentPaymentsResponse);
+      setBookingJourneys(bookingJourneysResponse);
       setStatusMessage(adminIdentity ? `Ops console connected as ${adminIdentity}.` : 'Ops console connected.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load admin dashboard.');
@@ -810,16 +1489,86 @@ export function App() {
     }
   }
 
-  function signOut() {
+  function clearAdminSession() {
     setToken('');
     setPassword('');
     setAdminIdentity('');
     setSettings(null);
     setMetrics(null);
     setRecentPayments([]);
+    setBookingJourneys([]);
     setPendingProviders([]);
-    setStatusMessage('Signed out.');
     setErrorMessage('');
+  }
+
+  function signOutApp() {
+    clearAdminSession();
+    setMockSession(null);
+    setSurfaceMode('planner');
+    setAuthStep('identify');
+    setAuthIdentifier('');
+    setAuthOtp('');
+    setAuthNotice('');
+    setAuthError('');
+    setBrowseCategory(null);
+    setActiveThreadId(null);
+    setSwapVendorId(null);
+    setClashVendorId(null);
+    setCoachProfileOpen(false);
+    setPlannerToast('');
+    setStatusMessage('Signed out.');
+  }
+
+  function requestMockOtp(event: FormEvent) {
+    event.preventDefault();
+    setAuthError('');
+
+    if (!authIdentifier.trim()) {
+      setAuthError(`Enter your ${authRole === 'admin' ? 'work email' : 'phone number'} to continue.`);
+      return;
+    }
+
+    setAuthStep('verify');
+    setAuthNotice(`Verification code sent to ${authIdentifier.trim()}. Enter the 6-digit code to continue.`);
+  }
+
+  function completeMockSignIn(event: FormEvent) {
+    event.preventDefault();
+    setAuthError('');
+
+    if (!/^\d{6}$/.test(authOtp.trim())) {
+      setAuthError('Enter a valid 6-digit verification code.');
+      return;
+    }
+
+    const config = authRoleConfig[authRole];
+    const trimmedIdentifier = authIdentifier.trim();
+    const baseIdentity = authRole === 'admin'
+      ? 'STITCHD Admin'
+      : authRole === 'supplier'
+        ? 'Supplier Workspace'
+        : authRole === 'coach'
+          ? 'Coach Workspace'
+          : 'Client Planner';
+
+    setMockSession({
+      role: authRole,
+      identity: baseIdentity,
+      contact: trimmedIdentifier,
+    });
+    setSurfaceMode(authRole === 'admin' ? surfaceMode : 'planner');
+    setAuthStep('identify');
+    setAuthOtp('');
+    setAuthNotice(`${config.label} signed in successfully.`);
+  }
+
+  function handleRoleSelection(role: AuthRole) {
+    setAuthRole(role);
+    setAuthIdentifier(role === 'admin' ? 'admin@stitchd.co.za' : '');
+    setAuthOtp('');
+    setAuthStep('identify');
+    setAuthNotice('');
+    setAuthError('');
   }
 
   async function saveSettings() {
@@ -862,47 +1611,299 @@ export function App() {
     }
   }
 
+  async function autoPickSquad() {
+    setAiPicking(true);
+    setRevealSequenceActive(false);
+    setRevealedVendorIds([]);
+    try {
+      const payload = await request<PlannerAutoPickResponse>('/planner/auto-pick', {
+        method: 'POST',
+        body: JSON.stringify({ eventType: selectedEventType }),
+      }, '');
+      const nextBoard = {
+        core: payload.core.map(mapPlannerVendor),
+        support: payload.support.map(mapPlannerVendor),
+      };
+      const revealIds = nextBoard.core.concat(nextBoard.support).map((vendor) => vendor.id);
+      setPlannerBoardOverride({
+        core: nextBoard.core,
+        support: nextBoard.support,
+      });
+      setActiveTab('squad');
+      setPlannerToast(payload.title);
+      setRevealSequenceActive(true);
+      revealIds.forEach((id, index) => {
+        window.setTimeout(() => {
+          setRevealedVendorIds((current) => (current.includes(id) ? current : [...current, id]));
+          if (index === revealIds.length - 1) {
+            window.setTimeout(() => setRevealSequenceActive(false), 220);
+          }
+        }, 150 * index);
+      });
+    } catch {
+      setPlannerToast('AI auto-pick is unavailable right now.');
+    } finally {
+      setAiPicking(false);
+    }
+  }
+
+  function openMessageThread(vendorId?: string) {
+    const thread = vendorId
+      ? messageThreads.find((candidate) => candidate.vendorId === vendorId)
+      : messageThreads[0];
+
+    if (!thread) {
+      setPlannerToast('No supplier conversation is available yet.');
+      return;
+    }
+
+    setActiveThreadId(thread.id);
+  }
+
+  function replaceVendor(nextVendor: SupplierBrowseItem) {
+    if (!swapVendorId) return;
+
+    const nextVendorCard = mapBrowseSupplierToVendor(nextVendor);
+    const replaceInList = (list: VendorCardData[]) => list.map((vendor) => (vendor.id === swapVendorId ? nextVendorCard : vendor));
+
+    setPlannerBoardOverride({
+      core: replaceInList(selectedBoard.core),
+      support: replaceInList(selectedBoard.support),
+    });
+    setSwapVendorId(null);
+    setPlannerToast(`${nextVendor.name} has replaced the current supplier.`);
+  }
+
+  function addSupportSupplier(nextVendor: SupplierBrowseItem) {
+    const nextVendorCard = {
+      ...mapBrowseSupplierToVendor(nextVendor),
+      status: 'booked' as VendorStatus,
+    };
+    const existingIndex = selectedBoard.support.findIndex((vendor) => vendor.slot === nextVendor.slot);
+    const nextSupport = [...selectedBoard.support];
+
+    if (existingIndex >= 0) {
+      nextSupport[existingIndex] = nextVendorCard;
+    } else {
+      nextSupport.push(nextVendorCard);
+    }
+
+    setPlannerBoardOverride({ core: [...selectedBoard.core], support: nextSupport });
+    setBrowseCategory(null);
+    setPlannerToast(`${nextVendor.name} has been added to the support squad.`);
+  }
+
+  function handleVendorAction(actionId: string, vendor: VendorCardData) {
+    if (actionId === 'swap') {
+      setSwapVendorId(vendor.id);
+      return;
+    }
+
+    if (actionId === 'message') {
+      openMessageThread(vendor.id);
+      return;
+    }
+
+    if (actionId === 'compare') {
+      if (!compareVendorId) {
+        setCompareVendorId(vendor.id);
+        setPlannerToast(`Compare mode armed for ${vendor.slot}. Choose another supplier in the same slot.`);
+        return;
+      }
+
+      if (compareVendorId === vendor.id) {
+        setCompareVendorId(null);
+        setPlannerToast('Compare mode cleared.');
+        return;
+      }
+
+      if (!compareLeadVendor) {
+        setCompareVendorId(vendor.id);
+        return;
+      }
+
+      if (compareLeadVendor.slot !== vendor.slot) {
+        setPlannerToast(`Select another ${compareLeadVendor.slot.toLowerCase()} supplier to compare.`);
+        return;
+      }
+
+      const clashCandidate = plannerSurface?.clashCandidates.find((candidate) => {
+        const involved = [compareLeadVendor.id, vendor.id];
+        if (!involved.includes(candidate.currentVendorId) && !involved.includes(candidate.winnerVendorId)) {
+          return false;
+        }
+
+        return candidate.comparison.some((row) => row.current === compareLeadVendor.name || row.challenger === vendor.name || row.current === vendor.name || row.challenger === compareLeadVendor.name);
+      });
+
+      setCompareVendorId(null);
+      if (clashCandidate) {
+        setClashVendorId(clashCandidate.currentVendorId);
+        return;
+      }
+
+      setPlannerToast('Comparison data is being prepared for these suppliers.');
+      return;
+    }
+
+    if (actionId === 'timeline') {
+      setPlannerToast(`${vendor.name} is synced to the event timeline.`);
+      return;
+    }
+
+    setPlannerToast(`Notes for ${vendor.name} stay inside the planner thread.`);
+  }
+
+  if (!mockSession) {
+    return (
+      <main className="stitchdShell authShell">
+        <div className="pageGlow pageGlowLeft" />
+        <div className="pageGlow pageGlowRight" />
+        <section className="authGate glassPanel">
+          <div className="authHeroPanel">
+            <span className="minorLabel">Secure entry</span>
+            <div className="brandWordmark">STITCHD</div>
+            <h1>Sign in before entering the planner.</h1>
+            <p>Every client, supplier, coach, and admin enters through one secure sign-in experience designed to keep planning, communication, and operations aligned from the start.</p>
+            <div className="authFeatureStrip">
+              {authFeatureCards.map((item) => (
+                <article key={item.label} className="authFeatureCard glassPanelNested">
+                  <span className="minorLabel">{item.label}</span>
+                  <p>{item.value}</p>
+                </article>
+              ))}
+            </div>
+            <div className="authRoleGrid">
+              {(Object.keys(authRoleConfig) as AuthRole[]).map((role) => (
+                <button key={role} type="button" className={`authRoleCard ${authRole === role ? 'is-active' : ''}`} onClick={() => handleRoleSelection(role)}>
+                  <span className="minorLabel">{authRoleConfig[role].label}</span>
+                  <strong>{authRoleConfig[role].value}</strong>
+                  <p>{authRoleConfig[role].helper}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {authStep === 'identify' ? (
+            <form className="authEntryCard glassPanelNested" onSubmit={requestMockOtp}>
+              <span className="minorLabel">Sign in</span>
+              <h2>{authRoleConfig[authRole].label} access</h2>
+              <p>Use your {authRole === 'admin' ? 'work email' : 'mobile number'} to continue into the STITCHD experience.</p>
+              <label>
+                {authRoleConfig[authRole].prompt}
+                <input
+                  value={authIdentifier}
+                  onChange={(event) => setAuthIdentifier(event.target.value)}
+                  placeholder={authRoleConfig[authRole].placeholder}
+                  type={authRole === 'admin' ? 'email' : 'tel'}
+                  autoComplete={authRole === 'admin' ? 'email' : 'tel'}
+                />
+              </label>
+              {authNotice ? <p className="statusOk">{authNotice}</p> : null}
+              {authError ? <p className="statusError">{authError}</p> : null}
+              <button type="submit" className="primaryButton">Continue</button>
+            </form>
+          ) : (
+            <form className="authEntryCard glassPanelNested" onSubmit={completeMockSignIn}>
+              <span className="minorLabel">Verify access</span>
+              <h2>Enter verification code</h2>
+              <p>{authNotice || `A verification code was sent to ${authIdentifier}.`}</p>
+              <label>
+                Verification code
+                <input value={authOtp} onChange={(event) => setAuthOtp(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} />
+              </label>
+              {authError ? <p className="statusError">{authError}</p> : null}
+              <div className="authActionsRow">
+                <button type="button" className="secondaryButton" onClick={() => setAuthStep('identify')}>Back</button>
+                <button type="submit" className="primaryButton">Enter app</button>
+              </div>
+            </form>
+          )}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="stitchdShell">
       <div className="pageGlow pageGlowLeft" />
       <div className="pageGlow pageGlowRight" />
-      <section className="modeRail">
+      <section className="topRail">
+        <section className="modeRail">
         <button type="button" className={`modePill ${surfaceMode === 'planner' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('planner')}>
           STITCHD Planner
         </button>
-        <button type="button" className={`modePill ${surfaceMode === 'ops' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('ops')}>
-          STITCHD Ops Console
-        </button>
+          {canAccessOps ? (
+            <button type="button" className={`modePill ${surfaceMode === 'ops' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('ops')}>
+              STITCHD Ops Console
+            </button>
+          ) : null}
+        </section>
+
+        <section className="sessionRail glassPanelNested">
+          <div>
+            <span className="minorLabel">Signed in</span>
+            <strong>{mockSession.identity}</strong>
+            <p>{mockSession.contact}</p>
+          </div>
+          <button type="button" className="ghostButton" onClick={signOutApp}>Sign out</button>
+      </section>
       </section>
 
       {surfaceMode === 'planner' ? (
         <section className="plannerSurface">
+          {plannerToast ? <div className="plannerToast">{plannerToast}</div> : null}
           <header className="plannerHeader glassPanel">
             <div className="brandPanel">
-              <div className="brandWordmark">STITCHD</div>
+              <div className="brandPanelRow">
+                <div className="brandWordmark">STITCHD</div>
+                <button type="button" className="headerMenuButton" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((current) => !current)}>
+                  {mobileNavOpen ? <CloseIcon className="plannerIcon" /> : <MenuIcon className="plannerIcon" />}
+                </button>
+              </div>
               <p>{selectedEventOption.label}</p>
             </div>
 
-            <nav className="plannerNav" aria-label="Primary planner tabs">
+            <nav className={`plannerNav ${mobileNavOpen ? 'is-open' : ''}`} aria-label="Primary planner tabs">
               {plannerTabs.map((tab) => (
-                <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => {
+                  setActiveTab(tab.id);
+                  setMobileNavOpen(false);
+                }}>
                   {tab.label}
                 </button>
               ))}
             </nav>
 
-            <div className="coachCard glassPanel">
-              <div className="coachAvatar">MC</div>
-              <div>
-                <span className="minorLabel">COACH</span>
-                <strong>{selectedCoach.name}</strong>
-                <p>{selectedCoach.role}</p>
-                <div className="coachMeta">
-                  <span className="scorePill">{selectedCoach.score}</span>
-                  <span>{selectedCoach.events} events</span>
+            {selectedCoach ? (
+              <div className="coachCard glassPanel">
+                <div className="coachAvatar" aria-hidden="true">{getCoachInitials(selectedCoach.name)}</div>
+                <div className="coachInfo">
+                  <span className="minorLabel">COACH</span>
+                  <strong>{selectedCoach.name}</strong>
+                  <p>{selectedCoach.role}</p>
+                  <div className="coachMeta">
+                    <span className="scorePill">{selectedCoach.score}</span>
+                    <span>{selectedCoach.events} events</span>
+                  </div>
+                </div>
+                <div className="coachActions">
+                  <button type="button" className="ghostButton coachButton" onClick={() => setCoachProfileOpen(true)}>View Profile &gt;</button>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="coachCard coachCardEmpty glassPanel">
+                <div className="coachAvatar coachAvatarEmpty" aria-hidden="true">+</div>
+                <div className="coachInfo">
+                  <span className="minorLabel">COACH</span>
+                  <strong>Find a Coach</strong>
+                  <p>Get a curated planning partner assigned to this event.</p>
+                </div>
+                <div className="coachActions">
+                  <button type="button" className="ghostButton coachButton" onClick={() => setPlannerToast('Coach matching will open after the next shortlist refresh.')}>Assign Coach &gt;</button>
+                </div>
+              </div>
+            )}
           </header>
 
           <section className="heroStrip glassPanel">
@@ -966,84 +1967,215 @@ export function App() {
             <section className="plannerMainBoard">
               <div className="sectionHeadingRow">
                 <div>
-                  <span className="minorLabel">Your Core Squad</span>
+                  <span className="minorLabel">{activeTab === 'squad' ? 'Your Core Squad' : 'Planner Workspace'}</span>
                   <h2>{activeTab === 'squad' ? 'Build the event team' : `${plannerTabs.find((tab) => tab.id === activeTab)?.label} view`}</h2>
                 </div>
-                <button type="button" className="ghostButton">AI Auto-Pick Squad</button>
+                <button type="button" className="ghostButton" onClick={() => void autoPickSquad()} disabled={aiPicking}>
+                  {aiPicking ? 'Auto-picking...' : 'AI Auto-Pick Squad'}
+                </button>
               </div>
-
-              <div className="vendorGrid vendorGridCore">
-                {selectedBoard.core.map((vendor) => (
-                  <article key={vendor.id} className={`vendorCard ${vendor.status === 'recommended' ? 'cardRecommended' : ''}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.05) 0%, rgba(8,8,14,0.82) 72%, rgba(8,8,14,0.95) 100%), url(${vendor.image})` }}>
-                    <div className="vendorScore">{vendor.score}</div>
-                    <span className="vendorSlot">{vendor.slot}</span>
-                    <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                    <div className="vendorFooter">
-                      <strong>{vendor.name}</strong>
-                      <p>{vendor.subcategory}</p>
-                      <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
-                      <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
-                        {plannerActionIcons.map((Icon, index) => (
-                          <button key={`${vendor.id}-action-${index}`} type="button" className="vendorActionButton" aria-label={`${vendor.name} action ${index + 1}`}>
-                            <Icon className="plannerIcon" />
-                          </button>
-                        ))}
-                      </div>
-                      <div className="vendorPrice">{vendor.priceLabel}</div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-
-              <div className="sectionHeadingRow supportHeading">
-                <div>
-                  <span className="minorLabel">Support Squad</span>
-                  <h2>Fill the optional and contextual slots</h2>
-                </div>
-              </div>
-
-              <div className="vendorGrid vendorGridSupport">
-                {selectedBoard.support.map((vendor) => (
-                  <article key={vendor.id} className={`vendorCard vendorCardSupport ${vendor.status === 'recommended' ? 'cardRecommended' : ''}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.08) 0%, rgba(8,8,14,0.84) 74%, rgba(8,8,14,0.95) 100%), url(${vendor.image})` }}>
-                    <div className="vendorScore">{vendor.score}</div>
-                    <span className="vendorSlot">{vendor.slot}</span>
-                    <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                    <div className="vendorFooter">
-                      <strong>{vendor.name}</strong>
-                      <p>{vendor.subcategory}</p>
-                      <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
-                      <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
-                        {plannerActionIcons.map((Icon, index) => (
-                          <button key={`${vendor.id}-support-action-${index}`} type="button" className="vendorActionButton" aria-label={`${vendor.name} action ${index + 1}`}>
-                            <Icon className="plannerIcon" />
-                          </button>
-                        ))}
-                        <button type="button" className="supportAddButton" aria-label={`Add ${vendor.name} to the squad`}>
-                          <PlusIcon className="plannerIcon" />
-                        </button>
-                      </div>
-                      <div className="vendorPrice">{vendor.priceLabel}</div>
-                    </div>
-                  </article>
-                ))}
-
-                <article className="alertCard glassPanel">
-                  <div className="alertCardHeader">
-                    <span className="alertSparkle">✦</span>
-                    <span className="minorLabel is-gold">WEATHER ALERT</span>
+              {activeTab === 'squad' ? (
+                <>
+                  <div className="vendorGrid vendorGridCore">
+                    {selectedBoard.core.map((vendor) => (
+                      <article key={vendor.id} className={`vendorCard ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.05) 0%, rgba(8,8,14,0.82) 72%, rgba(8,8,14,0.95) 100%), ${getVendorArtwork(vendor)}` }}>
+                        <div className="vendorScore">{vendor.score}</div>
+                        <span className="vendorSlot">{vendor.slot}</span>
+                        <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
+                        <div className="vendorFooter">
+                          <strong>{vendor.name}</strong>
+                          <p>{vendor.subcategory}</p>
+                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
+                          <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
+                            {[
+                              { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
+                              { id: 'message', Icon: ChatIcon, label: 'Message supplier' },
+                              { id: 'compare', Icon: DocumentIcon, label: 'Compare supplier' },
+                              { id: 'timeline', Icon: CalendarIcon, label: 'Sync timeline' },
+                              { id: 'notes', Icon: BellIcon, label: 'View notes' },
+                            ].map((action) => (
+                              <button key={`${vendor.id}-${action.id}`} type="button" className="vendorActionButton" aria-label={`${action.label} for ${vendor.name}`} onClick={() => handleVendorAction(action.id, vendor)}>
+                                <action.Icon className="plannerIcon" />
+                              </button>
+                            ))}
+                          </div>
+                          <div className="vendorPrice">{vendor.priceLabel}</div>
+                        </div>
+                      </article>
+                    ))}
+                    {aiPicking ? Array.from({ length: selectedBoard.core.length }).map((_, index) => (
+                      <article key={`core-loading-${index}`} className="vendorCard vendorCardLoading">
+                        <div className="vendorCardShimmer" />
+                      </article>
+                    )) : null}
                   </div>
-                  <strong>High chance of rain on your event day.</strong>
-                  <p>{selectedWeather.alert}</p>
-                  <button type="button" className="ghostButton">View Tent Suppliers &gt;</button>
-                </article>
 
-                {[1, 2].map((slot) => (
-                  <button key={slot} type="button" className="addSupplierCard">
-                    <span>+</span>
-                    <strong>Add Supplier</strong>
-                  </button>
-                ))}
-              </div>
+                  <div className="sectionHeadingRow supportHeading">
+                    <div>
+                      <span className="minorLabel">Support Squad</span>
+                      <h2>Fill the optional and contextual slots</h2>
+                    </div>
+                  </div>
+
+                  <div className="vendorGrid vendorGridSupport">
+                    {selectedBoard.support.map((vendor) => (
+                      <article key={vendor.id} className={`vendorCard vendorCardSupport ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`} style={{ backgroundImage: `linear-gradient(180deg, rgba(8,8,14,0.08) 0%, rgba(8,8,14,0.84) 74%, rgba(8,8,14,0.95) 100%), ${getVendorArtwork(vendor)}` }}>
+                        <div className="vendorScore">{vendor.score}</div>
+                        <span className="vendorSlot">{vendor.slot}</span>
+                        <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
+                        <div className="vendorFooter">
+                          <strong>{vendor.name}</strong>
+                          <p>{vendor.subcategory}</p>
+                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount})</span></div>
+                          <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
+                            {[
+                              { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
+                              { id: 'message', Icon: ChatIcon, label: 'Message supplier' },
+                              { id: 'compare', Icon: DocumentIcon, label: 'Compare supplier' },
+                              { id: 'timeline', Icon: CalendarIcon, label: 'Sync timeline' },
+                              { id: 'notes', Icon: BellIcon, label: 'View notes' },
+                            ].map((action) => (
+                              <button key={`${vendor.id}-${action.id}`} type="button" className="vendorActionButton" aria-label={`${action.label} for ${vendor.name}`} onClick={() => handleVendorAction(action.id, vendor)}>
+                                <action.Icon className="plannerIcon" />
+                              </button>
+                            ))}
+                            <button type="button" className="supportAddButton" aria-label={`Add ${vendor.name} to the squad`} onClick={() => setBrowseCategory('all')}>
+                              <PlusIcon className="plannerIcon" />
+                            </button>
+                          </div>
+                          <div className="vendorPrice">{vendor.priceLabel}</div>
+                        </div>
+                      </article>
+                    ))}
+
+                    {shouldShowWeatherAlert && activeWeatherAlert ? (
+                      <article className="alertCard glassPanel">
+                        <div className="alertCardHeader">
+                          <span className="alertSparkle">✦</span>
+                          <span className="minorLabel is-gold">WEATHER ALERT</span>
+                        </div>
+                        <strong>{activeWeatherAlert.title}</strong>
+                        <p>{activeWeatherAlert.recommendation}</p>
+                        <button type="button" className="ghostButton" onClick={() => setBrowseCategory(activeWeatherAlert.browseCategory || 'all')}>
+                          {activeWeatherAlert.ctaLabel}
+                        </button>
+                      </article>
+                    ) : null}
+
+                    {aiPicking ? Array.from({ length: Math.max(selectedBoard.support.length, 2) }).map((_, index) => (
+                      <article key={`support-loading-${index}`} className="vendorCard vendorCardSupport vendorCardLoading">
+                        <div className="vendorCardShimmer" />
+                      </article>
+                    )) : null}
+
+                    {[1, 2].map((slot) => (
+                      <button key={slot} type="button" className="addSupplierCard" onClick={() => setBrowseCategory('all')}>
+                        <span>+</span>
+                        <strong>Add Supplier</strong>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {activeTab === 'suppliers' ? (
+                <div className="tabPanelGrid">
+                  {plannerSurface?.suppliers.shortlist.map((supplier) => (
+                    <article key={supplier.id} className="tabInsightCard glassPanelNested">
+                      <div className="tabInsightHeader">
+                        <span className="minorLabel">{supplier.slot}</span>
+                        <span className={`statusBadge status-${supplier.status}`}>{supplier.status.replace('_', ' ')}</span>
+                      </div>
+                      <strong>{supplier.name}</strong>
+                      <p>{supplier.subcategory}</p>
+                      <div className="tabInsightMeta">
+                        <span>{formatStars(supplier.rating)} ({supplier.reviewCount})</span>
+                        <span>{supplier.priceLabel}</span>
+                      </div>
+                      <p>{supplier.compatibilityNote}</p>
+                      <button type="button" className="ghostButton" onClick={() => setBrowseCategory(supplier.slot.toLowerCase())}>Browse similar suppliers</button>
+                    </article>
+                  ))}
+                  {plannerSurface?.suppliers.browseCategories.map((category) => (
+                    <article key={category.key} className="tabInsightCard glassPanelNested">
+                      <span className="minorLabel">Browse category</span>
+                      <strong>{category.label}</strong>
+                      <p>{category.description}</p>
+                      <button type="button" className="ghostButton" onClick={() => setBrowseCategory(category.key)}>Open supplier browse</button>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
+
+              {activeTab === 'budget' ? (
+                <div className="budgetPanel glassPanelNested">
+                  <div className="budgetHeader">
+                    <div>
+                      <span className="minorLabel">Budget breakdown</span>
+                      <strong>{formatCurrencyFromRands(plannerSurface?.budget.allocated || allocatedAmount)}</strong>
+                      <p>of {formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</p>
+                    </div>
+                    <div className="splitMeta emphasised">
+                      <span>Allocated</span>
+                      <span>{Math.round((((plannerSurface?.budget.allocated || allocatedAmount) / (plannerSurface?.budget.total || totalBudget)) || 0) * 100)}%</span>
+                    </div>
+                  </div>
+                  <div className="budgetLineList">
+                    {(plannerSurface?.budget.lines || []).map((line) => (
+                      <article key={line.id} className="budgetLineItem">
+                        <div>
+                          <strong>{line.label}</strong>
+                          <p>{line.owner}</p>
+                        </div>
+                        <div className="budgetLineMeta">
+                          <span className={`statusBadge status-${line.status === 'pending' ? 'at_risk' : line.status === 'quote' ? 'optional' : line.status === 'booked' ? 'booked' : 'secured'}`}>{line.status}</span>
+                          <strong>{formatCurrencyFromRands(line.amount)}</strong>
+                          <p>{line.dueLabel}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === 'inspiration' ? (
+                <div className="tabPanelGrid">
+                  {(plannerSurface?.inspiration.boards || []).map((board) => (
+                    <article key={board.id} className="tabInsightCard inspirationCard glassPanelNested">
+                      <span className="minorLabel">{board.theme}</span>
+                      <strong>{board.title}</strong>
+                      <p>{board.note}</p>
+                      <div className="tagRow">
+                        {board.matchedSupplierIds.map((match) => (
+                          <span key={match} className="miniTag">{match}</span>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                  <article className="tabInsightCard glassPanelNested">
+                    <span className="minorLabel">AI vibe analysis</span>
+                    <strong>References mapped to suppliers</strong>
+                    <p>{plannerSurface?.inspiration.insight || 'Style guidance is loading for this event.'}</p>
+                    <button type="button" className="ghostButton" onClick={() => setActiveTab('suppliers')}>View matched suppliers</button>
+                  </article>
+                </div>
+              ) : null}
+
+              {activeTab === 'marketplace' ? (
+                <div className="tabPanelGrid">
+                  {(plannerSurface?.marketplace.featured || []).map((feature) => (
+                    <article key={feature.id} className="tabInsightCard glassPanelNested">
+                      <span className="minorLabel">{feature.category}</span>
+                      <strong>{feature.title}</strong>
+                      <p>{feature.description}</p>
+                      <div className="tabInsightMeta">
+                        <span>{feature.location}</span>
+                        <span>{feature.priceHint}</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : null}
             </section>
 
             <aside className="plannerSidebar">
@@ -1075,18 +2207,22 @@ export function App() {
                   <span className="minorLabel">Weather Forecast</span>
                 </div>
                 <div className="weatherHero">
-                  <div className="weatherIcon">☁</div>
+                  <div className="weatherIcon"><WeatherGlyph iconKey={eventForecast?.iconKey || getWeatherIcon(selectedWeather.rainChance)} className="weatherGlyph" /></div>
                   <div>
                     <strong>{selectedWeather.temperature}</strong>
                     <p>{selectedWeather.label}</p>
                   </div>
+                </div>
+                <div className="weatherStatusRow">
+                  <span>{plannerSurface?.locationLabel || 'Planner event forecast'}</span>
+                  <span>Event-day forecast active</span>
                 </div>
                 <div className="splitMeta emphasised"><span>Chance of rain</span><span className={getWeatherTone(selectedWeather.rainChance)}>{selectedWeather.rainChance}%</span></div>
                 <div className="forecastStrip">
                   {forecastDays.map((day) => (
                     <div key={day.day} className={`forecastDay ${day.isEventDay ? 'is-active' : ''}`}>
                       <span>{day.day}</span>
-                      <small className="forecastIcon">{day.icon}</small>
+                      <small className="forecastIcon"><WeatherGlyph iconKey={day.iconKey} className="forecastGlyph" /></small>
                       <strong>{day.temperature}</strong>
                       <small className={getWeatherTone(day.rainChance)}>{day.rainChance}%</small>
                     </div>
@@ -1116,8 +2252,153 @@ export function App() {
                 <p>{metric.note}</p>
               </div>
             ))}
-            <button type="button" className="messageButton">View Messages <span>12</span></button>
+            <button type="button" className="messageButton" onClick={() => openMessageThread()}>
+              View Messages <span>{plannerSurface?.unreadCount || 0}</span>
+            </button>
           </footer>
+
+          {coachProfileOpen && plannerSurface?.coachProfile ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Assigned coach</span>
+                    <strong>{plannerSurface.coachProfile.name}</strong>
+                    <p>{plannerSurface.coachProfile.role}</p>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setCoachProfileOpen(false)}>Close</button>
+                </div>
+                <p>{plannerSurface.coachProfile.bio}</p>
+                <div className="tagRow">
+                  {plannerSurface.coachProfile.specialties.map((specialty) => (
+                    <span key={specialty} className="miniTag">{specialty}</span>
+                  ))}
+                </div>
+                <div className="splitMeta emphasised">
+                  <span>{plannerSurface.coachProfile.rating.toFixed(1)} rating</span>
+                  <span>{plannerSurface.coachProfile.eventsCompleted} events</span>
+                </div>
+                <p>{plannerSurface.coachProfile.nextAvailable}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {browseCategory ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Supplier browse</span>
+                    <strong>{browseCategory === 'all' ? 'Recommended suppliers' : browseCategory}</strong>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setBrowseCategory(null)}>Close</button>
+                </div>
+                <div className="modalList">
+                  {browseSuppliers.map((supplier) => (
+                    <article key={supplier.id} className="modalListItem">
+                      <div>
+                        <strong>{supplier.name}</strong>
+                        <p>{supplier.slot} · {supplier.subcategory}</p>
+                        {browseCategory === 'tents' ? <span className="miniTag">Recommended for your event date</span> : null}
+                        <p>{supplier.compatibilityNote}</p>
+                      </div>
+                      <div className="modalListMeta">
+                        <span>{supplier.priceLabel}</span>
+                        <span>{formatStars(supplier.rating)}</span>
+                        <button type="button" className="ghostButton" onClick={() => addSupportSupplier(supplier)}>Add to squad</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {swapVendorId ? (
+            <div className="overlayShell overlaySheet" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel bottomSheetPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Swap supplier</span>
+                    <strong>Alternative matches</strong>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setSwapVendorId(null)}>Close</button>
+                </div>
+                <div className="modalList compactList">
+                  {swapChoices.map((supplier) => (
+                    <article key={supplier.id} className="modalListItem compactItem">
+                      <div>
+                        <strong>{supplier.name}</strong>
+                        <p>{supplier.compatibilityNote}</p>
+                      </div>
+                      <div className="modalListMeta">
+                        <span>{supplier.priceLabel}</span>
+                        <button type="button" className="ghostButton" onClick={() => replaceVendor(supplier)}>Use this supplier</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {activeClash ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Vendor clash</span>
+                    <strong>{activeClash.summary}</strong>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setClashVendorId(null)}>Close</button>
+                </div>
+                <div className="comparisonGrid">
+                  {activeClash.comparison.map((row) => (
+                    <div key={row.label} className="comparisonRow">
+                      <span>{row.current}</span>
+                      <strong>{row.label}</strong>
+                      <span>{row.challenger}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="splitMeta emphasised">
+                  <span>Winner: {activeClash.winnerVendorId}</span>
+                  <span>{activeClash.communityChoicePct}% community choice</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {activeThread ? (
+            <div className="drawerShell" role="dialog" aria-modal="true">
+              <div className="drawerPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Messages</span>
+                    <strong>{activeThread.vendorName}</strong>
+                    <p>{activeThread.slot}</p>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setActiveThreadId(null)}>Close</button>
+                </div>
+                <div className="threadPickerRow">
+                  {messageThreads.map((thread) => (
+                    <button key={thread.id} type="button" className={`threadPill ${thread.id === activeThread.id ? 'is-active' : ''}`} onClick={() => setActiveThreadId(thread.id)}>
+                      {thread.vendorName} <span>{thread.unreadCount}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="messageThread">
+                  {activeThread.messages.map((message) => (
+                    <article key={message.id} className={`messageBubble sender-${message.sender}`}>
+                      <strong>{message.senderName}</strong>
+                      <p>{message.text}</p>
+                      <small>{new Intl.DateTimeFormat('en-ZA', { hour: '2-digit', minute: '2-digit' }).format(new Date(message.timestamp))}</small>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </section>
       ) : (
         <section className="opsSurface">
@@ -1148,7 +2429,7 @@ export function App() {
                   <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading}>
                     {loading ? 'Refreshing...' : 'Refresh Dashboard'}
                   </button>
-                  <button type="button" className="primaryButton" onClick={signOut}>Sign out</button>
+                  <button type="button" className="primaryButton" onClick={signOutApp}>Sign out</button>
                 </div>
               </div>
             ) : (
@@ -1321,6 +2602,83 @@ export function App() {
                               {payment.checkoutUrl ? (
                                 <a href={payment.checkoutUrl} target="_blank" rel="noreferrer" className="documentLink">Open checkout</a>
                               ) : null}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <div className="sectionHeader compactHeader">
+                      <div>
+                        <p className="eyebrow compact">Booking Inspector</p>
+                        <h2>Booking journey logic</h2>
+                      </div>
+                    </div>
+
+                    {bookingJourneys.length === 0 ? (
+                      <p className="emptyState">No booking journeys are available yet.</p>
+                    ) : (
+                      <div className="journeyFeed">
+                        {bookingJourneys.map((journey) => (
+                          <article className="journeyCard glassPanelNested" key={journey.id}>
+                            <div className="journeyCardHeader">
+                              <div>
+                                <strong>{journey.bookingRef}</strong>
+                                <p>{journey.service} • {journey.type.toUpperCase()}</p>
+                              </div>
+                              <span className={`statusPill ${journey.paymentStatus === 'paid' ? 'approved' : 'pending'}`}>
+                                {journey.currentStage.replace('_', ' ')}
+                              </span>
+                            </div>
+
+                            <div className="journeyMetaGrid">
+                              <div>
+                                <span>Customer</span>
+                                <strong>{journey.customerName}</strong>
+                              </div>
+                              <div>
+                                <span>Provider</span>
+                                <strong>{journey.providerName}</strong>
+                              </div>
+                              <div>
+                                <span>Payment</span>
+                                <strong>{journey.paymentMethod.toUpperCase()} • {journey.paymentStatus.toUpperCase()}</strong>
+                              </div>
+                              <div>
+                                <span>Settlement</span>
+                                <strong>{formatCurrency(journey.providerEarningsCents)} payout</strong>
+                              </div>
+                            </div>
+
+                            <div className="journeyStageRail" aria-label={`${journey.bookingRef} booking stages`}>
+                              {journey.stages.map((stage) => (
+                                <div key={stage.key} className={`journeyStage ${stage.status === 'active' ? 'is-active' : stage.status === 'done' ? 'is-done' : ''}`}>
+                                  <span className="journeyStageDot" />
+                                  <strong>{stage.label}</strong>
+                                  <small>{stage.timestamp ? new Date(stage.timestamp).toLocaleString() : 'Pending'}</small>
+                                  <p>{stage.note}</p>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="journeyFooter">
+                              <div className="journeySettlementSummary">
+                                <span>Total charged {formatCurrency(journey.amountCents)}</span>
+                                <span>Commission {formatCurrency(journey.commissionCents)}</span>
+                                {journey.scheduledAt ? <span>Scheduled {new Date(journey.scheduledAt).toLocaleString()}</span> : <span>Instant dispatch</span>}
+                              </div>
+                              <div className="journeyNotifications">
+                                <span className="minorLabel">Notifications sent</span>
+                                {journey.notifications.map((notification) => (
+                                  <div key={notification.id} className="journeyNotificationRow">
+                                    <strong>{notification.audience}</strong>
+                                    <span>{notification.message}</span>
+                                    <small>{new Date(notification.timestamp).toLocaleString()}</small>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           </article>
                         ))}

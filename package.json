@@ -9,6 +9,7 @@
   ],
   "scripts": {
     "dev:api": "yarn workspace @stitchd/api dev",
+    "dev:api:mock": "yarn workspace @stitchd/api dev:mock",
     "dev:admin": "yarn workspace @stitchd/admin dev",
     "build:api": "yarn workspace @stitchd/api build",
     "build:admin": "yarn workspace @stitchd/admin build",
