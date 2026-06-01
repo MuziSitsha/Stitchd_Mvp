@@ -262,6 +262,16 @@ textarea {
   font-weight: 600;
 }
 
+.authEntryCard input {
+  color: var(--text-primary);
+  border-color: rgba(16, 33, 22, 0.16);
+  background: rgba(255, 248, 230, 0.92);
+}
+
+.authEntryCard input::placeholder {
+  color: rgba(16, 33, 22, 0.42);
+}
+
 .authActionsRow {
   display: flex;
   gap: 12px;
@@ -794,6 +804,321 @@ textarea {
 .summaryCardAccent {
   border-color: rgba(181, 138, 47, 0.22);
   background: linear-gradient(180deg, rgba(251, 247, 232, 0.96), rgba(241, 233, 205, 0.92));
+}
+
+.summaryCardActions {
+  display: flex;
+  margin-top: 12px;
+}
+
+.pulseScoreCard {
+  display: grid;
+  gap: 12px;
+}
+
+.pulseScoreCard.is-healthy {
+  background: linear-gradient(180deg, rgba(235, 248, 238, 0.98), rgba(203, 235, 214, 0.92));
+}
+
+.pulseScoreCard.is-watch {
+  background: linear-gradient(180deg, rgba(255, 243, 208, 0.98), rgba(248, 224, 158, 0.92));
+}
+
+.pulseScoreCard.is-risk {
+  background: linear-gradient(180deg, rgba(255, 229, 229, 0.98), rgba(249, 190, 190, 0.92));
+}
+
+.pulseScoreCircle {
+  display: grid;
+  place-items: center;
+  width: 128px;
+  height: 128px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 10px solid rgba(255, 255, 255, 0.38);
+  box-shadow: inset 0 0 0 1px rgba(16, 33, 22, 0.06);
+}
+
+.pulseScoreCircle strong {
+  font-size: 2rem;
+  line-height: 0.9;
+}
+
+.pulseScoreCircle span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
+}
+
+.dashboardTab,
+.marketplaceScreen,
+.budgetPulseGrid,
+.coachScreen {
+  display: grid;
+  gap: 16px;
+}
+
+.kpiGrid,
+.twoUpGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.twoUpGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.kpiMetricCard,
+.riskAlertCard,
+.bundleCard,
+.valueAddCard,
+.coachNoteCard,
+.coachConversationPreview,
+.weatherWidgetCard,
+.insightsBoxCard,
+.budgetOverviewCard,
+.budgetChartCard,
+.coachPrimaryCard {
+  padding: 18px;
+}
+
+.kpiMetricCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.5rem;
+}
+
+.insightBulletList {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.bundleMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.riskList,
+.journeyPanel,
+.budgetLegend {
+  display: grid;
+  gap: 12px;
+}
+
+.riskAlertCard strong,
+.budgetLegendRow strong,
+.coachConversationRow strong {
+  display: block;
+  margin: 6px 0;
+}
+
+.supplierRail,
+.valueAddCarousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(260px, 320px);
+  gap: 14px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.supplierSpotlightCard,
+.supplierMarketplaceCard {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+}
+
+.supplierSpotlightMedia,
+.supplierMarketplaceMedia {
+  min-height: 180px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  background-size: cover;
+  background-position: center;
+}
+
+.supplierSpotlightBody,
+.supplierMarketplaceBody {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.supplierBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.supplierStatRow,
+.supplierStatGrid {
+  display: grid;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.supplierStatGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.budgetPulseGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fullWidthPanel {
+  grid-column: 1 / -1;
+}
+
+.budgetSummaryRow,
+.budgetLegendRow,
+.coachConversationRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.budgetSummaryRow {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(22, 60, 34, 0.08);
+}
+
+.budgetDonut {
+  display: grid;
+  place-items: center;
+  width: min(240px, 100%);
+  aspect-ratio: 1;
+  margin: 16px auto;
+  border-radius: 999px;
+}
+
+.budgetDonut > div {
+  display: grid;
+  place-items: center;
+  width: 58%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: rgba(248, 246, 242, 0.98);
+  text-align: center;
+}
+
+.budgetDonut span {
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.journeyStep {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.journeyStepMarker {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.journeyStepMarker span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(0, 107, 60, 0.08);
+}
+
+.journeyStep.is-done .journeyStepMarker span {
+  background: rgba(16, 185, 129, 0.18);
+}
+
+.journeyStep.is-active .journeyStepMarker span {
+  background: rgba(255, 184, 28, 0.24);
+}
+
+.journeyConnector {
+  width: 2px;
+  min-height: 42px;
+  background: rgba(22, 60, 34, 0.14);
+}
+
+.coachPrimaryCard {
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.coachInfoStack {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.coachQuickActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.coachActionLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid var(--border-card);
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.plannerBottomNav {
+  position: sticky;
+  bottom: 14px;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.plannerBottomNavButton {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  padding: 12px 8px;
+  border-radius: 18px;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.plannerBottomNavButton.is-active {
+  background: linear-gradient(135deg, rgba(0, 107, 60, 0.14), rgba(255, 184, 28, 0.18));
+  color: var(--text-primary);
+}
+
+.plannerBottomNavButton span {
+  font-size: 0.76rem;
+  font-weight: 700;
 }
 
 .progressTrack {
@@ -1387,6 +1712,88 @@ textarea {
 .messageThread {
   display: grid;
   gap: 12px;
+}
+
+.detailMetricGrid,
+.detailChecklist,
+.coachScheduleGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.detailMetricGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.detailMetricCard,
+.detailChecklistItem,
+.coachScheduleOption,
+.supplierDetailContent {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(250, 251, 246, 0.96);
+}
+
+.detailMetricCard,
+.detailChecklistItem,
+.supplierDetailContent {
+  display: grid;
+  gap: 8px;
+}
+
+.detailChecklist {
+  margin-top: 16px;
+}
+
+.detailChecklistItem.is-complete {
+  border: 1px solid rgba(28, 107, 61, 0.12);
+}
+
+.supplierDetailHero {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.supplierDetailMedia {
+  min-height: 260px;
+  border-radius: 22px;
+  background-size: cover;
+  background-position: center;
+}
+
+.supplierDetailStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.coachScheduleGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 18px;
+}
+
+.coachScheduleOption {
+  border: 1px solid rgba(28, 107, 61, 0.12);
+  text-align: left;
+}
+
+.coachScheduleOption.is-active {
+  border-color: rgba(28, 107, 61, 0.34);
+  box-shadow: 0 10px 24px rgba(30, 52, 34, 0.08);
+}
+
+.coachScheduleOption span {
+  color: var(--text-secondary);
+}
+
+.actionRowWrap {
+  flex-wrap: wrap;
+  margin-top: 18px;
 }
 
 .budgetLineItem,
@@ -2065,6 +2472,13 @@ textarea {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .kpiGrid,
+  .twoUpGrid,
+  .budgetPulseGrid,
+  .coachQuickActions {
+    grid-template-columns: 1fr;
+  }
+
   .plannerSidebar {
     order: 3;
   }
@@ -2083,6 +2497,10 @@ textarea {
 
   .coachCard {
     grid-template-columns: minmax(132px, 160px) minmax(0, 1fr);
+  }
+
+  .coachPrimaryCard {
+    grid-template-columns: 1fr;
   }
 
   .alertCard {
@@ -2120,6 +2538,10 @@ textarea {
 }
 
 @media (max-width: 768px) {
+  .plannerBottomNav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
   .headerMenuButton {
     display: inline-grid;
   }
@@ -2236,6 +2658,16 @@ textarea {
 }
 
 @media (max-width: 560px) {
+  .supplierRail,
+  .valueAddCarousel {
+    grid-auto-columns: minmax(86vw, 1fr);
+  }
+
+  .pulseScoreCircle {
+    width: 108px;
+    height: 108px;
+  }
+
   .coachCard {
     grid-template-columns: 1fr;
   }
@@ -2274,6 +2706,15 @@ textarea {
 }
 
 @media (max-width: 480px) {
+  .plannerBottomNav {
+    bottom: 8px;
+    padding: 8px;
+  }
+
+  .plannerBottomNavButton {
+    padding: 10px 6px;
+  }
+
   .stitchdShell {
     padding: 16px;
   }
@@ -2338,11 +2779,23 @@ textarea {
     font-size: 0.82rem;
   }
 
+  .supplierStatGrid {
+    grid-template-columns: 1fr;
+  }
+
   .coachButton {
     padding: 10px 14px;
   }
 
   .alertCard {
     grid-column: span 1;
+  }
+}
+
+@media (max-width: 900px) {
+  .detailMetricGrid,
+  .coachScheduleGrid,
+  .supplierDetailHero {
+    grid-template-columns: 1fr;
   }
 }

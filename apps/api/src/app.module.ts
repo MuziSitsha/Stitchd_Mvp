@@ -22,7 +22,13 @@ import { AppController } from './app.controller';
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
 
+const plannerOnlyMode = (process.env.PLANNER_ONLY_MODE || 'false').toLowerCase() === 'true';
+
 const createOptionalRedisImports = () => {
+  if (plannerOnlyMode) {
+    return [];
+  }
+
   const redisEnabled = (process.env.REDIS_ENABLED || 'false').toLowerCase() === 'true';
 
   if (!redisEnabled) {
@@ -43,6 +49,42 @@ const createOptionalRedisImports = () => {
   ];
 };
 
+const databaseImports = plannerOnlyMode
+  ? []
+  : [
+      TypeOrmModule.forRootAsync({
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          type: 'postgres',
+          url: config.get<string>('database.url'),
+          autoLoadEntities: true,
+          synchronize: config.get<string>('app.env') === 'development',
+          logging: config.get<string>('app.env') === 'development',
+          ssl: config.get<string>('app.env') === 'production'
+            ? { rejectUnauthorized: false }
+            : false,
+        }),
+      }),
+    ];
+
+const featureImports = plannerOnlyMode
+  ? [PlannerModule]
+  : [
+      AuthModule,
+      UsersModule,
+      ProvidersModule,
+      BookingsModule,
+      ServicesModule,
+      PaymentsModule,
+      ChatModule,
+      NotificationsModule,
+      AdminModule,
+      WalletModule,
+      ReviewsModule,
+      PromosModule,
+      PlannerModule,
+    ];
+
 @Module({
   imports: [
     // Config - loads .env
@@ -52,20 +94,7 @@ const createOptionalRedisImports = () => {
       envFilePath: ['.env.local', '.env'],
     }),
 
-    // PostgreSQL via TypeORM
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('database.url'),
-        autoLoadEntities: true,
-        synchronize: config.get<string>('app.env') === 'development',
-        logging: config.get<string>('app.env') === 'development',
-        ssl: config.get<string>('app.env') === 'production'
-          ? { rejectUnauthorized: false }
-          : false,
-      }),
-    }),
+    ...databaseImports,
 
     // Queues are optional until a Redis target is provisioned.
     ...createOptionalRedisImports(),
@@ -81,19 +110,7 @@ const createOptionalRedisImports = () => {
     ScheduleModule.forRoot(),
 
     // Feature modules
-    AuthModule,
-    UsersModule,
-    ProvidersModule,
-    BookingsModule,
-    ServicesModule,
-    PaymentsModule,
-    ChatModule,
-    NotificationsModule,
-    AdminModule,
-    WalletModule,
-    ReviewsModule,
-    PromosModule,
-    PlannerModule,
+    ...featureImports,
   ],
   controllers: [AppController],
 })

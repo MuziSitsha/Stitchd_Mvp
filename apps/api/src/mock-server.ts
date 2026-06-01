@@ -242,13 +242,24 @@ type PlannerSurfaceData = {
   };
 };
 
+type MockMobileRole = 'customer' | 'provider' | 'coach' | 'admin';
+
+type MockMobileUser = {
+  id: string;
+  phone: string;
+  role: MockMobileRole;
+  firstName: string;
+  lastName: string;
+  walletBalanceCents: number;
+};
+
 const plannerService = new PlannerService();
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 3001);
 const mockAccessToken = 'mock-admin-access-token';
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS
-  || 'http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174')
+  || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:8082,http://127.0.0.1:8082')
   .split(',')
   .map((value) => value.trim())
   .filter(Boolean);
@@ -471,11 +482,11 @@ const plannerSurfaces: Record<PlannerEventType, PlannerSurfaceData> = {
       },
     },
     coachProfile: {
-      name: 'Muzi Clo',
-      role: 'Lead Planner and Strategist',
+      name: 'Lungi',
+      role: 'Senior Coordinator',
       rating: 4.9,
-      eventsCompleted: 127,
-      bio: 'Luxury wedding coach focused on vendor chemistry, timeline control, and ceremony backup logic.',
+      eventsCompleted: 92,
+      bio: 'Luxury wedding coordinator focused on vendor chemistry, timeline control, and ceremony backup logic.',
       specialties: ['Luxury weddings', 'Supplier negotiation', 'Rain backup planning'],
       nextAvailable: 'Available for review calls tomorrow at 09:30',
     },
@@ -541,7 +552,7 @@ const plannerSurfaces: Record<PlannerEventType, PlannerSurfaceData> = {
           updatedAt: '2026-10-20T07:42:00.000Z',
           messages: [
             { id: 'tm3', sender: 'supplier', senderName: 'Taste Affair', text: 'Can we lock the guest count by Wednesday for final staffing?', timestamp: '2026-10-20T07:42:00.000Z' },
-            { id: 'tm4', sender: 'coach', senderName: 'Muzi Clo', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
+            { id: 'tm4', sender: 'coach', senderName: 'Lungi', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
           ],
         },
         {
@@ -713,6 +724,127 @@ function isAuthorized(req: IncomingMessage) {
   return header.startsWith('Bearer ') && header.slice('Bearer '.length).trim().length > 0;
 }
 
+function getBearerToken(req: IncomingMessage) {
+  const header = req.headers.authorization || '';
+  return header.startsWith('Bearer ') ? header.slice('Bearer '.length).trim() : '';
+}
+
+function normalizeMockMobileRole(value: string | undefined): MockMobileRole {
+  if (value === 'provider' || value === 'coach' || value === 'admin') {
+    return value;
+  }
+
+  return 'customer';
+}
+
+function createMockSessionToken(role: MockMobileRole, phone: string) {
+  return `mock-session::${role}::${phone}`;
+}
+
+function getMockUserFromToken(token: string): MockMobileUser {
+  const [, rolePart, phonePart] = token.split('::');
+  const role = normalizeMockMobileRole(rolePart);
+  const phone = phonePart?.trim() || '+27821234567';
+
+  if (role === 'provider') {
+    return {
+      id: 'mock-provider-1',
+      phone,
+      role,
+      firstName: 'Lebo',
+      lastName: 'Ndlovu',
+      walletBalanceCents: 128500,
+    };
+  }
+
+  if (role === 'coach') {
+    return {
+      id: 'mock-coach-1',
+      phone,
+      role,
+      firstName: 'Lungi',
+      lastName: '',
+      walletBalanceCents: 0,
+    };
+  }
+
+  if (role === 'admin') {
+    return {
+      id: 'mock-admin-1',
+      phone,
+      role,
+      firstName: 'STITCHD',
+      lastName: 'Admin',
+      walletBalanceCents: 0,
+    };
+  }
+
+  return {
+    id: 'mock-customer-1',
+    phone,
+    role,
+    firstName: 'Amahle',
+    lastName: 'Dlamini',
+    walletBalanceCents: 24500,
+  };
+}
+
+function getMockBookings(role: MockMobileRole) {
+  if (role === 'provider') {
+    return [
+      {
+        id: 'booking-provider-1',
+        bookingRef: 'STI-2048',
+        serviceId: 'clean-home',
+        serviceCategoryId: 'cleaning',
+        type: 'instant',
+        status: 'accepted',
+        paymentMethod: 'CASH',
+        paymentStatus: 'pending',
+        quotedPriceCents: 45000,
+        finalPriceCents: 45000,
+        customerLat: -26.118,
+        customerLng: 28.042,
+        customerAddress: 'Rosebank, Johannesburg',
+        providerCurrentLat: -26.115,
+        providerCurrentLng: 28.037,
+        providerLocationUpdatedAt: new Date().toISOString(),
+        isRated: false,
+        customerHasRated: false,
+        providerHasRated: false,
+        createdAt: new Date().toISOString(),
+        scheduledAt: null,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: 'booking-customer-1',
+      bookingRef: 'STI-1036',
+      serviceId: 'spa-massage',
+      serviceCategoryId: 'wellness',
+      type: 'scheduled',
+      status: 'confirmed',
+      paymentMethod: 'PAYFAST',
+      paymentStatus: 'paid',
+      quotedPriceCents: 69900,
+      finalPriceCents: 69900,
+      customerLat: -26.104,
+      customerLng: 28.056,
+      customerAddress: 'Sandton, Johannesburg',
+      providerCurrentLat: null,
+      providerCurrentLng: null,
+      providerLocationUpdatedAt: null,
+      isRated: false,
+      customerHasRated: false,
+      providerHasRated: false,
+      createdAt: new Date().toISOString(),
+      scheduledAt: new Date(Date.now() + (1000 * 60 * 60 * 24)).toISOString(),
+    },
+  ];
+}
+
 function getDashboardMetrics() {
   return {
     customerCount: 248,
@@ -767,6 +899,21 @@ const server = createServer(async (req, res) => {
   const { pathname } = requestUrl;
 
   try {
+    if (req.method === 'GET' && pathname === '/api/v1') {
+      sendJson(res, 200, {
+        status: 'ok',
+        service: 'stitchd-api-mock',
+        mode: 'mock',
+        routes: {
+          health: '/api/v1/health',
+          plannerMvp: '/api/v1/planner/mvp',
+          plannerSurface: '/api/v1/planner/surface',
+        },
+        timestamp: new Date().toISOString(),
+      });
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/api/v1/health') {
       sendJson(res, 200, {
         status: 'ok',
@@ -818,6 +965,127 @@ const server = createServer(async (req, res) => {
           lastName: 'Admin',
         },
       });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/v1/auth/send-otp') {
+      const body = await readJsonBody<{ phone?: string }>(req);
+
+      if (!body.phone?.trim()) {
+        sendJson(res, 400, { message: 'Phone number is required.' });
+        return;
+      }
+
+      sendJson(res, 200, {
+        success: true,
+        message: 'OTP sent successfully.',
+        otpHint: 'Use 123456 for local sign-in.',
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/v1/auth/verify-otp') {
+      const body = await readJsonBody<{ phone?: string; code?: string; role?: string }>(req);
+
+      if (!body.phone?.trim() || !body.code?.trim()) {
+        sendJson(res, 400, { message: 'Phone number and OTP code are required.' });
+        return;
+      }
+
+      if (body.code.trim() !== '123456') {
+        sendJson(res, 401, { message: 'Invalid OTP. Use 123456 for local sign-in.' });
+        return;
+      }
+
+      const role = normalizeMockMobileRole(body.role);
+      const user = getMockUserFromToken(createMockSessionToken(role, body.phone.trim()));
+
+      sendJson(res, 200, {
+        accessToken: createMockSessionToken(role, user.phone),
+        refreshToken: `mock-refresh::${role}::${user.phone}`,
+        isNewUser: false,
+        user,
+      });
+      return;
+    }
+
+    if (pathname === '/api/v1/users/me' || pathname === '/api/v1/bookings/mine' || pathname === '/api/v1/bookings/provider/available' || pathname === '/api/v1/notifications/mine' || pathname === '/api/v1/promos/active' || pathname === '/api/v1/promos/referral-summary' || pathname === '/api/v1/providers/me' || pathname === '/api/v1/providers/me/documents') {
+      if (!isAuthorized(req)) {
+        sendJson(res, 401, { message: 'Unauthorized' });
+        return;
+      }
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/users/me') {
+      sendJson(res, 200, getMockUserFromToken(getBearerToken(req)));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/bookings/mine') {
+      const user = getMockUserFromToken(getBearerToken(req));
+      sendJson(res, 200, getMockBookings(user.role));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/bookings/provider/available') {
+      sendJson(res, 200, []);
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/notifications/mine') {
+      sendJson(res, 200, {
+        unreadCount: 1,
+        items: [
+          {
+            id: 'notif-1',
+            title: 'Coach note ready',
+            body: 'Your latest planner note and supplier actions are available.',
+            type: 'planner_update',
+            isRead: false,
+            createdAt: new Date().toISOString(),
+          },
+        ],
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/promos/active') {
+      sendJson(res, 200, [
+        {
+          id: 'promo-1',
+          code: 'STITCHD100',
+          title: 'Welcome credit',
+          description: 'R100 off your next confirmed booking.',
+          discountType: 'flat',
+          discountValue: 10000,
+          minBookingAmountCents: 30000,
+        },
+      ]);
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/promos/referral-summary') {
+      sendJson(res, 200, {
+        referralCode: 'AMAHLE100',
+        referredByCode: null,
+        referralsCount: 0,
+        rewardPerReferralCents: 5000,
+        referralEarningsCents: 0,
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/providers/me') {
+      sendJson(res, 200, {
+        isAvailable: true,
+        verificationStatus: 'approved',
+        documentsSubmitted: true,
+      });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/v1/providers/me/documents') {
+      sendJson(res, 200, { documents: [] });
       return;
     }
 

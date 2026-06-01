@@ -239,7 +239,7 @@ export class PlannerService {
 
   private readonly boards: Record<PlannerEventType, PlannerBoard> = {
     wedding: {
-      title: 'Merc and Lelo Wedding Weekend',
+      title: 'Thabo and Lelo Wedding Weekend',
       budgetTotal: 400000,
       budgetAllocated: 320000,
       compatibilityScore: 82,
@@ -253,7 +253,7 @@ export class PlannerService {
         rainChance: 65,
         alert: 'We recommend adding a tent supplier to protect the aisle and reception layout.',
       },
-      coach: { name: 'Muzi Clo', role: 'Lead Planner and Strategist', rating: 4.9, eventsCompleted: 127 },
+      coach: { name: 'Lungi', role: 'Senior Coordinator', rating: 4.9, eventsCompleted: 92 },
       core: [
         { id: 'planner', slot: 'Planner', subcategory: 'The Perfect Plan Co.', name: 'Wedding Planner', rating: 4.9, reviewCount: 128, priceLabel: 'R35,000', score: 92, status: 'secured', imageKey: 'maid-service' },
         { id: 'venue', slot: 'Venue', subcategory: 'Premium Venue', name: 'Luxe Manor', rating: 4.8, reviewCount: 96, priceLabel: 'R85,000', score: 90, status: 'secured', imageKey: 'home-cleaning' },
@@ -644,7 +644,7 @@ export class PlannerService {
           updatedAt: '2026-10-20T07:42:00.000Z',
           messages: [
             { id: 'tm3', sender: 'supplier', senderName: 'Taste Affair', text: 'Can we lock the guest count by Wednesday for final staffing?', timestamp: '2026-10-20T07:42:00.000Z' },
-            { id: 'tm4', sender: 'coach', senderName: 'Muzi Clo', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
+            { id: 'tm4', sender: 'coach', senderName: 'Lungi', text: 'Yes, we will confirm after family RSVPs tonight.', timestamp: '2026-10-20T08:03:00.000Z' },
           ],
         },
       ],

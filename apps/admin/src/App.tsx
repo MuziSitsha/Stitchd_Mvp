@@ -160,6 +160,45 @@ function CloseIcon({ className }: IconProps) {
   );
 }
 
+function HomeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 10.5 12 3l9 7.5" />
+      <path d="M5 9.8V21h14V9.8" />
+      <path d="M9 21v-6h6v6" />
+    </svg>
+  );
+}
+
+function WalletIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H19a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5.5A2.5 2.5 0 0 1 3 16.5z" />
+      <path d="M3 8h15" />
+      <path d="M16 13h4" />
+      <circle cx="16" cy="13" r="1" />
+    </svg>
+  );
+}
+
+function PhoneIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.4 19.4 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.1 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7l.5 3a2 2 0 0 1-.6 1.8l-1.3 1.3a16 16 0 0 0 6.4 6.4l1.3-1.3a2 2 0 0 1 1.8-.6l3 .5A2 2 0 0 1 22 16.9Z" />
+    </svg>
+  );
+}
+
+function SparkIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z" />
+      <path d="M19 3v4" />
+      <path d="M21 5h-4" />
+    </svg>
+  );
+}
+
 function ShieldIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -300,7 +339,7 @@ type AdminAuthResponse = {
 
 type SurfaceMode = 'planner' | 'ops';
 type AuthRole = 'client' | 'supplier' | 'coach' | 'admin';
-type PlannerTab = 'squad' | 'suppliers' | 'budget' | 'inspiration' | 'marketplace';
+type PlannerTab = 'squad' | 'inspiration' | 'suppliers' | 'budget' | 'marketplace';
 type EventType = 'wedding' | 'lobola' | 'funeral' | 'corporate' | 'birthday';
 type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk';
 
@@ -579,50 +618,36 @@ function mapBrowseSupplierToVendor(supplier: SupplierBrowseItem): VendorCardData
 }
 
 const STAGING_HTTPS_API_BASE_URL = 'https://api-staging.stitchd.co.za/api/v1';
+const LOCAL_API_BASE_URL = 'http://127.0.0.1:3002/api/v1';
+const LOCAL_OPS_API_BASE_URL = 'http://127.0.0.1:3001/api/v1';
 
 const plannerTabs: Array<{ id: PlannerTab; label: string }> = [
-  { id: 'squad', label: 'Squad' },
+  { id: 'squad', label: 'Dashboard' },
+  { id: 'inspiration', label: 'Timeline' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'budget', label: 'Budget' },
-  { id: 'inspiration', label: 'Inspiration' },
-  { id: 'marketplace', label: 'Marketplace' },
+  { id: 'marketplace', label: 'Coach' },
 ];
+
+const plannerTabIcons: Record<PlannerTab, (props: IconProps) => JSX.Element> = {
+  squad: HomeIcon,
+  inspiration: CalendarIcon,
+  suppliers: TeamIcon,
+  budget: WalletIcon,
+  marketplace: ChatIcon,
+};
 
 const eventOptions: Array<{ value: EventType; label: string; strapline: string; intro: string }> = [
   {
     value: 'wedding',
-    label: 'Wedding Labour',
-    strapline: 'Luxury ceremony planning with supplier chemistry and weather-aware backup logic.',
-    intro: 'Build the full wedding squad, watch compatibility, and keep every vendor aligned to one timeline.',
-  },
-  {
-    value: 'lobola',
-    label: 'Lobola Coordination',
-    strapline: 'Digitise a deeply cultural event without removing the human coach layer.',
-    intro: 'Track elders, venue, attire, catering, transport, and ceremonial logistics with dignity and clarity.',
-  },
-  {
-    value: 'funeral',
-    label: 'Funeral Planning',
-    strapline: 'Fast coordination for the most stressful event category with a calmer operating surface.',
-    intro: 'Handle tents, pastor, flowers, catering, and programme printing with rapid recommendations.',
-  },
-  {
-    value: 'corporate',
-    label: 'Corporate Events',
-    strapline: 'B2B-friendly event assembly with cleaner vendor comparison and central comms.',
-    intro: 'Plan launches, year-end functions, and team experiences with budget clarity from day one.',
-  },
-  {
-    value: 'birthday',
-    label: 'Birthday Experiences',
-    strapline: 'High-frequency milestone planning with cards that reduce decision paralysis.',
-    intro: 'Package venue, cake, decor, photography, and entertainment into a squad people can trust quickly.',
+    label: 'Wedding MVP',
+    strapline: 'Luxury wedding planning with a fast read on health, budget, suppliers, and human support.',
+    intro: 'Open STITCHD and understand wedding health, open risks, budget position, coach support, and recommended suppliers immediately.',
   },
 ];
 
 const eventNames: Record<EventType, string> = {
-  wedding: 'Merc and Lelo Wedding Weekend',
+  wedding: 'Thabo and Lelo Wedding Weekend',
   lobola: 'Masego Lobola Delegation',
   funeral: 'Ndlovu Memorial Service',
   corporate: 'Founders Summit 2026',
@@ -630,7 +655,7 @@ const eventNames: Record<EventType, string> = {
 };
 
 const coachByEvent: Record<EventType, { name: string; role: string; score: string; events: number; image: string; cardLabel: string }> = {
-  wedding: { name: 'Muzi Clo', role: 'Lead Planner and Strategist', score: '4.9', events: 127, image: coachCoordinatorImage, cardLabel: 'Elite Coach' },
+  wedding: { name: 'Lungi', role: 'Senior Coordinator', score: '4.9', events: 92, image: coachCoordinatorImage, cardLabel: 'Senior Coach' },
   lobola: { name: 'Nono Dube', role: 'Tradition and Family Coordinator', score: '4.8', events: 94, image: coachPortraitImage, cardLabel: 'Culture Coach' },
   funeral: { name: 'Sizwe K', role: 'Family Support and Logistics Coach', score: '4.9', events: 156, image: coachCoordinatorImage, cardLabel: 'Care Coach' },
   corporate: { name: 'Karabo M', role: 'Event Operations Lead', score: '4.7', events: 203, image: coachCoordinatorImage, cardLabel: 'Ops Coach' },
@@ -758,7 +783,7 @@ function resolveDefaultApiBaseUrl() {
   const hostname = window.location.hostname;
   const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
   if (isLocalHost) {
-    return 'http://127.0.0.1:3001/api/v1';
+    return LOCAL_API_BASE_URL;
   }
 
   return STAGING_HTTPS_API_BASE_URL;
@@ -776,6 +801,8 @@ function getInitialApiBaseUrl() {
     !stored
     || stored === 'http://localhost:3001/api/v1'
     || stored === 'http://127.0.0.1:3001/api/v1'
+    || stored === 'http://localhost:3002/api/v1'
+    || stored === LOCAL_API_BASE_URL
     || (onSecurePage && stored.startsWith('http://'))
     || (!isLocalHost && stored.includes('127.0.0.1'))
     || (!isLocalHost && stored.includes('localhost'))
@@ -784,6 +811,18 @@ function getInitialApiBaseUrl() {
   }
 
   return stored;
+}
+
+function resolveRequestBaseUrl(path: string, currentApiBaseUrl: string) {
+  const hostname = window.location.hostname;
+  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
+  const isOpsPath = path.startsWith('/admin') || path.startsWith('/auth/admin');
+
+  if (isLocalHost && currentApiBaseUrl === LOCAL_API_BASE_URL && isOpsPath) {
+    return LOCAL_OPS_API_BASE_URL;
+  }
+
+  return currentApiBaseUrl;
 }
 
 function getMetricColor(value: string) {
@@ -918,6 +957,106 @@ function getCoachInitials(name: string) {
     .join('');
 }
 
+function parsePriceLabelToRands(priceLabel: string) {
+  const numeric = Number(priceLabel.replace(/[^0-9]/g, ''));
+  return Number.isFinite(numeric) ? numeric : 0;
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getSupplierBadges(vendor: VendorCardData) {
+  const badges: string[] = ['Verified'];
+
+  if (vendor.rating >= 4.8) badges.push('Top Rated');
+  if (vendor.reviewCount >= 80) badges.push('Fast Response');
+  if (parsePriceLabelToRands(vendor.priceLabel) <= 18000 || vendor.score >= 90) badges.push('Best Value');
+
+  return badges.slice(0, 4);
+}
+
+function getSupplierScorecard(vendor: VendorCardData) {
+  return {
+    reliability: clampNumber(Math.round(vendor.score + 2), 72, 98),
+    communication: clampNumber(Math.round((vendor.rating / 5) * 100) - 5, 70, 96),
+    value: clampNumber(Math.round(vendor.score - 4), 68, 94),
+    quality: clampNumber(Math.round((vendor.rating / 5) * 100) + 2, 74, 98),
+  };
+}
+
+function getSupplierCapacity(slot: string) {
+  const normalized = slot.toLowerCase();
+
+  if (normalized.includes('venue')) return '120 guests';
+  if (normalized.includes('catering')) return 'Up to 180 guests';
+  if (normalized.includes('photo')) return 'Full-day cover';
+  if (normalized.includes('dj') || normalized.includes('entertainment')) return '300 pax setup';
+  if (normalized.includes('transport')) return '6 to 18 guests';
+  if (normalized.includes('tent')) return '200 seat marquee';
+
+  return 'Custom package';
+}
+
+function getSupplierAvailability(status: VendorStatus) {
+  if (status === 'secured' || status === 'booked') return 'Available now';
+  if (status === 'recommended') return 'Priority hold';
+  if (status === 'at_risk') return 'Limited availability';
+  return 'Open this week';
+}
+
+function getSupplierDepositTerms(slot: string) {
+  const normalized = slot.toLowerCase();
+
+  if (normalized.includes('venue')) return '40% deposit, balance 14 days before event';
+  if (normalized.includes('catering')) return '50% deposit, final headcount 7 days before event';
+  if (normalized.includes('photo')) return '35% deposit, balance on delivery week';
+  if (normalized.includes('dj') || normalized.includes('entertainment') || normalized.includes('host')) return '50% booking fee, balance 7 days before event';
+  if (normalized.includes('decor') || normalized.includes('floral')) return '60% materials deposit, final approval 10 days before event';
+  if (normalized.includes('transport')) return '30% booking fee, balance 48 hours before collection';
+
+  return 'Deposit terms confirmed during coach review';
+}
+
+function getSupplierLeadTime(slot: string) {
+  const normalized = slot.toLowerCase();
+
+  if (normalized.includes('venue')) return 'Lock 6 to 8 months ahead';
+  if (normalized.includes('catering')) return 'Menu sign-off 21 days ahead';
+  if (normalized.includes('photo')) return 'Shot list sign-off 14 days ahead';
+  if (normalized.includes('dj') || normalized.includes('entertainment') || normalized.includes('host')) return 'Run sheet due 10 days ahead';
+  if (normalized.includes('decor') || normalized.includes('floral')) return 'Moodboard freeze 14 days ahead';
+  if (normalized.includes('transport')) return 'Route confirmation 72 hours ahead';
+
+  return 'Lead time depends on event complexity';
+}
+
+function getSupplierBestFit(vendor: VendorCardData, locationLabel: string) {
+  const normalized = vendor.slot.toLowerCase();
+
+  if (normalized.includes('venue')) return `Best for premium guest arrival flow in ${locationLabel}`;
+  if (normalized.includes('catering')) return 'Best for high-touch service with easy family-style scaling';
+  if (normalized.includes('photo')) return 'Best for editorial portraits plus ceremony coverage';
+  if (normalized.includes('dj') || normalized.includes('entertainment')) return 'Best for dance-floor energy and timeline pacing';
+  if (normalized.includes('decor') || normalized.includes('floral')) return 'Best for a polished hero-table and aisle finish';
+  if (normalized.includes('transport')) return 'Best for on-time arrivals and VIP movements';
+
+  return `${vendor.name} is a strong fit for ${vendor.slot.toLowerCase()} delivery.`;
+}
+
+function getSupplierDeliverables(slot: string) {
+  const normalized = slot.toLowerCase();
+
+  if (normalized.includes('venue')) return ['Site walkthrough', 'Floorplan confirmation', 'Power and access brief'];
+  if (normalized.includes('catering')) return ['Menu tasting', 'Service staffing plan', 'Final guest-count lock'];
+  if (normalized.includes('photo')) return ['Shot list', 'Family portrait plan', 'Next-day teaser delivery'];
+  if (normalized.includes('dj') || normalized.includes('entertainment')) return ['Run-of-show cues', 'Sound check', 'Backup playlist'];
+  if (normalized.includes('decor') || normalized.includes('floral')) return ['Moodboard approval', 'Mock table setup', 'On-site strike plan'];
+  if (normalized.includes('transport')) return ['Collection schedule', 'Driver contact sheet', 'Route contingency'];
+
+  return ['Scope sign-off', 'Delivery timing', 'Final approval checkpoint'];
+}
+
 function getInitialMockSession() {
   const stored = localStorage.getItem('stitchd.mock.session');
 
@@ -974,7 +1113,11 @@ export function App() {
   const [swapVendorId, setSwapVendorId] = useState<string | null>(null);
   const [clashVendorId, setClashVendorId] = useState<string | null>(null);
   const [compareVendorId, setCompareVendorId] = useState<string | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [coachProfileOpen, setCoachProfileOpen] = useState(false);
+  const [coachScheduleOpen, setCoachScheduleOpen] = useState(false);
+  const [selectedCoachSlot, setSelectedCoachSlot] = useState<string | null>(null);
+  const [readinessReportOpen, setReadinessReportOpen] = useState(false);
   const [plannerToast, setPlannerToast] = useState('');
   const [plannerLoading, setPlannerLoading] = useState(false);
   const [aiPicking, setAiPicking] = useState(false);
@@ -1117,6 +1260,104 @@ export function App() {
       }
     : plannerSurface?.weather.alert;
   const shouldShowWeatherAlert = liveWeather?.shouldAlert || (plannerSurface?.weather.shouldAlert && plannerSurface.weather.alert);
+  const allVendors = selectedBoard.core.concat(selectedBoard.support);
+  const selectedSupplier = selectedSupplierId ? allVendors.find((vendor) => vendor.id === selectedSupplierId) || null : null;
+  const locationLabel = plannerSurface?.locationLabel || weatherCoordinatesByEvent[selectedEventType].locationLabel;
+  const budgetUsed = plannerSurface?.budget.allocated || allocatedAmount;
+  const budgetRemaining = Math.max((plannerSurface?.budget.total || totalBudget) - budgetUsed, 0);
+  const spendByCategory = [
+    { label: 'Venue', amount: allVendors.filter((vendor) => /venue/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    { label: 'Decor', amount: allVendors.filter((vendor) => /(decor|floral|flowers)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    { label: 'Catering', amount: allVendors.filter((vendor) => /catering/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    { label: 'Entertainment', amount: allVendors.filter((vendor) => /(entertainment|dj|mc|host|choir|av)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    { label: 'Photography', amount: allVendors.filter((vendor) => /photo/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    { label: 'Other', amount: allVendors.filter((vendor) => !/(venue|decor|floral|flowers|catering|entertainment|dj|mc|host|choir|av|photo)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+  ].filter((entry) => entry.amount > 0);
+  const budgetChartStops = (() => {
+    const colors = ['#007a4d', '#ffb81c', '#14532d', '#f59e0b', '#5b7f61', '#c88a14'];
+    const total = spendByCategory.reduce((sum, entry) => sum + entry.amount, 0) || 1;
+    let offset = 0;
+
+    return spendByCategory.map((entry, index) => {
+      const start = Math.round((offset / total) * 100);
+      offset += entry.amount;
+      const end = Math.round((offset / total) * 100);
+      return `${colors[index % colors.length]} ${start}% ${end}%`;
+    }).join(', ');
+  })();
+  const findVendorByMatch = (pattern: RegExp) => allVendors.find((vendor) => pattern.test(`${vendor.slot} ${vendor.name} ${vendor.subcategory}`));
+  const venueVendor = findVendorByMatch(/venue/i);
+  const photographyVendor = findVendorByMatch(/photo/i);
+  const decorVendor = findVendorByMatch(/decor|floral|flowers/i);
+  const entertainmentVendor = findVendorByMatch(/entertainment|dj|mc|host|choir|av/i);
+  const cateringVendor = findVendorByMatch(/catering/i);
+  const vendorCoverageCount = [venueVendor, decorVendor, cateringVendor, photographyVendor, entertainmentVendor].filter(Boolean).length;
+  const completedTaskCount = clampNumber(12 + (vendorCoverageCount * 4) + Math.round(planningProgress / 6), 0, 52);
+  const totalTaskCount = 52;
+  const budgetLines = plannerSurface?.budget.lines || [];
+  const settledBudgetLines = budgetLines.filter((line) => line.status === 'paid' || line.status === 'booked').length;
+  const paymentsScore = budgetLines.length > 0
+    ? Math.round((settledBudgetLines / budgetLines.length) * 15)
+    : budgetProgress <= 70 ? 15 : budgetProgress <= 90 ? 11 : 6;
+  const guestManagementScore = venueVendor
+    ? completedTaskCount >= 34 ? 5 : 3
+    : 0;
+  const timelineTasksScore = Math.round((completedTaskCount / totalTaskCount) * 10);
+  const readinessScore = clampNumber(
+    (venueVendor ? 25 : 0)
+    + (cateringVendor ? 15 : 0)
+    + (decorVendor ? 10 : 0)
+    + (photographyVendor ? 10 : 0)
+    + (entertainmentVendor ? 10 : 0)
+    + paymentsScore
+    + guestManagementScore
+    + timelineTasksScore,
+    0,
+    100,
+  );
+  const readinessTone = readinessScore >= 85 ? 'healthy' : readinessScore >= 70 ? 'watch' : 'risk';
+  const readinessLabel = readinessTone === 'healthy' ? 'On Track' : readinessTone === 'watch' ? 'Watch' : 'Risk';
+  const weatherStatus = selectedWeather.rainChance <= 20 ? 'Safe' : selectedWeather.rainChance <= 45 ? 'Watch' : 'Risk';
+  const savingsIdentified = 12700;
+  const coachQuickActions = [
+    { label: 'Call', href: 'tel:+27821234567', Icon: PhoneIcon },
+    { label: 'WhatsApp', href: 'https://wa.me/27821234567', Icon: ChatIcon },
+    { label: 'Message', action: () => openMessageThread(), Icon: MessageSquareIcon },
+    { label: 'Schedule Meeting', action: () => setCoachScheduleOpen(true), Icon: CalendarIcon },
+  ];
+  const coachNote = 'Venue walkthrough recommended next week.';
+  const riskAlerts = [
+    !photographyVendor ? { title: 'Photographer not confirmed', impact: 'Medium', action: 'Confirm within 7 days' } : null,
+    budgetProgress > 85 ? { title: 'Budget usage is climbing fast', impact: 'Medium', action: 'Review decor and add-on spend this week' } : null,
+    shouldShowWeatherAlert ? { title: activeWeatherAlert?.title || 'Weather risk elevated', impact: 'High', action: activeWeatherAlert?.ctaLabel.replace(' >', '') || 'Review contingency suppliers' } : null,
+  ].filter(Boolean) as Array<{ title: string; impact: string; action: string }>;
+  const timelineItems = [
+    { label: 'Venue Confirmed', status: venueVendor ? 'done' : 'upcoming', dependency: null },
+    { label: 'Decor Selected', status: decorVendor ? 'done' : venueVendor ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot finalize decor until venue is selected.' },
+    { label: 'Photographer Confirmed', status: photographyVendor ? 'done' : 'active', dependency: null },
+    { label: 'Invitations', status: completedTaskCount >= 5 ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot start invitations until venue details are locked.' },
+    { label: 'Seating Plan', status: completedTaskCount >= 6 ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot start seating plan until venue selected.' },
+  ];
+  const supplierBundles = { title: 'Venue + Decor + DJ', saveLabel: 'Save R8,500', boostLabel: 'Readiness Boost +12%' };
+  const valueAddMarketplace = ['Drone Photography', 'Photo Booth', 'Luxury Cars', 'Jumping Castles', 'Kids Entertainment', 'Live Streaming', 'Fireworks', 'Wedding Website'];
+  const insightCards = [
+    'Decor quote is 15% above similar weddings. Potential saving: R4,200.',
+    photographyVendor
+      ? `${photographyVendor.name} is market-aligned, but confirmation should happen within 14 days.`
+      : 'Photography is still open. That slot should be closed before the next planning checkpoint.',
+  ];
+  const readinessChecklist = [
+    { label: 'Venue locked', complete: Boolean(venueVendor), detail: venueVendor ? `${venueVendor.name} confirmed.` : 'Lock venue to finish floorplan and invites.' },
+    { label: 'Decor aligned', complete: Boolean(decorVendor), detail: decorVendor ? `${decorVendor.name} is in plan.` : 'Confirm decor direction and install window.' },
+    { label: 'Photography covered', complete: Boolean(photographyVendor), detail: photographyVendor ? `${photographyVendor.name} has coverage.` : 'Close photo and video before the next checkpoint.' },
+    { label: 'Budget healthy', complete: budgetProgress <= 90, detail: budgetProgress <= 90 ? 'Spend is within a manageable range.' : 'Reduce optional spend to protect the remaining budget.' },
+    { label: 'Coach loop active', complete: messageThreads.length > 0, detail: messageThreads.length > 0 ? 'Coach and supplier communication is active.' : 'Open a coach thread to tighten coordination.' },
+  ];
+  const coachMeetingSlots = [
+    `${plannerSurface?.coachProfile.nextAvailable || 'Tuesday 10:00'} • 20 min`,
+    'Wednesday 14:30 • 30 min',
+    'Friday 09:00 • 20 min',
+  ];
   const canAccessOps = mockSession?.role === 'admin';
   const authRoleConfig: Record<AuthRole, { label: string; prompt: string; placeholder: string; helper: string; value: string }> = {
     client: {
@@ -1360,7 +1601,8 @@ export function App() {
   }, [daysToEvent, plannerSurface?.locationLabel, selectedEventType, selectedSchedule.eventDate, surfaceMode]);
 
   async function request<T>(path: string, init?: RequestInit, accessToken = token) {
-    const response = await fetch(`${apiBaseUrl}${path}`, {
+    const requestBaseUrl = resolveRequestBaseUrl(path, apiBaseUrl);
+    const response = await fetch(`${requestBaseUrl}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
@@ -1580,7 +1822,7 @@ export function App() {
         support: nextBoard.support,
       });
       setActiveTab('squad');
-      setPlannerToast(payload.title);
+      setPlannerToast(payload.title.replace(/^AI\s+/i, ''));
       setRevealSequenceActive(true);
       revealIds.forEach((id, index) => {
         window.setTimeout(() => {
@@ -1591,7 +1833,7 @@ export function App() {
         }, 150 * index);
       });
     } catch {
-      setPlannerToast('AI auto-pick is unavailable right now.');
+      setPlannerToast('Recommended lineup is unavailable right now.');
     } finally {
       setAiPicking(false);
     }
@@ -1868,21 +2110,20 @@ export function App() {
 
           <section className="heroStrip glassPanel">
             <div>
-              <span className="minorLabel">Event Intelligence Engine</span>
+              <span className="minorLabel">Wedding Pulse</span>
               <h1>{plannerExperience?.title || eventNames[selectedEventType]}</h1>
               <p>{selectedEventOption.intro}</p>
             </div>
             <div className="heroActions">
-              {eventOptions.map((option) => (
-                <button key={option.value} type="button" className={`eventChip ${selectedEventType === option.value ? 'is-active' : ''}`} onClick={() => setSelectedEventType(option.value)}>
-                  {option.label}
-                </button>
-              ))}
+              <span className="eventChip is-active">Wedding MVP</span>
             </div>
-            <div className="heroSummary glassPanel">
-              <span className="minorLabel">Phase 1</span>
-              <strong>Squad View Live</strong>
-              <p>{selectedEventOption.strapline}</p>
+            <div className={`heroSummary pulseScoreCard is-${readinessTone}`}>
+              <span className="minorLabel">Wedding Readiness</span>
+              <div className="pulseScoreCircle">
+                <strong>{readinessScore}%</strong>
+                <span>{readinessLabel}</span>
+              </div>
+              <p>{readinessTone === 'healthy' ? 'Healthy' : readinessTone === 'watch' ? 'Watch closely' : 'Action required'}</p>
               {plannerLoading ? <p>Refreshing live planner data...</p> : null}
             </div>
           </section>
@@ -1890,278 +2131,323 @@ export function App() {
           <section className="plannerLayout">
             <aside className="plannerLeftRail">
               <div className="summaryCard glassPanel">
-                <span className="minorLabel">Budget Overview</span>
-                <strong>{formatCurrencyFromRands(allocatedAmount)}</strong>
-                <p>of {formatCurrencyFromRands(totalBudget)}</p>
-                <div className="progressTrack"><span style={{ width: `${budgetProgress}%` }} /></div>
-                <div className="splitMeta">
-                  <span>{budgetProgress}% allocated</span>
-                  <span>{formatCurrencyFromRands(Math.max(totalBudget - allocatedAmount, 0))} left</span>
-                </div>
-              </div>
-
-              <div className="summaryCard glassPanel">
-                <span className="minorLabel">Squad Chemistry</span>
-                <strong>{chemistry}%</strong>
-                <div className="chemistryBars">
-                  {[0, 1, 2, 3, 4, 5].map((value) => (
-                    <span key={value} className={value < Math.round(chemistry / 16) ? 'is-filled' : ''} />
+                <span className="minorLabel">STITCHD Insights</span>
+                <strong>{formatCurrencyFromRands(savingsIdentified)}</strong>
+                <p>Savings identified right now.</p>
+                <div className="insightBulletList">
+                  {insightCards.map((insight) => (
+                    <span key={insight}>{insight}</span>
                   ))}
                 </div>
-                <p>Compatibility engine is reducing vendor conflict before the event day.</p>
               </div>
 
               <div className="summaryCard glassPanel">
-                <span className="minorLabel">Labour Secured</span>
-                <strong>{securedCount}/{totalSlots}</strong>
-                <p>Essential roles are landing. Coaches are still filling backup suppliers.</p>
+                <span className="minorLabel">Readiness Engine</span>
+                <strong>{readinessScore}%</strong>
+                <div className="chemistryBars">
+                  {[0, 1, 2, 3, 4, 5].map((value) => (
+                    <span key={value} className={value < Math.round(readinessScore / 16) ? 'is-filled' : ''} />
+                  ))}
+                </div>
+                <p>Venue, budget, timeline, and supplier lock-ins are driving the current pulse.</p>
               </div>
 
-              <div className="summaryCard summaryCardAccent glassPanel">
-                <span className="minorLabel">Why this matters</span>
-                <strong>From marketplace to planning engine</strong>
-                <p>One operating system now stretches across weddings, lobola, funerals, birthdays, and corporate events.</p>
+              <div className="summaryCard glassPanel">
+                <span className="minorLabel">Recommended Bundle</span>
+                <strong>{supplierBundles.title}</strong>
+                <div className="bundleMeta">
+                  <span>{supplierBundles.saveLabel}</span>
+                  <span>{supplierBundles.boostLabel}</span>
+                </div>
+                <p>This bundle tightens readiness while reducing back-and-forth across key wedding-day suppliers.</p>
               </div>
+
+              {readinessScore >= 90 ? (
+                <div className="summaryCard summaryCardAccent glassPanel">
+                  <span className="minorLabel">Wedding Ready</span>
+                  <strong>{readinessScore}%</strong>
+                  <p>Everything is on track. Estimated stress reduction 41% and savings {formatCurrencyFromRands(9300)}.</p>
+                  <div className="summaryCardActions">
+                    <button type="button" className="ghostButton" onClick={() => setReadinessReportOpen(true)}>Open Ready Report</button>
+                  </div>
+                </div>
+              ) : null}
             </aside>
 
             <section className="plannerMainBoard">
               <div className="sectionHeadingRow">
                 <div>
-                  <span className="minorLabel">{activeTab === 'squad' ? 'Your Core Squad' : 'Planner Workspace'}</span>
-                  <h2>{activeTab === 'squad' ? 'Build the event team' : `${plannerTabs.find((tab) => tab.id === activeTab)?.label} view`}</h2>
+                  <span className="minorLabel">{plannerTabs.find((tab) => tab.id === activeTab)?.label}</span>
+                  <h2>{activeTab === 'squad' ? 'How healthy your wedding is right now' : `${plannerTabs.find((tab) => tab.id === activeTab)?.label} view`}</h2>
                 </div>
                 <button type="button" className="ghostButton" onClick={() => void autoPickSquad()} disabled={aiPicking}>
-                  {aiPicking ? 'Auto-picking...' : 'AI Auto-Pick Squad'}
+                  {aiPicking ? 'Refreshing picks...' : 'Refresh recommendations'}
                 </button>
               </div>
               {activeTab === 'squad' ? (
-                <>
-                  <div className="vendorGrid vendorGridCore">
-                    {selectedBoard.core.map((vendor) => (
-                      <article key={vendor.id} className={`vendorCard ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`}>
-                        <div className="vendorCardMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.16) 100%), ${getVendorArtwork(vendor)}` }}>
-                          <div className="vendorMediaTop">
-                            <span className="vendorSlot">{vendor.slot}</span>
-                            <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                          </div>
-                          <div className="vendorMediaScore">
-                            <span className="minorLabel">Match</span>
-                            <strong className="vendorScore">{vendor.score}</strong>
-                          </div>
+                <div className="dashboardTab">
+                  <div className="kpiGrid">
+                    <article className="kpiMetricCard glassPanelNested">
+                      <span className="minorLabel">Days To Wedding</span>
+                      <strong>{daysToEvent}</strong>
+                    </article>
+                    <article className="kpiMetricCard glassPanelNested">
+                      <span className="minorLabel">Tasks Complete</span>
+                      <strong>{completedTaskCount}/{totalTaskCount}</strong>
+                    </article>
+                    <article className="kpiMetricCard glassPanelNested">
+                      <span className="minorLabel">Budget Used</span>
+                      <strong>{formatCurrencyFromRands(budgetUsed)} / {formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</strong>
+                    </article>
+                    <article className="kpiMetricCard glassPanelNested">
+                      <span className="minorLabel">Risk Alerts</span>
+                      <strong>{riskAlerts.length}</strong>
+                    </article>
+                  </div>
+
+                  <div className="tabPanelGrid twoUpGrid">
+                    <article className="tabInsightCard glassPanelNested weatherWidgetCard">
+                      <span className="minorLabel">Wedding Day Forecast</span>
+                      <strong>{selectedWeather.temperature}</strong>
+                      <p>{selectedWeather.rainChance}% Rain • {weatherStatus}</p>
+                      <div className="splitMeta"><span>{selectedWeather.label}</span><span>{locationLabel}</span></div>
+                    </article>
+                    <article className="tabInsightCard glassPanelNested insightsBoxCard">
+                      <span className="minorLabel">STITCHD Insights</span>
+                      <strong>{insightCards[0]}</strong>
+                      <p>{insightCards[1]}</p>
+                    </article>
+                  </div>
+
+                  <div className="riskList">
+                    {riskAlerts.map((alert) => (
+                      <article key={alert.title} className="riskAlertCard glassPanelNested">
+                        <div>
+                          <span className="minorLabel">Risk Alert</span>
+                          <strong>{alert.title}</strong>
                         </div>
-                        <div className="vendorCardBody">
-                          <div className="vendorHeaderRow">
-                            <div className="vendorIdentity">
-                              <strong>{vendor.name}</strong>
-                              <p>{vendor.subcategory}</p>
-                            </div>
-                            <div className="vendorPriceBlock">
-                              <span className="minorLabel">From</span>
-                              <strong className="vendorPrice">{vendor.priceLabel}</strong>
-                            </div>
-                          </div>
-                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount} reviews)</span></div>
-                          <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
-                            {[
-                              { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
-                              { id: 'message', Icon: ChatIcon, label: 'Message supplier' },
-                              { id: 'compare', Icon: DocumentIcon, label: 'Compare supplier' },
-                              { id: 'timeline', Icon: CalendarIcon, label: 'Sync timeline' },
-                              { id: 'notes', Icon: BellIcon, label: 'View notes' },
-                            ].map((action) => (
-                              <button key={`${vendor.id}-${action.id}`} type="button" className="vendorActionButton" aria-label={`${action.label} for ${vendor.name}`} onClick={() => handleVendorAction(action.id, vendor)}>
-                                <action.Icon className="plannerIcon" />
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                        <div className="splitMeta"><span>Impact: {alert.impact}</span><span>Action: {alert.action}</span></div>
                       </article>
                     ))}
-                    {aiPicking ? Array.from({ length: selectedBoard.core.length }).map((_, index) => (
-                      <article key={`core-loading-${index}`} className="vendorCard vendorCardLoading">
-                        <div className="vendorCardShimmer" />
-                      </article>
-                    )) : null}
                   </div>
 
                   <div className="sectionHeadingRow supportHeading">
                     <div>
-                      <span className="minorLabel">Support Squad</span>
-                      <h2>Fill the optional and contextual slots</h2>
+                      <span className="minorLabel">Recommended Suppliers</span>
+                      <h2>What needs attention next</h2>
                     </div>
                   </div>
-
-                  <div className="vendorGrid vendorGridSupport">
-                    {selectedBoard.support.map((vendor) => (
-                      <article key={vendor.id} className={`vendorCard vendorCardSupport ${vendor.status === 'recommended' ? 'cardRecommended' : ''} ${compareVendorId === vendor.id ? 'is-compare-armed' : ''} ${compareLeadVendor && compareLeadVendor.slot === vendor.slot && compareVendorId !== vendor.id ? 'is-compare-target' : ''} ${revealSequenceActive && !revealedVendorIds.includes(vendor.id) ? 'is-hidden-pending' : 'is-revealed'}`}>
-                        <div className="vendorCardMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.16) 100%), ${getVendorArtwork(vendor)}` }}>
-                          <div className="vendorMediaTop">
-                            <span className="vendorSlot">{vendor.slot}</span>
-                            <span className={`statusBadge status-${vendor.status}`}>{vendor.status.replace('_', ' ')}</span>
-                          </div>
-                          <div className="vendorMediaScore">
-                            <span className="minorLabel">Match</span>
-                            <strong className="vendorScore">{vendor.score}</strong>
-                          </div>
-                        </div>
-                        <div className="vendorCardBody">
-                          <div className="vendorHeaderRow">
-                            <div className="vendorIdentity">
-                              <strong>{vendor.name}</strong>
-                              <p>{vendor.subcategory}</p>
+                  <div className="supplierRail">
+                    {selectedBoard.core.slice(0, 4).map((vendor) => {
+                      const scorecard = getSupplierScorecard(vendor);
+                      return (
+                        <article key={vendor.id} className="supplierSpotlightCard glassPanelNested">
+                          <div className="supplierSpotlightMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.12), rgba(16, 33, 22, 0.2)), ${getVendorArtwork(vendor)}` }} />
+                          <div className="supplierSpotlightBody">
+                            <div className="supplierBadges">
+                              {getSupplierBadges(vendor).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}
                             </div>
-                            <div className="vendorPriceBlock">
-                              <span className="minorLabel">From</span>
-                              <strong className="vendorPrice">{vendor.priceLabel}</strong>
+                            <strong>{vendor.name}</strong>
+                            <p>{vendor.slot} • {locationLabel}</p>
+                            <div className="supplierStatRow">
+                              <span>{formatStars(vendor.rating)}</span>
+                              <span>Reliability {scorecard.reliability}</span>
+                              <span>{vendor.priceLabel}</span>
                             </div>
+                            <button type="button" className="ghostButton" onClick={() => setActiveTab('suppliers')}>Open Marketplace</button>
                           </div>
-                          <div className="vendorMetaRow"><span>{formatStars(vendor.rating)} ({vendor.reviewCount} reviews)</span></div>
-                          <div className="vendorActions" aria-label={`${vendor.name} planner actions`}>
-                            {[
-                              { id: 'swap', Icon: TeamIcon, label: 'Swap supplier' },
-                              { id: 'message', Icon: ChatIcon, label: 'Message supplier' },
-                              { id: 'compare', Icon: DocumentIcon, label: 'Compare supplier' },
-                              { id: 'timeline', Icon: CalendarIcon, label: 'Sync timeline' },
-                              { id: 'notes', Icon: BellIcon, label: 'View notes' },
-                            ].map((action) => (
-                              <button key={`${vendor.id}-${action.id}`} type="button" className="vendorActionButton" aria-label={`${action.label} for ${vendor.name}`} onClick={() => handleVendorAction(action.id, vendor)}>
-                                <action.Icon className="plannerIcon" />
-                              </button>
-                            ))}
-                            <button type="button" className="supportAddButton" aria-label={`Add ${vendor.name} to the squad`} onClick={() => setBrowseCategory('all')}>
-                              <PlusIcon className="plannerIcon" />
-                            </button>
-                          </div>
-                        </div>
-                      </article>
-                    ))}
-
-                    {shouldShowWeatherAlert && activeWeatherAlert ? (
-                      <article className="alertCard glassPanel">
-                        <div className="alertCardHeader">
-                          <span className="alertSparkle">✦</span>
-                          <span className="minorLabel is-gold">WEATHER ALERT</span>
-                        </div>
-                        <strong>{activeWeatherAlert.title}</strong>
-                        <p>{activeWeatherAlert.recommendation}</p>
-                        <button type="button" className="ghostButton" onClick={() => setBrowseCategory(activeWeatherAlert.browseCategory || 'all')}>
-                          {activeWeatherAlert.ctaLabel}
-                        </button>
-                      </article>
-                    ) : null}
-
-                    {aiPicking ? Array.from({ length: Math.max(selectedBoard.support.length, 2) }).map((_, index) => (
-                      <article key={`support-loading-${index}`} className="vendorCard vendorCardSupport vendorCardLoading">
-                        <div className="vendorCardShimmer" />
-                      </article>
-                    )) : null}
-
-                    {[1, 2].map((slot) => (
-                      <button key={slot} type="button" className="addSupplierCard" onClick={() => setBrowseCategory('all')}>
-                        <span>+</span>
-                        <strong>Add Supplier</strong>
-                      </button>
-                    ))}
+                        </article>
+                      );
+                    })}
                   </div>
-                </>
+                </div>
               ) : null}
 
               {activeTab === 'suppliers' ? (
-                <div className="tabPanelGrid">
-                  {plannerSurface?.suppliers.shortlist.map((supplier) => (
-                    <article key={supplier.id} className="tabInsightCard glassPanelNested">
-                      <div className="tabInsightHeader">
-                        <span className="minorLabel">{supplier.slot}</span>
-                        <span className={`statusBadge status-${supplier.status}`}>{supplier.status.replace('_', ' ')}</span>
-                      </div>
-                      <strong>{supplier.name}</strong>
-                      <p>{supplier.subcategory}</p>
-                      <div className="tabInsightMeta">
-                        <span>{formatStars(supplier.rating)} ({supplier.reviewCount})</span>
-                        <span>{supplier.priceLabel}</span>
-                      </div>
-                      <p>{supplier.compatibilityNote}</p>
-                      <button type="button" className="ghostButton" onClick={() => setBrowseCategory(supplier.slot.toLowerCase())}>Browse similar suppliers</button>
-                    </article>
-                  ))}
-                  {plannerSurface?.suppliers.browseCategories.map((category) => (
-                    <article key={category.key} className="tabInsightCard glassPanelNested">
-                      <span className="minorLabel">Browse category</span>
-                      <strong>{category.label}</strong>
-                      <p>{category.description}</p>
-                      <button type="button" className="ghostButton" onClick={() => setBrowseCategory(category.key)}>Open supplier browse</button>
-                    </article>
-                  ))}
+                <div className="marketplaceScreen">
+                  <div className="supplierRail">
+                    {allVendors.map((vendor) => {
+                      const scorecard = getSupplierScorecard(vendor);
+                      return (
+                        <article key={vendor.id} className="supplierMarketplaceCard glassPanelNested">
+                          <div className="supplierMarketplaceMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.06), rgba(16, 33, 22, 0.28)), ${getVendorArtwork(vendor)}` }}>
+                            <span className="vendorSlot">{vendor.slot}</span>
+                            <strong className="vendorScore">{scorecard.reliability}</strong>
+                          </div>
+                          <div className="supplierMarketplaceBody">
+                            <div className="supplierBadges">
+                              {getSupplierBadges(vendor).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}
+                            </div>
+                            <strong>{vendor.name}</strong>
+                            <p>{vendor.subcategory}</p>
+                            <div className="supplierStatGrid">
+                              <span>Overall {vendor.rating.toFixed(1)}</span>
+                              <span>Reliability {scorecard.reliability}</span>
+                              <span>Communication {scorecard.communication}</span>
+                              <span>Value {scorecard.value}</span>
+                              <span>Quality {scorecard.quality}</span>
+                              <span>{vendor.priceLabel}</span>
+                              <span>{getSupplierCapacity(vendor.slot)}</span>
+                              <span>{locationLabel}</span>
+                              <span>{getSupplierAvailability(vendor.status)}</span>
+                            </div>
+                            <div className="vendorActions">
+                              <button type="button" className="ghostButton" onClick={() => setSelectedSupplierId(vendor.id)}>View</button>
+                              <button type="button" className="primaryButton" onClick={() => setBrowseCategory(vendor.slot.toLowerCase())}>Shortlist</button>
+                            </div>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  <article className="bundleCard glassPanelNested">
+                    <div>
+                      <span className="minorLabel">Recommended Bundle</span>
+                      <strong>{supplierBundles.title}</strong>
+                      <p>{supplierBundles.saveLabel}</p>
+                    </div>
+                    <div className="bundleMeta">
+                      <span>{supplierBundles.boostLabel}</span>
+                      <button type="button" className="ghostButton" onClick={() => setPlannerToast(`${supplierBundles.title} has been pinned for coach review.`)}>Pin Bundle</button>
+                    </div>
+                  </article>
+
+                  <div className="valueAddCarousel">
+                    {valueAddMarketplace.map((item) => (
+                      <article key={item} className="valueAddCard glassPanelNested">
+                        <span className="minorLabel">Value add</span>
+                        <strong>{item}</strong>
+                      </article>
+                    ))}
+                  </div>
                 </div>
               ) : null}
 
               {activeTab === 'budget' ? (
-                <div className="budgetPanel glassPanelNested">
-                  <div className="budgetHeader">
-                    <div>
-                      <span className="minorLabel">Budget breakdown</span>
-                      <strong>{formatCurrencyFromRands(plannerSurface?.budget.allocated || allocatedAmount)}</strong>
-                      <p>of {formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</p>
-                    </div>
-                    <div className="splitMeta emphasised">
-                      <span>Allocated</span>
-                      <span>{Math.round((((plannerSurface?.budget.allocated || allocatedAmount) / (plannerSurface?.budget.total || totalBudget)) || 0) * 100)}%</span>
-                    </div>
-                  </div>
-                  <div className="budgetLineList">
-                    {(plannerSurface?.budget.lines || []).map((line) => (
-                      <article key={line.id} className="budgetLineItem">
-                        <div>
-                          <strong>{line.label}</strong>
-                          <p>{line.owner}</p>
-                        </div>
-                        <div className="budgetLineMeta">
-                          <span className={`statusBadge status-${line.status === 'pending' ? 'at_risk' : line.status === 'quote' ? 'optional' : line.status === 'booked' ? 'booked' : 'secured'}`}>{line.status}</span>
-                          <strong>{formatCurrencyFromRands(line.amount)}</strong>
-                          <p>{line.dueLabel}</p>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+                <div className="budgetPulseGrid">
+                  <article className="budgetOverviewCard glassPanelNested">
+                    <span className="minorLabel">Budget Pulse</span>
+                    <div className="budgetSummaryRow"><span>Budget</span><strong>{formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Spent</span><strong>{formatCurrencyFromRands(budgetUsed)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Remaining</span><strong>{formatCurrencyFromRands(budgetRemaining)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Budget Health</span><strong className={budgetProgress <= 70 ? 'is-green' : budgetProgress <= 90 ? 'is-gold' : 'is-red'}>{budgetProgress <= 70 ? 'Healthy' : budgetProgress <= 90 ? 'Watch' : 'Risk'}</strong></div>
+                    <div className="progressTrack"><span className={budgetProgress > 95 ? 'is-over' : ''} style={{ width: `${budgetProgress}%` }} /></div>
+                  </article>
 
-              {activeTab === 'inspiration' ? (
-                <div className="tabPanelGrid">
-                  {(plannerSurface?.inspiration.boards || []).map((board) => (
-                    <article key={board.id} className="tabInsightCard inspirationCard glassPanelNested">
-                      <span className="minorLabel">{board.theme}</span>
-                      <strong>{board.title}</strong>
-                      <p>{board.note}</p>
-                      <div className="tagRow">
-                        {board.matchedSupplierIds.map((match) => (
-                          <span key={match} className="miniTag">{match}</span>
-                        ))}
+                  <article className="budgetChartCard glassPanelNested">
+                    <span className="minorLabel">Category Split</span>
+                    <div className="budgetDonut" style={{ backgroundImage: `conic-gradient(${budgetChartStops})` }}>
+                      <div>
+                        <strong>{formatCurrencyFromRands(budgetUsed)}</strong>
+                        <span>Spent</span>
                       </div>
-                    </article>
-                  ))}
-                  <article className="tabInsightCard glassPanelNested">
-                    <span className="minorLabel">AI vibe analysis</span>
-                    <strong>References mapped to suppliers</strong>
-                    <p>{plannerSurface?.inspiration.insight || 'Style guidance is loading for this event.'}</p>
-                    <button type="button" className="ghostButton" onClick={() => setActiveTab('suppliers')}>View matched suppliers</button>
+                    </div>
+                    <div className="budgetLegend">
+                      {spendByCategory.map((entry) => (
+                        <div key={entry.label} className="budgetLegendRow">
+                          <span>{entry.label}</span>
+                          <strong>{formatCurrencyFromRands(entry.amount)}</strong>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+
+                  <article className="budgetPanel glassPanelNested fullWidthPanel">
+                    <div className="budgetHeader">
+                      <div>
+                        <span className="minorLabel">Savings Found</span>
+                        <strong>{formatCurrencyFromRands(savingsIdentified)}</strong>
+                        <p>Small recommendation changes are still available before final lock-in.</p>
+                      </div>
+                    </div>
+                    <div className="budgetLineList">
+                      {(plannerSurface?.budget.lines || []).map((line) => (
+                        <article key={line.id} className="budgetLineItem">
+                          <div>
+                            <strong>{line.label}</strong>
+                            <p>{line.owner}</p>
+                          </div>
+                          <div className="budgetLineMeta">
+                            <span className={`statusBadge status-${line.status === 'pending' ? 'at_risk' : line.status === 'quote' ? 'optional' : line.status === 'booked' ? 'booked' : 'secured'}`}>{line.status}</span>
+                            <strong>{formatCurrencyFromRands(line.amount)}</strong>
+                            <p>{line.dueLabel}</p>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
                   </article>
                 </div>
               ) : null}
 
-              {activeTab === 'marketplace' ? (
-                <div className="tabPanelGrid">
-                  {(plannerSurface?.marketplace.featured || []).map((feature) => (
-                    <article key={feature.id} className="tabInsightCard glassPanelNested">
-                      <span className="minorLabel">{feature.category}</span>
-                      <strong>{feature.title}</strong>
-                      <p>{feature.description}</p>
-                      <div className="tabInsightMeta">
-                        <span>{feature.location}</span>
-                        <span>{feature.priceHint}</span>
+              {activeTab === 'inspiration' ? (
+                <div className="journeyPanel">
+                  {timelineItems.map((item, index) => (
+                    <article key={item.label} className={`journeyStep glassPanelNested ${item.status === 'done' ? 'is-done' : item.status === 'active' ? 'is-active' : ''}`}>
+                      <div className="journeyStepMarker">
+                        <span>{item.status === 'done' ? '✓' : item.status === 'active' ? '⚠' : '○'}</span>
+                        {index < timelineItems.length - 1 ? <div className="journeyConnector" /> : null}
+                      </div>
+                      <div>
+                        <strong>{item.label}</strong>
+                        {item.dependency ? <p>{item.dependency}</p> : <p>{item.status === 'done' ? 'Completed and synced into your wedding plan.' : 'Next action is still open.'}</p>}
                       </div>
                     </article>
                   ))}
+                </div>
+              ) : null}
+
+              {activeTab === 'marketplace' ? (
+                <div className="coachScreen">
+                  {selectedCoach ? (
+                    <article className="coachPrimaryCard glassPanelNested">
+                      <div className="coachAvatar" aria-hidden="true" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.46) 100%), url(${selectedCoach.image})` }}>
+                        <span className="coachAvatarLabel">{selectedCoach.cardLabel}</span>
+                        <div className="coachAvatarScore">
+                          <span>OVR</span>
+                          <strong>{selectedCoach.score}</strong>
+                        </div>
+                      </div>
+                      <div className="coachInfoStack">
+                        <span className="minorLabel">Coach Profile</span>
+                        <strong>{selectedCoach.name}</strong>
+                        <p>{selectedCoach.role}</p>
+                        <div className="coachMeta">
+                          <span className="scorePill">{selectedCoach.score} Rating</span>
+                          <span>{selectedCoach.events} Weddings Managed</span>
+                        </div>
+                        <div className="coachQuickActions">
+                          {coachQuickActions.map((item) => item.href ? (
+                            <a key={item.label} className="coachActionLink" href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noreferrer' : undefined}>
+                              <item.Icon className="plannerIcon" />
+                              <span>{item.label}</span>
+                            </a>
+                          ) : (
+                            <button key={item.label} type="button" className="coachActionLink" onClick={item.action}>
+                              <item.Icon className="plannerIcon" />
+                              <span>{item.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  ) : null}
+
+                  <article className="coachNoteCard glassPanelNested">
+                    <span className="minorLabel">Coach Notes</span>
+                    <strong>{coachNote}</strong>
+                    <p>{plannerSurface?.coachProfile.bio}</p>
+                  </article>
+
+                  <article className="coachConversationPreview glassPanelNested">
+                    <span className="minorLabel">Latest Messages</span>
+                    {(messageThreads.slice(0, 2)).map((thread) => (
+                      <div key={thread.id} className="coachConversationRow">
+                        <strong>{thread.vendorName}</strong>
+                        <p>{thread.lastMessage}</p>
+                      </div>
+                    ))}
+                  </article>
                 </div>
               ) : null}
             </section>
@@ -2170,7 +2456,7 @@ export function App() {
               <div className="summaryCard glassPanel">
                 <div className="widgetHeader">
                   <ClockIcon className="plannerIcon widgetIcon" />
-                  <span className="minorLabel">Time to {selectedEventType === 'wedding' ? 'Wedding' : 'Event'}</span>
+                  <span className="minorLabel">Days To Wedding</span>
                 </div>
                 <strong>{daysToEvent}</strong>
                 <p className="countdownLabel">Days to go</p>
@@ -2180,19 +2466,19 @@ export function App() {
 
               <div className="summaryCard glassPanel">
                 <div className="widgetHeader">
-                  <BriefcaseIcon className="plannerIcon widgetIcon" />
-                  <span className="minorLabel">Budget Overview</span>
+                  <SparkIcon className="plannerIcon widgetIcon" />
+                  <span className="minorLabel">Readiness Summary</span>
                 </div>
-                <strong>{formatCurrencyFromRands(allocatedAmount)}</strong>
-                <p>of {formatCurrencyFromRands(totalBudget)}</p>
-                <div className="progressTrack"><span className={budgetProgress > 95 ? 'is-over' : ''} style={{ width: `${budgetProgress}%` }} /></div>
-                <div className="splitMeta"><span>{budgetProgress}% allocated</span><span>{formatCurrencyFromRands(Math.max(totalBudget - allocatedAmount, 0))} left</span></div>
+                <strong>{readinessScore}%</strong>
+                <p>{readinessLabel}</p>
+                <div className="progressTrack"><span style={{ width: `${readinessScore}%` }} /></div>
+                <div className="splitMeta"><span>{completedTaskCount}/{totalTaskCount} tasks landed</span><span>{riskAlerts.length} alerts open</span></div>
               </div>
 
               <div className="summaryCard glassPanel">
                 <div className="widgetHeader">
                   <CloudIcon className="plannerIcon widgetIcon" />
-                  <span className="minorLabel">Weather Forecast</span>
+                  <span className="minorLabel">Wedding Day Forecast</span>
                 </div>
                 <div className="weatherHero">
                   <div className="weatherIcon"><WeatherGlyph iconKey={eventForecast?.iconKey || getWeatherIcon(selectedWeather.rainChance)} className="weatherGlyph" /></div>
@@ -2217,16 +2503,26 @@ export function App() {
                   ))}
                 </div>
               </div>
+
+              <div className="summaryCard glassPanel">
+                <div className="widgetHeader">
+                  <ChatIcon className="plannerIcon widgetIcon" />
+                  <span className="minorLabel">Coach Note</span>
+                </div>
+                <strong>{selectedCoach?.name || 'Coach'}</strong>
+                <p>{coachNote}</p>
+                <button type="button" className="ghostButton" onClick={() => setActiveTab('marketplace')}>Open coach screen</button>
+              </div>
             </aside>
           </section>
 
           <footer className="statusBar glassPanel">
             {[
               { label: 'Secured', value: `${securedCount}/${totalSlots}`, note: 'Essential suppliers are locked in.' },
-              { label: 'Squad Chemistry', value: `${chemistry}%`, note: 'Compatibility data is improving fit.' },
-              { label: 'Labour Tracker', value: labourValue, note: 'Your team is almost complete.' },
-              { label: 'Timeline Sync', value: timelineValue, note: 'All suppliers aligned with your schedule.' },
-              { label: 'Communication', value: 'Centralised', note: 'All conversations in one place.' },
+              { label: 'Squad Chemistry', value: `${readinessScore}%`, note: 'Wedding readiness is easy to understand.' },
+              { label: 'Labour Tracker', value: `${completedTaskCount}/${totalTaskCount}`, note: 'Your task journey is visible at a glance.' },
+              { label: 'Timeline Sync', value: timelineValue, note: 'Dependencies are visible before they become blockers.' },
+              { label: 'Communication', value: 'Coach Live', note: 'A human coordinator remains in the loop.' },
             ].map((metric) => (
               <div key={metric.label} className="statusMetric">
                 <div className="statusMetricHeader">
@@ -2244,6 +2540,18 @@ export function App() {
               View Messages <span>{plannerSurface?.unreadCount || 0}</span>
             </button>
           </footer>
+
+          <nav className="plannerBottomNav glassPanel" aria-label="Primary planner navigation">
+            {plannerTabs.map((tab) => {
+              const Icon = plannerTabIcons[tab.id];
+              return (
+                <button key={tab.id} type="button" className={`plannerBottomNavButton ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                  <Icon className="plannerIcon" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
           {coachProfileOpen && plannerSurface?.coachProfile ? (
             <div className="overlayShell" role="dialog" aria-modal="true">
@@ -2267,6 +2575,172 @@ export function App() {
                   <span>{plannerSurface.coachProfile.eventsCompleted} events</span>
                 </div>
                 <p>{plannerSurface.coachProfile.nextAvailable}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {readinessReportOpen ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Wedding Ready Report</span>
+                    <strong>{readinessScore}% readiness</strong>
+                    <p>{eventNames[selectedEventType]} is being tracked across suppliers, budget, weather, and coach coordination.</p>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setReadinessReportOpen(false)}>Close</button>
+                </div>
+                <div className="detailMetricGrid">
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Budget Remaining</span>
+                    <strong>{formatCurrencyFromRands(budgetRemaining)}</strong>
+                    <p>{budgetProgress <= 90 ? 'Budget is still in a controllable zone.' : 'Optional lines should be reviewed this week.'}</p>
+                  </article>
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Open Risks</span>
+                    <strong>{riskAlerts.length}</strong>
+                    <p>{riskAlerts.length === 0 ? 'No major risks are open.' : 'Risks are visible early enough to resolve cleanly.'}</p>
+                  </article>
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Coach Status</span>
+                    <strong>{selectedCoach?.name || 'Assigned'}</strong>
+                    <p>{coachNote}</p>
+                  </article>
+                </div>
+                <div className="detailChecklist">
+                  {readinessChecklist.map((item) => (
+                    <article key={item.label} className={`detailChecklistItem ${item.complete ? 'is-complete' : ''}`}>
+                      <strong>{item.complete ? '✓' : '○'} {item.label}</strong>
+                      <p>{item.detail}</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="actionRow actionRowWrap">
+                  <button type="button" className="primaryButton" onClick={() => {
+                    setReadinessReportOpen(false);
+                    setCoachScheduleOpen(true);
+                  }}>Book Coach Review</button>
+                  <button type="button" className="ghostButton" onClick={() => {
+                    setReadinessReportOpen(false);
+                    setActiveTab('suppliers');
+                  }}>Review Suppliers</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {selectedSupplier ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Supplier review</span>
+                    <strong>{selectedSupplier.name}</strong>
+                    <p>{selectedSupplier.slot} • {selectedSupplier.subcategory}</p>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => setSelectedSupplierId(null)}>Close</button>
+                </div>
+                <div className="supplierDetailHero">
+                  <div className="supplierDetailMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.08), rgba(16, 33, 22, 0.42)), ${getVendorArtwork(selectedSupplier)}` }} />
+                  <div className="supplierDetailContent">
+                    <div className="supplierBadges">
+                      {getSupplierBadges(selectedSupplier).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}
+                    </div>
+                    <strong>{formatStars(selectedSupplier.rating)} • {selectedSupplier.reviewCount} reviews</strong>
+                    <p>{getSupplierBestFit(selectedSupplier, locationLabel)}</p>
+                    <div className="supplierDetailStats">
+                      <span>Reliability {getSupplierScorecard(selectedSupplier).reliability}</span>
+                      <span>Communication {getSupplierScorecard(selectedSupplier).communication}</span>
+                      <span>Capacity {getSupplierCapacity(selectedSupplier.slot)}</span>
+                      <span>{getSupplierAvailability(selectedSupplier.status)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="detailMetricGrid">
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Price</span>
+                    <strong>{selectedSupplier.priceLabel}</strong>
+                    <p>{getSupplierDepositTerms(selectedSupplier.slot)}</p>
+                  </article>
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Lead Time</span>
+                    <strong>{getSupplierLeadTime(selectedSupplier.slot)}</strong>
+                    <p>Timing is aligned to your current event date and planning window.</p>
+                  </article>
+                  <article className="detailMetricCard">
+                    <span className="minorLabel">Delivery Scope</span>
+                    <strong>{selectedSupplier.slot}</strong>
+                    <p>{selectedSupplier.subcategory}</p>
+                  </article>
+                </div>
+                <div className="detailChecklist">
+                  {getSupplierDeliverables(selectedSupplier.slot).map((item) => (
+                    <article key={item} className="detailChecklistItem is-complete">
+                      <strong>✓ {item}</strong>
+                      <p>{selectedSupplier.name} can cover this checkpoint inside the current plan.</p>
+                    </article>
+                  ))}
+                </div>
+                <div className="actionRow actionRowWrap">
+                  <button type="button" className="primaryButton" onClick={() => {
+                    setSelectedSupplierId(null);
+                    setBrowseCategory(selectedSupplier.slot.toLowerCase());
+                  }}>Open Shortlist</button>
+                  <button type="button" className="ghostButton" onClick={() => {
+                    setSelectedSupplierId(null);
+                    openMessageThread(selectedSupplier.id);
+                  }}>Message Supplier</button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {coachScheduleOpen ? (
+            <div className="overlayShell overlaySheet" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel bottomSheetPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Coach Scheduling</span>
+                    <strong>Book a planning review with {selectedCoach?.name || 'your coach'}</strong>
+                    <p>Select a live planning slot and keep the wedding plan moving.</p>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => {
+                    setCoachScheduleOpen(false);
+                    setSelectedCoachSlot(null);
+                  }}>Close</button>
+                </div>
+                <div className="coachScheduleGrid">
+                  {coachMeetingSlots.map((slot) => (
+                    <button
+                      key={slot}
+                      type="button"
+                      className={`coachScheduleOption ${selectedCoachSlot === slot ? 'is-active' : ''}`}
+                      onClick={() => setSelectedCoachSlot(slot)}
+                    >
+                      <strong>{slot}</strong>
+                      <span>{selectedCoach?.role || 'Lead Planner'}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="actionRow actionRowWrap">
+                  <button
+                    type="button"
+                    className="primaryButton"
+                    disabled={!selectedCoachSlot}
+                    onClick={() => {
+                      if (!selectedCoachSlot) {
+                        return;
+                      }
+
+                      setPlannerToast(`Coach review booked for ${selectedCoachSlot}.`);
+                      setCoachScheduleOpen(false);
+                      setSelectedCoachSlot(null);
+                    }}
+                  >
+                    Confirm Slot
+                  </button>
+                  <button type="button" className="ghostButton" onClick={() => openMessageThread()}>Open Coach Messages</button>
+                </div>
               </div>
             </div>
           ) : null}
@@ -2392,17 +2866,17 @@ export function App() {
         <section className="opsSurface">
           <header className="opsHero glassPanel">
             <div>
-              <span className="minorLabel">STITCHD Operations</span>
-              <h1>Compliance, payouts, and marketplace control still live.</h1>
+              <span className="minorLabel">Event Command Centre</span>
+              <h1>Weddings at risk, overdue tasks, and supplier escalations in one place.</h1>
               <p>
-                The planner surface is now the client-facing product. This console remains available for provider review,
-                payment monitoring, and platform configuration.
+                This is the admin and coordinator layer for active events. Use it to review marketplace quality,
+                keep teams on track, and monitor readiness across the live wedding book.
               </p>
             </div>
             <div className="opsHeroBadge glassPanel">
-              <span>af-south-1</span>
-              <strong>Ops retained</strong>
-              <p>Existing backend hooks remain untouched.</p>
+              <span>Coordinator view</span>
+              <strong>Readiness heatmap active</strong>
+              <p>Provider review, payment monitoring, and controls remain connected.</p>
             </div>
           </header>
 
