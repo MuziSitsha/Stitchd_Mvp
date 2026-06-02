@@ -37,6 +37,18 @@ function ChatIcon({ className }: IconProps) {
   );
 }
 
+function WhatsAppIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
+      <rect width="32" height="32" rx="4" fill="#17232c" />
+      <rect x="6" y="4" width="20" height="22" rx="3" fill="#25d366" />
+      <path fill="#ffffff" d="M16 7.7a8.5 8.5 0 0 0-7.3 12.8l-1 3 3.1-1a8.5 8.5 0 1 0 5.2-15.8Zm0 1.5a7 7 0 1 1 0 14 6.9 6.9 0 0 1-3.5-.9l-.2-.1-1.8.6.6-1.7-.1-.2a7 7 0 0 1 6-10.7Z" />
+      <path fill="#ffffff" d="M20.3 18.2c-.2-.1-1.1-.5-1.3-.6s-.3-.1-.4.1-.5.6-.6.7-.2.2-.4.1a5.9 5.9 0 0 1-1.8-1.1 6.6 6.6 0 0 1-1.2-1.6c-.1-.2 0-.3.1-.4l.3-.3.2-.3a.4.4 0 0 0 0-.4l-.5-1.3c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.2 2.1 2.1 0 0 0-.7 1.6 3.8 3.8 0 0 0 .8 2.1 8.7 8.7 0 0 0 3.4 3 9.9 9.9 0 0 0 1.1.4 2.8 2.8 0 0 0 1.2.1 2 2 0 0 0 1.4-.9 1.7 1.7 0 0 0 .1-.9c-.1-.1-.2-.1-.4-.2Z" />
+      <rect x="9" y="28" width="14" height="3" rx="1.5" fill="#2eb8ff" />
+    </svg>
+  );
+}
+
 function DocumentIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -873,6 +885,11 @@ function getVendorArtwork(vendor: VendorCardData) {
   return `url("${vendor.image}")`;
 }
 
+function getVendorArtworkPosition(vendor: VendorCardData) {
+  if (vendor.id === 'venue' || vendor.name === 'Luxe Manor') return 'center top';
+  return 'center';
+}
+
 function formatPlannerDateLabel(dateValue: string) {
   return new Intl.DateTimeFormat('en-ZA', {
     day: '2-digit',
@@ -1321,7 +1338,7 @@ export function App() {
   const savingsIdentified = 12700;
   const coachQuickActions = [
     { label: 'Call', href: 'tel:+27821234567', Icon: PhoneIcon },
-    { label: 'WhatsApp', href: 'https://wa.me/27821234567', Icon: ChatIcon },
+    { label: 'WhatsApp', href: 'https://wa.me/27821234567', Icon: WhatsAppIcon },
     { label: 'Message', action: () => openMessageThread(), Icon: MessageSquareIcon },
     { label: 'Schedule Meeting', action: () => setCoachScheduleOpen(true), Icon: CalendarIcon },
   ];
@@ -1358,10 +1375,23 @@ export function App() {
     'Wednesday 14:30 • 30 min',
     'Friday 09:00 • 20 min',
   ];
+  const activeCoachProfile: PlannerCoachProfile | null = plannerSurface?.coachProfile
+    || (selectedCoach
+      ? {
+        name: selectedCoach.name,
+        role: selectedCoach.role,
+        rating: Number(selectedCoach.score),
+        eventsCompleted: selectedCoach.events,
+        bio: `${selectedCoach.name} helps keep supplier fit, budget movement, and planning risks visible before they become event-day problems.`,
+        specialties: ['Supplier coordination', 'Readiness review', 'Planning support'],
+        nextAvailable: 'Next available: Tuesday 10:00',
+      }
+      : null);
   const canAccessOps = mockSession?.role === 'admin';
-  const authRoleConfig: Record<AuthRole, { label: string; prompt: string; placeholder: string; helper: string; value: string }> = {
+  const authRoleConfig: Record<AuthRole, { label: string; signedInLabel: string; prompt: string; placeholder: string; helper: string; value: string }> = {
     client: {
       label: 'Client',
+      signedInLabel: 'client',
       prompt: 'Phone number',
       placeholder: '+27 82 123 4567',
       helper: 'Clients sign in before building or reviewing their event plan.',
@@ -1369,6 +1399,7 @@ export function App() {
     },
     supplier: {
       label: 'Supplier',
+      signedInLabel: 'supplier',
       prompt: 'Phone number',
       placeholder: '+27 82 123 4567',
       helper: 'Suppliers sign in before they can view bookings, messages, and workflow updates.',
@@ -1376,6 +1407,7 @@ export function App() {
     },
     coach: {
       label: 'Coach',
+      signedInLabel: 'coach',
       prompt: 'Phone number',
       placeholder: '+27 82 123 4567',
       helper: 'Coaches sign in before reviewing squad fit, messaging, and planning notes.',
@@ -1383,6 +1415,7 @@ export function App() {
     },
     admin: {
       label: 'Admin',
+      signedInLabel: 'admin',
       prompt: 'Work email',
       placeholder: 'admin@stitchd.co.za',
       helper: 'Admins sign in before opening the planner or operations console.',
@@ -1763,6 +1796,14 @@ export function App() {
     setAuthError('');
   }
 
+  function handlePlannerTabChange(tabId: PlannerTab) {
+    setActiveTab(tabId);
+    setMobileNavOpen(false);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
   async function saveSettings() {
     if (!settings) return;
     setSavingSettings(true);
@@ -1821,7 +1862,7 @@ export function App() {
         core: nextBoard.core,
         support: nextBoard.support,
       });
-      setActiveTab('squad');
+      handlePlannerTabChange('squad');
       setPlannerToast(payload.title.replace(/^AI\s+/i, ''));
       setRevealSequenceActive(true);
       revealIds.forEach((id, index) => {
@@ -1951,36 +1992,28 @@ export function App() {
       <main className="stitchdShell authShell">
         <div className="pageGlow pageGlowLeft" />
         <div className="pageGlow pageGlowRight" />
-        <section className="authGate glassPanel">
-          <div className="authHeroPanel">
-            <span className="minorLabel">Secure entry</span>
-            <div className="brandWordmark">STITCHD</div>
-            <h1>Sign in before entering the planner.</h1>
-            <p>Every client, supplier, coach, and admin enters through one secure sign-in experience designed to keep planning, communication, and operations aligned from the start.</p>
-            <div className="authFeatureStrip">
-              {authFeatureCards.map((item) => (
-                <article key={item.label} className="authFeatureCard glassPanelNested">
-                  <span className="minorLabel">{item.label}</span>
-                  <p>{item.value}</p>
-                </article>
-              ))}
-            </div>
-            <div className="authRoleGrid">
-              {(Object.keys(authRoleConfig) as AuthRole[]).map((role) => (
-                <button key={role} type="button" className={`authRoleCard ${authRole === role ? 'is-active' : ''}`} onClick={() => handleRoleSelection(role)}>
-                  <span className="minorLabel">{authRoleConfig[role].label}</span>
-                  <strong>{authRoleConfig[role].value}</strong>
-                  <p>{authRoleConfig[role].helper}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
+        <section className="authGate authGateCompact glassPanel">
           {authStep === 'identify' ? (
-            <form className="authEntryCard glassPanelNested" onSubmit={requestMockOtp}>
+            <form className="authEntryCard authEntryCardCompact glassPanelNested" onSubmit={requestMockOtp}>
+              <div className="authBrandLockup">
+                <div className="brandWordmark">STITCHD</div>
+                <span className="minorLabel">Sign in</span>
+              </div>
+              <div className="authIntroBlock">
+                <h1>Sign in or sign up before entering the planner.</h1>
+                <p>Choose how you want to enter STITCHD, then continue with your work email or mobile number.</p>
+              </div>
               <span className="minorLabel">Sign in</span>
               <h2>{authRoleConfig[authRole].label} access</h2>
               <p>Use your {authRole === 'admin' ? 'work email' : 'mobile number'} to continue into the STITCHD experience.</p>
+              <label>
+                Continue as
+                <select value={authRole} onChange={(event) => handleRoleSelection(event.target.value as AuthRole)}>
+                  {(Object.keys(authRoleConfig) as AuthRole[]).map((role) => (
+                    <option key={role} value={role}>{authRoleConfig[role].label}</option>
+                  ))}
+                </select>
+              </label>
               <label>
                 {authRoleConfig[authRole].prompt}
                 <input
@@ -1996,7 +2029,15 @@ export function App() {
               <button type="submit" className="primaryButton">Continue</button>
             </form>
           ) : (
-            <form className="authEntryCard glassPanelNested" onSubmit={completeMockSignIn}>
+            <form className="authEntryCard authEntryCardCompact glassPanelNested" onSubmit={completeMockSignIn}>
+              <div className="authBrandLockup">
+                <div className="brandWordmark">STITCHD</div>
+                <span className="minorLabel">Verify access</span>
+              </div>
+              <div className="authIntroBlock">
+                <h1>Sign in or sign up before entering the planner.</h1>
+                <p>Finish verification to continue into your STITCHD workspace.</p>
+              </div>
               <span className="minorLabel">Verify access</span>
               <h2>Enter verification code</h2>
               <p>{authNotice || `A verification code was sent to ${authIdentifier}.`}</p>
@@ -2034,8 +2075,7 @@ export function App() {
 
         <section className="sessionRail glassPanelNested">
           <div>
-            <span className="minorLabel">Signed in</span>
-            <strong>{mockSession.identity}</strong>
+            <span className="sessionStatus">Signed in as {authRoleConfig[mockSession.role].signedInLabel}</span>
             <p>{mockSession.contact}</p>
           </div>
           <button type="button" className="ghostButton" onClick={signOutApp}>Sign out</button>
@@ -2058,10 +2098,7 @@ export function App() {
 
             <nav className={`plannerNav ${mobileNavOpen ? 'is-open' : ''}`} aria-label="Primary planner tabs">
               {plannerTabs.map((tab) => (
-                <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => {
-                  setActiveTab(tab.id);
-                  setMobileNavOpen(false);
-                }}>
+                <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => handlePlannerTabChange(tab.id)}>
                   {tab.label}
                 </button>
               ))}
@@ -2087,7 +2124,13 @@ export function App() {
                     </div>
                   </div>
                   <div className="coachActions">
-                    <button type="button" className="ghostButton coachButton" onClick={() => setCoachProfileOpen(true)}>View Profile &gt;</button>
+                    <button type="button" className="ghostButton coachButton" onClick={() => {
+                      if (!activeCoachProfile) {
+                        setPlannerToast('Coach profile is still loading.');
+                        return;
+                      }
+                      setCoachProfileOpen(true);
+                    }}>View Profile &gt;</button>
                   </div>
                 </div>
               </div>
@@ -2242,7 +2285,7 @@ export function App() {
                       const scorecard = getSupplierScorecard(vendor);
                       return (
                         <article key={vendor.id} className="supplierSpotlightCard glassPanelNested">
-                          <div className="supplierSpotlightMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.12), rgba(16, 33, 22, 0.2)), ${getVendorArtwork(vendor)}` }} />
+                          <div className="supplierSpotlightMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.12), rgba(16, 33, 22, 0.2)), ${getVendorArtwork(vendor)}`, backgroundPosition: getVendorArtworkPosition(vendor) }} />
                           <div className="supplierSpotlightBody">
                             <div className="supplierBadges">
                               {getSupplierBadges(vendor).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}
@@ -2254,7 +2297,7 @@ export function App() {
                               <span>Reliability {scorecard.reliability}</span>
                               <span>{vendor.priceLabel}</span>
                             </div>
-                            <button type="button" className="ghostButton" onClick={() => setActiveTab('suppliers')}>Open Marketplace</button>
+                            <button type="button" className="ghostButton" onClick={() => handlePlannerTabChange('suppliers')}>Open Marketplace</button>
                           </div>
                         </article>
                       );
@@ -2270,7 +2313,7 @@ export function App() {
                       const scorecard = getSupplierScorecard(vendor);
                       return (
                         <article key={vendor.id} className="supplierMarketplaceCard glassPanelNested">
-                          <div className="supplierMarketplaceMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.06), rgba(16, 33, 22, 0.28)), ${getVendorArtwork(vendor)}` }}>
+                          <div className="supplierMarketplaceMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.06), rgba(16, 33, 22, 0.28)), ${getVendorArtwork(vendor)}`, backgroundPosition: getVendorArtworkPosition(vendor) }}>
                             <span className="vendorSlot">{vendor.slot}</span>
                             <strong className="vendorScore">{scorecard.reliability}</strong>
                           </div>
@@ -2278,8 +2321,10 @@ export function App() {
                             <div className="supplierBadges">
                               {getSupplierBadges(vendor).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}
                             </div>
-                            <strong>{vendor.name}</strong>
-                            <p>{vendor.subcategory}</p>
+                            <div className="supplierMarketplaceIdentity">
+                              <strong>{vendor.name}</strong>
+                              <p>{vendor.subcategory}</p>
+                            </div>
                             <div className="supplierStatGrid">
                               <span>Overall {vendor.rating.toFixed(1)}</span>
                               <span>Reliability {scorecard.reliability}</span>
@@ -2303,8 +2348,10 @@ export function App() {
 
                   <article className="bundleCard glassPanelNested">
                     <div>
-                      <span className="minorLabel">Recommended Bundle</span>
-                      <strong>{supplierBundles.title}</strong>
+                      <div className="bundleTitleRow">
+                        <span className="minorLabel">Recommended Bundle</span>
+                        <strong>{supplierBundles.title}</strong>
+                      </div>
                       <p>{supplierBundles.saveLabel}</p>
                     </div>
                     <div className="bundleMeta">
@@ -2418,7 +2465,7 @@ export function App() {
                         </div>
                         <div className="coachQuickActions">
                           {coachQuickActions.map((item) => item.href ? (
-                            <a key={item.label} className="coachActionLink" href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noreferrer' : undefined}>
+                            <a key={item.label} className={`coachActionLink ${item.label === 'WhatsApp' ? 'is-whatsapp' : ''}`} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noreferrer' : undefined}>
                               <item.Icon className="plannerIcon" />
                               <span>{item.label}</span>
                             </a>
@@ -2511,7 +2558,7 @@ export function App() {
                 </div>
                 <strong>{selectedCoach?.name || 'Coach'}</strong>
                 <p>{coachNote}</p>
-                <button type="button" className="ghostButton" onClick={() => setActiveTab('marketplace')}>Open coach screen</button>
+                <button type="button" className="ghostButton" onClick={() => handlePlannerTabChange('marketplace')}>Open coach screen</button>
               </div>
             </aside>
           </section>
@@ -2545,7 +2592,7 @@ export function App() {
             {plannerTabs.map((tab) => {
               const Icon = plannerTabIcons[tab.id];
               return (
-                <button key={tab.id} type="button" className={`plannerBottomNavButton ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => setActiveTab(tab.id)}>
+                <button key={tab.id} type="button" className={`plannerBottomNavButton ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => handlePlannerTabChange(tab.id)}>
                   <Icon className="plannerIcon" />
                   <span>{tab.label}</span>
                 </button>
@@ -2553,28 +2600,28 @@ export function App() {
             })}
           </nav>
 
-          {coachProfileOpen && plannerSurface?.coachProfile ? (
+          {coachProfileOpen && activeCoachProfile ? (
             <div className="overlayShell" role="dialog" aria-modal="true">
               <div className="overlayPanel glassPanel">
                 <div className="overlayHeader">
                   <div>
                     <span className="minorLabel">Assigned coach</span>
-                    <strong>{plannerSurface.coachProfile.name}</strong>
-                    <p>{plannerSurface.coachProfile.role}</p>
+                    <strong>{activeCoachProfile.name}</strong>
+                    <p>{activeCoachProfile.role}</p>
                   </div>
                   <button type="button" className="ghostButton" onClick={() => setCoachProfileOpen(false)}>Close</button>
                 </div>
-                <p>{plannerSurface.coachProfile.bio}</p>
+                <p>{activeCoachProfile.bio}</p>
                 <div className="tagRow">
-                  {plannerSurface.coachProfile.specialties.map((specialty) => (
+                  {activeCoachProfile.specialties.map((specialty) => (
                     <span key={specialty} className="miniTag">{specialty}</span>
                   ))}
                 </div>
                 <div className="splitMeta emphasised">
-                  <span>{plannerSurface.coachProfile.rating.toFixed(1)} rating</span>
-                  <span>{plannerSurface.coachProfile.eventsCompleted} events</span>
+                  <span>{activeCoachProfile.rating.toFixed(1)} rating</span>
+                  <span>{activeCoachProfile.eventsCompleted} events</span>
                 </div>
-                <p>{plannerSurface.coachProfile.nextAvailable}</p>
+                <p>{activeCoachProfile.nextAvailable}</p>
               </div>
             </div>
           ) : null}
@@ -2622,7 +2669,7 @@ export function App() {
                   }}>Book Coach Review</button>
                   <button type="button" className="ghostButton" onClick={() => {
                     setReadinessReportOpen(false);
-                    setActiveTab('suppliers');
+                    handlePlannerTabChange('suppliers');
                   }}>Review Suppliers</button>
                 </div>
               </div>
@@ -2641,7 +2688,7 @@ export function App() {
                   <button type="button" className="ghostButton" onClick={() => setSelectedSupplierId(null)}>Close</button>
                 </div>
                 <div className="supplierDetailHero">
-                  <div className="supplierDetailMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.08), rgba(16, 33, 22, 0.42)), ${getVendorArtwork(selectedSupplier)}` }} />
+                  <div className="supplierDetailMedia" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.08), rgba(16, 33, 22, 0.42)), ${getVendorArtwork(selectedSupplier)}`, backgroundPosition: getVendorArtworkPosition(selectedSupplier) }} />
                   <div className="supplierDetailContent">
                     <div className="supplierBadges">
                       {getSupplierBadges(selectedSupplier).map((badge) => <span key={badge} className="miniTag">{badge}</span>)}

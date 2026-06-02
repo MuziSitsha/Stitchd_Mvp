@@ -115,24 +115,46 @@ textarea {
 }
 
 .sessionRail {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-width: min(100%, 320px);
-  padding: 14px 18px;
+  gap: 18px;
+  min-width: min(100%, 360px);
+  max-width: 100%;
+  padding: 14px 18px 14px 22px;
   border: 1px solid rgba(0, 107, 60, 0.12);
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(241, 248, 239, 0.94) 48%, rgba(255, 243, 214, 0.92) 100%);
 }
 
-.sessionRail strong,
+.sessionRail > div {
+  min-width: 0;
+}
+
 .sessionRail p {
   margin: 0;
 }
 
 .sessionRail p {
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.sessionStatus {
+  display: block;
+  color: var(--text-primary);
+  font-size: clamp(0.84rem, 1.8vw, 0.98rem);
+  font-weight: 800;
+  line-height: 1.25;
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+  overflow-wrap: anywhere;
+}
+
+.sessionRail .ghostButton {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .authGate {
@@ -145,6 +167,13 @@ textarea {
     radial-gradient(circle at 14% 18%, rgba(28, 107, 61, 0.12), transparent 22%),
     radial-gradient(circle at 78% 12%, rgba(181, 138, 47, 0.12), transparent 20%),
     rgba(250, 251, 246, 0.96);
+}
+
+.authGateCompact {
+  width: min(100%, 560px);
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 32px;
 }
 
 .authHeroPanel,
@@ -246,6 +275,42 @@ textarea {
     rgba(255, 255, 255, 0.96);
 }
 
+.authEntryCardCompact {
+  width: 100%;
+  max-width: 100%;
+  justify-self: center;
+  gap: 18px;
+}
+
+.authBrandLockup {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.authIntroBlock {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+}
+
+.authIntroBlock h1,
+.authIntroBlock p {
+  margin: 0;
+}
+
+.authIntroBlock h1 {
+  font-size: clamp(2rem, 4vw, 2.9rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.authIntroBlock p {
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
 .authEntryCard h2 {
   font-size: 2rem;
   line-height: 1.02;
@@ -257,12 +322,14 @@ textarea {
 }
 
 .authEntryCard label {
+  display: grid;
   gap: 10px;
   color: var(--text-primary);
   font-weight: 600;
 }
 
-.authEntryCard input {
+.authEntryCard input,
+.authEntryCard select {
   color: var(--text-primary);
   border-color: rgba(16, 33, 22, 0.16);
   background: rgba(255, 248, 230, 0.92);
@@ -270,6 +337,19 @@ textarea {
 
 .authEntryCard input::placeholder {
   color: rgba(16, 33, 22, 0.42);
+}
+
+.authEntryCard select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border-width: 1px;
+  border-style: solid;
+  appearance: none;
+}
+
+.authEntryCardCompact .primaryButton {
+  justify-self: stretch;
 }
 
 .authActionsRow {
@@ -908,6 +988,17 @@ textarea {
   font-weight: 700;
 }
 
+.bundleTitleRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.bundleTitleRow strong {
+  font-size: 1rem;
+}
+
 .riskList,
 .journeyPanel,
 .budgetLegend {
@@ -926,7 +1017,8 @@ textarea {
 .valueAddCarousel {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(260px, 320px);
+  grid-auto-columns: minmax(280px, 320px);
+  align-items: stretch;
   gap: 14px;
   overflow-x: auto;
   padding-bottom: 4px;
@@ -935,8 +1027,10 @@ textarea {
 .supplierSpotlightCard,
 .supplierMarketplaceCard {
   display: grid;
+  grid-template-rows: auto 1fr;
   gap: 0;
   overflow: hidden;
+  height: 100%;
 }
 
 .supplierSpotlightMedia,
@@ -957,10 +1051,40 @@ textarea {
   padding: 18px;
 }
 
+.supplierMarketplaceCard {
+  min-height: 520px;
+}
+
+.supplierMarketplaceBody {
+  grid-template-rows: minmax(92px, auto) minmax(76px, auto) 1fr auto;
+}
+
 .supplierBadges {
   display: flex;
   flex-wrap: wrap;
+  align-content: flex-start;
   gap: 8px;
+  min-height: 92px;
+}
+
+.supplierMarketplaceIdentity {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  min-height: 76px;
+}
+
+.supplierMarketplaceIdentity strong,
+.supplierMarketplaceIdentity p {
+  margin: 0;
+}
+
+.supplierMarketplaceIdentity strong {
+  line-height: 1.2;
+}
+
+.supplierMarketplaceIdentity p {
+  line-height: 1.35;
 }
 
 .supplierStatRow,
@@ -973,6 +1097,17 @@ textarea {
 
 .supplierStatGrid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+}
+
+.supplierStatGrid span {
+  min-width: 0;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.supplierMarketplaceBody .vendorActions {
+  margin-top: 4px;
 }
 
 .budgetPulseGrid {
@@ -1088,6 +1223,17 @@ textarea {
   background: rgba(255, 255, 255, 0.88);
   color: var(--text-primary);
   text-decoration: none;
+}
+
+.coachActionLink.is-whatsapp {
+  gap: 12px;
+}
+
+.coachActionLink.is-whatsapp .plannerIcon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 8px 12px rgba(23, 35, 44, 0.18));
 }
 
 .plannerBottomNav {
