@@ -39,12 +39,9 @@ function ChatIcon({ className }: IconProps) {
 
 function WhatsAppIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true" className={className}>
-      <rect width="32" height="32" rx="4" fill="#17232c" />
-      <rect x="6" y="4" width="20" height="22" rx="3" fill="#25d366" />
-      <path fill="#ffffff" d="M16 7.7a8.5 8.5 0 0 0-7.3 12.8l-1 3 3.1-1a8.5 8.5 0 1 0 5.2-15.8Zm0 1.5a7 7 0 1 1 0 14 6.9 6.9 0 0 1-3.5-.9l-.2-.1-1.8.6.6-1.7-.1-.2a7 7 0 0 1 6-10.7Z" />
-      <path fill="#ffffff" d="M20.3 18.2c-.2-.1-1.1-.5-1.3-.6s-.3-.1-.4.1-.5.6-.6.7-.2.2-.4.1a5.9 5.9 0 0 1-1.8-1.1 6.6 6.6 0 0 1-1.2-1.6c-.1-.2 0-.3.1-.4l.3-.3.2-.3a.4.4 0 0 0 0-.4l-.5-1.3c-.1-.3-.3-.3-.4-.3h-.4a.7.7 0 0 0-.5.2 2.1 2.1 0 0 0-.7 1.6 3.8 3.8 0 0 0 .8 2.1 8.7 8.7 0 0 0 3.4 3 9.9 9.9 0 0 0 1.1.4 2.8 2.8 0 0 0 1.2.1 2 2 0 0 0 1.4-.9 1.7 1.7 0 0 0 .1-.9c-.1-.1-.2-.1-.4-.2Z" />
-      <rect x="9" y="28" width="14" height="3" rx="1.5" fill="#2eb8ff" />
+    <svg viewBox="0 0 32 32" aria-hidden="true" className={className} xmlns="http://www.w3.org/2000/svg">
+      <circle cx="16" cy="16" r="16" fill="#25D366" />
+      <path fill="#ffffff" d="M16 7.5A8.5 8.5 0 0 0 7.5 16c0 1.5.4 2.96 1.15 4.25L7.2 24.8l4.65-1.22A8.5 8.5 0 1 0 16 7.5zm0 15.6a7.1 7.1 0 0 1-3.62-.99l-.26-.15-2.7.7.72-2.62-.18-.27A7.1 7.1 0 1 1 16 23.1zm3.9-5.3c-.21-.1-1.26-.62-1.45-.69-.2-.07-.34-.1-.49.1-.14.21-.56.69-.68.83-.13.14-.25.16-.47.05a5.9 5.9 0 0 1-1.74-1.07 6.6 6.6 0 0 1-1.2-1.51c-.13-.21-.01-.32.1-.43l.31-.36.21-.33a.39.39 0 0 0 0-.38l-.48-1.17c-.12-.32-.25-.27-.35-.28l-.36-.01a.7.7 0 0 0-.51.24 2.14 2.14 0 0 0-.67 1.59 3.72 3.72 0 0 0 .78 1.98 8.53 8.53 0 0 0 3.27 2.88c.46.2.88.33 1.25.43a2.9 2.9 0 0 0 1.34.08 2.1 2.1 0 0 0 1.38-.97 1.7 1.7 0 0 0 .12-.97c-.05-.08-.19-.13-.4-.23z" />
     </svg>
   );
 }
@@ -78,6 +75,16 @@ function BellIcon({ className }: IconProps) {
       <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
       <path d="M10 21a2 2 0 0 0 4 0" />
     </svg>
+  );
+}
+
+function StitchdWordmark({ variant = 'header' }: { variant?: 'header' | 'landing' | 'auth' }) {
+  return (
+    <div className="stitchdWordmark" data-variant={variant} aria-label="STITCH-D">
+      <span className="stitchdWordmarkText">STITCH</span>
+      <span className="stitchdWordmarkDash">-</span>
+      <span className="stitchdWordmarkText">D</span>
+    </div>
   );
 }
 
@@ -351,9 +358,9 @@ type AdminAuthResponse = {
 
 type SurfaceMode = 'planner' | 'ops';
 type AuthRole = 'client' | 'supplier' | 'coach' | 'admin';
-type PlannerTab = 'squad' | 'inspiration' | 'suppliers' | 'budget' | 'marketplace';
+type PlannerTab = 'squad' | 'rsvp' | 'inspiration' | 'suppliers' | 'budget' | 'milestones' | 'marketplace' | 'event-admin';
 type EventType = 'wedding' | 'lobola' | 'funeral' | 'corporate' | 'birthday';
-type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk';
+type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk' | 'shortlisted';
 
 type MockSession = {
   role: AuthRole;
@@ -372,6 +379,36 @@ type VendorCardData = {
   score: number;
   status: VendorStatus;
   image: string;
+};
+
+type RsvpGroup = {
+  id: string;
+  label: string;
+  invited: number;
+  confirmed: number;
+  pending: number;
+  declined: number;
+  risk: 'Low' | 'Medium' | 'High';
+};
+
+type RsvpGuest = {
+  id: string;
+  name: string;
+  phone: string;
+  group: string;
+  status: 'Confirmed' | 'Pending' | 'Declined' | 'No Response' | 'Maybe' | 'Verbal Confirmation';
+  plusOnes: number;
+  lastContacted: string;
+  notes: string;
+};
+
+type CulturalMilestone = {
+  id: string;
+  title: string;
+  status: 'complete' | 'in-progress' | 'pending';
+  dueDate: string;
+  ownerName: string;
+  notes: string;
 };
 
 type PlannerVendorPayload = {
@@ -633,20 +670,26 @@ const STAGING_HTTPS_API_BASE_URL = 'https://api-staging.stitchd.co.za/api/v1';
 const LOCAL_API_BASE_URL = 'http://127.0.0.1:3002/api/v1';
 const LOCAL_OPS_API_BASE_URL = 'http://127.0.0.1:3001/api/v1';
 
-const plannerTabs: Array<{ id: PlannerTab; label: string }> = [
+const plannerTabs: Array<{ id: PlannerTab; label: string; adminOnly?: boolean }> = [
   { id: 'squad', label: 'Dashboard' },
+  { id: 'rsvp', label: 'RSVP' },
   { id: 'inspiration', label: 'Timeline' },
   { id: 'suppliers', label: 'Suppliers' },
   { id: 'budget', label: 'Budget' },
+  { id: 'milestones', label: 'Culture' },
   { id: 'marketplace', label: 'Coach' },
+  { id: 'event-admin', label: 'Admin', adminOnly: true },
 ];
 
 const plannerTabIcons: Record<PlannerTab, (props: IconProps) => JSX.Element> = {
   squad: HomeIcon,
+  rsvp: UsersIcon,
   inspiration: CalendarIcon,
   suppliers: TeamIcon,
   budget: WalletIcon,
+  milestones: SparkIcon,
   marketplace: ChatIcon,
+  'event-admin': ShieldIcon,
 };
 
 const eventOptions: Array<{ value: EventType; label: string; strapline: string; intro: string }> = [
@@ -666,12 +709,12 @@ const eventNames: Record<EventType, string> = {
   birthday: 'Ayanda 30th Celebration',
 };
 
-const coachByEvent: Record<EventType, { name: string; role: string; score: string; events: number; image: string; cardLabel: string }> = {
-  wedding: { name: 'Lungi', role: 'Senior Coordinator', score: '4.9', events: 92, image: coachCoordinatorImage, cardLabel: 'Senior Coach' },
-  lobola: { name: 'Nono Dube', role: 'Tradition and Family Coordinator', score: '4.8', events: 94, image: coachPortraitImage, cardLabel: 'Culture Coach' },
-  funeral: { name: 'Sizwe K', role: 'Family Support and Logistics Coach', score: '4.9', events: 156, image: coachCoordinatorImage, cardLabel: 'Care Coach' },
-  corporate: { name: 'Karabo M', role: 'Event Operations Lead', score: '4.7', events: 203, image: coachCoordinatorImage, cardLabel: 'Ops Coach' },
-  birthday: { name: 'Tumi N', role: 'Celebration Curator', score: '4.8', events: 88, image: coachPortraitImage, cardLabel: 'Vibe Coach' },
+const coachByEvent: Record<EventType, { name: string; company: string; role: string; score: string; events: number; image: string; cardLabel: string; responseTime: string; specialty: string }> = {
+  wedding: { name: 'Lungi Dlodlo', company: 'VIP Hosting', role: 'Senior Wedding Coordinator', score: '4.9', events: 92, image: coachCoordinatorImage, cardLabel: 'Senior Coach', responseTime: '2 hours', specialty: 'Premium Gauteng Weddings' },
+  lobola: { name: 'Nono Dube', company: 'Ubuntu Coordination', role: 'Tradition and Family Coordinator', score: '4.8', events: 94, image: coachPortraitImage, cardLabel: 'Culture Coach', responseTime: '3 hours', specialty: 'Lobola and Traditional Ceremonies' },
+  funeral: { name: 'Sizwe K', company: 'Dignity Services', role: 'Family Support and Logistics Coach', score: '4.9', events: 156, image: coachCoordinatorImage, cardLabel: 'Care Coach', responseTime: '1 hour', specialty: 'Memorial and Funeral Services' },
+  corporate: { name: 'Karabo M', company: 'Elite Events', role: 'Event Operations Lead', score: '4.7', events: 203, image: coachCoordinatorImage, cardLabel: 'Ops Coach', responseTime: '2 hours', specialty: 'Corporate and Summit Events' },
+  birthday: { name: 'Tumi N', company: 'Vibe Co', role: 'Celebration Curator', score: '4.8', events: 88, image: coachPortraitImage, cardLabel: 'Vibe Coach', responseTime: '2 hours', specialty: 'Milestone Celebrations' },
 };
 
 const weatherByEvent: Record<EventType, { label: string; temperature: string; rainChance: number; alert: string }> = {
@@ -683,7 +726,7 @@ const weatherByEvent: Record<EventType, { label: string; temperature: string; ra
 };
 
 const plannerScheduleByEvent: Record<EventType, { eventDate: string; planningStartDate: string }> = {
-  wedding: { eventDate: '2026-10-24', planningStartDate: '2026-05-01' },
+  wedding: { eventDate: '2026-09-26', planningStartDate: '2025-12-01' },
   lobola: { eventDate: '2026-07-12', planningStartDate: '2026-04-15' },
   funeral: { eventDate: '2026-06-03', planningStartDate: '2026-05-20' },
   corporate: { eventDate: '2026-08-18', planningStartDate: '2026-03-10' },
@@ -698,15 +741,49 @@ const weatherCoordinatesByEvent: Record<EventType, { latitude: number; longitude
   birthday: { latitude: -26.1076, longitude: 28.0567, locationLabel: 'Sandton, Gauteng' },
 };
 
+const rsvpGroups: RsvpGroup[] = [
+  { id: 'bride-family', label: "Bride's Family", invited: 180, confirmed: 96, pending: 72, declined: 12, risk: 'High' },
+  { id: 'groom-family', label: "Groom's Family", invited: 160, confirmed: 118, pending: 30, declined: 12, risk: 'Medium' },
+  { id: 'work-friends', label: 'Work Friends', invited: 60, confirmed: 42, pending: 10, declined: 8, risk: 'Low' },
+  { id: 'church-community', label: 'Church / Community', invited: 100, confirmed: 62, pending: 30, declined: 8, risk: 'Medium' },
+];
+
+const rsvpGuestsDemo: RsvpGuest[] = [
+  { id: 'g1', name: 'Sipho Dlamini', phone: '+27 82 123 4567', group: "Bride's Family", status: 'Confirmed', plusOnes: 1, lastContacted: '2026-05-20', notes: '' },
+  { id: 'g2', name: 'Nomsa Khumalo', phone: '+27 72 234 5678', group: "Bride's Family", status: 'Pending', plusOnes: 2, lastContacted: '2026-05-15', notes: 'Travelling from Cape Town' },
+  { id: 'g3', name: 'Thandi Mokoena', phone: '+27 83 345 6789', group: "Groom's Family", status: 'Confirmed', plusOnes: 0, lastContacted: '2026-05-22', notes: '' },
+  { id: 'g4', name: 'Bongani Ndlovu', phone: '+27 71 456 7890', group: "Groom's Family", status: 'Verbal Confirmation', plusOnes: 1, lastContacted: '2026-05-18', notes: 'Confirmed verbally at church' },
+  { id: 'g5', name: 'Lerato Sithole', phone: '+27 84 567 8901', group: 'Work Friends', status: 'Confirmed', plusOnes: 0, lastContacted: '2026-05-21', notes: '' },
+  { id: 'g6', name: 'Karabo Molefe', phone: '+27 73 678 9012', group: 'Work Friends', status: 'Pending', plusOnes: 0, lastContacted: '2026-05-10', notes: '' },
+  { id: 'g7', name: 'Zanele Nkosi', phone: '+27 82 789 0123', group: 'Church / Community', status: 'Confirmed', plusOnes: 3, lastContacted: '2026-05-19', notes: '' },
+  { id: 'g8', name: 'Tshepo Mahlangu', phone: '+27 74 890 1234', group: "Bride's Family", status: 'No Response', plusOnes: 2, lastContacted: '2026-04-28', notes: 'Needs follow-up' },
+  { id: 'g9', name: 'Ayanda Shabalala', phone: '+27 85 901 2345', group: "Groom's Family", status: 'Declined', plusOnes: 0, lastContacted: '2026-05-12', notes: 'Out of country' },
+  { id: 'g10', name: 'Nandi Zwane', phone: '+27 76 012 3456', group: 'Church / Community', status: 'Maybe', plusOnes: 1, lastContacted: '2026-05-16', notes: 'Awaiting family confirmation' },
+  { id: 'g11', name: 'Musa Cele', phone: '+27 83 123 4568', group: "Bride's Family", status: 'Pending', plusOnes: 0, lastContacted: '2026-05-08', notes: '' },
+  { id: 'g12', name: 'Palesa Tau', phone: '+27 72 234 5679', group: "Groom's Family", status: 'Confirmed', plusOnes: 1, lastContacted: '2026-05-23', notes: '' },
+];
+
+const culturalMilestonesDemo: CulturalMilestone[] = [
+  { id: 'cm1', title: 'Lobola Agreed', status: 'complete', dueDate: '2026-02-15', ownerName: 'Both Families', notes: 'Lobola negotiations concluded successfully.' },
+  { id: 'cm2', title: 'Family Introduction Completed', status: 'complete', dueDate: '2026-03-01', ownerName: 'Both Families', notes: '' },
+  { id: 'cm3', title: 'Delegation Meeting Completed', status: 'complete', dueDate: '2026-03-20', ownerName: 'Groom Family', notes: 'All elders attended.' },
+  { id: 'cm4', title: 'Traditional Ceremony Date Confirmed', status: 'in-progress', dueDate: '2026-06-15', ownerName: 'Couple', notes: 'Date being finalised with both families.' },
+  { id: 'cm5', title: 'Church Ceremony Confirmed', status: 'complete', dueDate: '2026-04-01', ownerName: 'Couple', notes: 'St Francis Church, Midrand.' },
+  { id: 'cm6', title: 'Traditional Attire Confirmed', status: 'pending', dueDate: '2026-08-01', ownerName: 'Bride', notes: '' },
+  { id: 'cm7', title: 'Family Gifts Confirmed', status: 'pending', dueDate: '2026-09-01', ownerName: 'Groom Family', notes: '' },
+  { id: 'cm8', title: 'Elders / VIP List Confirmed', status: 'in-progress', dueDate: '2026-07-01', ownerName: 'Both Families', notes: '12 elders confirmed, 6 still pending.' },
+];
+
 const vendorBoard: Record<EventType, { core: VendorCardData[]; support: VendorCardData[] }> = {
   wedding: {
     core: [
       { id: 'planner', slot: 'Planner', subcategory: 'The Perfect Plan Co.', name: 'Wedding Planner', rating: 4.9, reviewCount: 128, priceLabel: 'R35,000', score: 92, status: 'secured', image: plannerImage },
       { id: 'venue', slot: 'Venue', subcategory: 'Premium Venue', name: 'Luxe Manor', rating: 4.8, reviewCount: 96, priceLabel: 'R85,000', score: 90, status: 'secured', image: venueImage },
-      { id: 'photo', slot: 'Photography', subcategory: 'Photo and Video', name: 'Memories by TK', rating: 4.9, reviewCount: 201, priceLabel: 'R28,000', score: 89, status: 'secured', image: photographyImage },
+      { id: 'photo', slot: 'Photography', subcategory: 'Photo and Video', name: 'Memories by TK', rating: 4.9, reviewCount: 201, priceLabel: 'R28,000', score: 89, status: 'at_risk', image: photographyImage },
       { id: 'catering', slot: 'Catering', subcategory: 'Luxury Catering', name: 'Taste Affair', rating: 4.7, reviewCount: 80, priceLabel: 'R65,000', score: 88, status: 'secured', image: cateringImage },
       { id: 'florals', slot: 'Florals', subcategory: 'Floral Designer', name: 'Bloom Room', rating: 4.9, reviewCount: 74, priceLabel: 'R22,000', score: 87, status: 'secured', image: floralsImage },
       { id: 'entertainment', slot: 'Entertainment', subcategory: 'DJ', name: 'Vibe Creators', rating: 4.8, reviewCount: 156, priceLabel: 'R15,000', score: 85, status: 'booked', image: entertainmentImage },
+      { id: 'traditional', slot: 'Traditional Services', subcategory: 'Ubuntu Traditions', name: 'Ubuntu Traditions', rating: 4.8, reviewCount: 43, priceLabel: 'R14,000', score: 83, status: 'recommended', image: mcImage },
     ],
     support: [
       { id: 'mc', slot: 'MC', subcategory: 'Ceremony Host', name: 'Master of Ceremonies', rating: 4.8, reviewCount: 65, priceLabel: 'R6,000', score: 84, status: 'optional', image: mcImage },
@@ -714,6 +791,8 @@ const vendorBoard: Record<EventType, { core: VendorCardData[]; support: VendorCa
       { id: 'transport', slot: 'Transport', subcategory: 'VIP Transport', name: 'VIP Transport', rating: 4.8, reviewCount: 40, priceLabel: 'R12,000', score: 82, status: 'optional', image: transportImage },
       { id: 'decor', slot: 'Decor', subcategory: 'Decor Elegance', name: 'Decor Elegance', rating: 4.6, reviewCount: 47, priceLabel: 'R18,000', score: 80, status: 'optional', image: decorImage },
       { id: 'tent', slot: 'Tent Supplier', subcategory: 'Weather Backup', name: 'Tent Supplier', rating: 4.8, reviewCount: 54, priceLabel: 'R18,500', score: 79, status: 'recommended', image: tentImage },
+      { id: 'security', slot: 'Security', subcategory: 'Event Security', name: 'Shield Guard', rating: 4.6, reviewCount: 38, priceLabel: 'R8,000', score: 77, status: 'optional', image: transportImage },
+      { id: 'drone', slot: 'Drone Photography', subcategory: 'Aerial Coverage', name: 'Sky Lens ZA', rating: 4.9, reviewCount: 62, priceLabel: 'R7,500', score: 88, status: 'optional', image: photographyImage },
     ],
   },
   lobola: {
@@ -1019,6 +1098,7 @@ function getSupplierAvailability(status: VendorStatus) {
   if (status === 'secured' || status === 'booked') return 'Available now';
   if (status === 'recommended') return 'Priority hold';
   if (status === 'at_risk') return 'Limited availability';
+  if (status === 'shortlisted') return 'On your shortlist';
   return 'Open this week';
 }
 
@@ -1046,6 +1126,78 @@ function getSupplierLeadTime(slot: string) {
   if (normalized.includes('transport')) return 'Route confirmation 72 hours ahead';
 
   return 'Lead time depends on event complexity';
+}
+
+function getSupplierScopeDetails(slot: string): { included: string[]; excluded: string[] } {
+  const s = slot.toLowerCase();
+  if (s.includes('venue')) return {
+    included: ['Venue hire', 'Tables and chairs', 'Basic lighting', 'Security staff', 'Bridal suite access'],
+    excluded: ['Catering', 'DJ or entertainment', 'Flowers and decor', 'Additional lighting', 'Accommodation'],
+  };
+  if (s.includes('catering')) return {
+    included: ['Buffet setup and service', 'Waitstaff', 'Crockery and cutlery', 'Cake table setup'],
+    excluded: ['Wedding cake', 'Bar and beverages', 'Linen and decor', 'Grazing tables'],
+  };
+  if (s.includes('photo')) return {
+    included: ['Full-day coverage (ceremony + reception)', 'Edited digital gallery', '2 photographers', 'Online delivery within 6 weeks'],
+    excluded: ['Printed albums', 'Same-day edits', 'Drone footage', 'Engagement shoot'],
+  };
+  if (s.includes('entertainment') || s.includes('dj')) return {
+    included: ['DJ equipment and setup', 'MC duties', 'Music planning session', 'Lighting rig'],
+    excluded: ['Live band', 'Additional sound system', 'Ceremony music', 'Photobooth'],
+  };
+  if (s.includes('decor') || s.includes('floral')) return {
+    included: ['Centrepieces', 'Ceremony arch', 'Bridal table decor', 'Setup and breakdown'],
+    excluded: ['Venue draping', 'Hanging installations', 'Candles', 'Chair covers'],
+  };
+  if (s.includes('tent')) return {
+    included: ['Marquee structure', 'Flooring', 'Side walls and entrance', 'Setup and breakdown'],
+    excluded: ['Lighting', 'Furniture inside marquee', 'Generator power', 'Climate control'],
+  };
+  return {
+    included: ['Core service as described', 'Basic setup and logistics'],
+    excluded: ['Custom add-ons', 'Extended hours', 'Additional locations'],
+  };
+}
+
+function getSupplierOptionalExtras(slot: string): Array<{ label: string; price: string }> {
+  const s = slot.toLowerCase();
+  if (s.includes('venue')) return [
+    { label: 'In-house catering package', price: 'R65,000' },
+    { label: 'In-house DJ', price: 'R15,000' },
+    { label: 'Decor package', price: 'R25,000' },
+  ];
+  if (s.includes('catering')) return [
+    { label: 'Open bar service', price: 'R22,000' },
+    { label: 'Grazing table', price: 'R8,500' },
+    { label: 'Late-night snack station', price: 'R6,000' },
+  ];
+  if (s.includes('photo')) return [
+    { label: 'Printed album (30 pages)', price: 'R6,500' },
+    { label: 'Engagement shoot', price: 'R4,500' },
+    { label: 'Same-day highlight reel', price: 'R8,000' },
+  ];
+  if (s.includes('decor') || s.includes('floral')) return [
+    { label: 'Floral arch upgrade', price: 'R8,500' },
+    { label: 'Full venue draping', price: 'R18,000' },
+    { label: 'Candle package', price: 'R4,200' },
+  ];
+  if (s.includes('entertainment') || s.includes('dj')) return [
+    { label: 'Live saxophonist', price: 'R5,500' },
+    { label: 'Photobooth with prints', price: 'R7,000' },
+    { label: 'Extra sound system', price: 'R4,000' },
+  ];
+  return [];
+}
+
+function getSupplierCoachNote(slot: string): string | null {
+  const s = slot.toLowerCase();
+  if (s.includes('venue')) return 'Using the venue\'s in-house catering may reduce coordination risk and save approximately R8,500 on external logistics.';
+  if (s.includes('catering')) return 'Confirm final headcount no later than 7 days before the event to avoid overage charges.';
+  if (s.includes('photo')) return 'Deposit is currently unpaid — this is flagged as a risk. Confirm within 7 days to protect the booking.';
+  if (s.includes('decor') || s.includes('floral')) return 'The floral arch extra (R8,500) has not been approved yet. Review this line item before the next budget checkpoint.';
+  if (s.includes('tent')) return 'Weather forecast shows 65% rain chance. This supplier should be confirmed before any other optional spend is approved.';
+  return null;
 }
 
 function getSupplierBestFit(vendor: VendorCardData, locationLabel: string) {
@@ -1114,7 +1266,7 @@ export function App() {
   const [authRole, setAuthRole] = useState<AuthRole>('client');
   const [authIdentifier, setAuthIdentifier] = useState('');
   const [authOtp, setAuthOtp] = useState('');
-  const [authStep, setAuthStep] = useState<'identify' | 'verify'>('identify');
+  const [authStep, setAuthStep] = useState<'landing' | 'identify' | 'verify'>('landing');
   const [authNotice, setAuthNotice] = useState('');
   const [authError, setAuthError] = useState('');
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
@@ -1140,6 +1292,19 @@ export function App() {
   const [aiPicking, setAiPicking] = useState(false);
   const [revealedVendorIds, setRevealedVendorIds] = useState<string[]>([]);
   const [revealSequenceActive, setRevealSequenceActive] = useState(false);
+  const [rsvpGuests, setRsvpGuests] = useState<RsvpGuest[]>(rsvpGuestsDemo);
+  const [milestones, setMilestones] = useState<CulturalMilestone[]>(culturalMilestonesDemo);
+  const [rsvpReminderGuestId, setRsvpReminderGuestId] = useState<string | null>(null);
+  const [rsvpFilter, setRsvpFilter] = useState<string>('all');
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
+  const [adminCoachNote, setAdminCoachNote] = useState('Venue walkthrough recommended next week. RSVP follow-up required for Bride\'s Family group. Decor quote has unapproved extras — review before approving payment.');
+  const [adminAlerts, setAdminAlerts] = useState([
+    { id: 'a1', severity: 'High', message: 'RSVP confidence is low — 142 guests still pending.', action: 'Start follow-ups this week.' },
+    { id: 'a2', severity: 'Medium', message: 'Decor quote has R18,500 in unapproved extras.', action: 'Review before approving payment.' },
+    { id: 'a3', severity: 'Medium', message: 'Photographer deposit not confirmed.', action: 'Confirm within 7 days.' },
+    { id: 'a4', severity: 'Low', message: 'Weather backup (tent supplier) not confirmed.', action: 'Add tent supplier to squad.' },
+  ]);
+  const [adminNewAlert, setAdminNewAlert] = useState({ severity: 'Medium', message: '', action: '' });
 
   const payoutProfileReady = Boolean(
     settings?.businessLegalName?.trim()
@@ -1313,28 +1478,48 @@ export function App() {
   const totalTaskCount = 52;
   const budgetLines = plannerSurface?.budget.lines || [];
   const settledBudgetLines = budgetLines.filter((line) => line.status === 'paid' || line.status === 'booked').length;
-  const paymentsScore = budgetLines.length > 0
-    ? Math.round((settledBudgetLines / budgetLines.length) * 15)
-    : budgetProgress <= 70 ? 15 : budgetProgress <= 90 ? 11 : 6;
-  const guestManagementScore = venueVendor
-    ? completedTaskCount >= 34 ? 5 : 3
-    : 0;
-  const timelineTasksScore = Math.round((completedTaskCount / totalTaskCount) * 10);
+  // RSVP computed values
+  const rsvpTotalInvited = rsvpGroups.reduce((s, g) => s + g.invited, 0);
+  const rsvpTotalConfirmed = rsvpGroups.reduce((s, g) => s + g.confirmed, 0);
+  const rsvpTotalPending = rsvpGroups.reduce((s, g) => s + g.pending, 0);
+  const rsvpTotalDeclined = rsvpGroups.reduce((s, g) => s + g.declined, 0);
+  const rsvpConfidence = Math.round((rsvpTotalConfirmed / rsvpTotalInvited) * 100);
+
+  // Cultural milestones computed values
+  const completedMilestonesCount = milestones.filter((m) => m.status === 'complete').length;
+  const totalMilestonesCount = milestones.length;
+
+  const weatherStatus = selectedWeather.rainChance <= 20 ? 'Safe' : selectedWeather.rainChance <= 45 ? 'Watch' : 'Risk';
+
+  // 7-factor weighted readiness engine (per brief)
+  const supplierReadinessScore = Math.round((Math.min(vendorCoverageCount, 5) / 5) * 25);
+  const rsvpReadinessScore = rsvpConfidence >= 80 ? 20 : rsvpConfidence >= 65 ? 14 : rsvpConfidence >= 50 ? 10 : 5;
+  const budgetReadinessScore = budgetProgress <= 90 ? 15 : budgetProgress <= 100 ? 10 : 5;
+  const timelineTasksScore = Math.round((completedTaskCount / totalTaskCount) * 15);
+  const paymentsReadinessScore = budgetLines.length > 0
+    ? Math.round((settledBudgetLines / budgetLines.length) * 10)
+    : budgetProgress <= 70 ? 10 : budgetProgress <= 90 ? 7 : 4;
+  const weatherReadinessScore = weatherStatus === 'Safe' ? 5 : weatherStatus === 'Watch' ? 3 : 1;
+  const milestoneReadinessScore = Math.round((completedMilestonesCount / Math.max(totalMilestonesCount, 1)) * 5);
+  const coachReadinessScore = messageThreads.length > 0 ? 5 : 2;
   const readinessScore = clampNumber(
-    (venueVendor ? 25 : 0)
-    + (cateringVendor ? 15 : 0)
-    + (decorVendor ? 10 : 0)
-    + (photographyVendor ? 10 : 0)
-    + (entertainmentVendor ? 10 : 0)
-    + paymentsScore
-    + guestManagementScore
-    + timelineTasksScore,
+    supplierReadinessScore + rsvpReadinessScore + budgetReadinessScore + timelineTasksScore +
+    paymentsReadinessScore + weatherReadinessScore + milestoneReadinessScore + coachReadinessScore,
     0,
     100,
   );
+  const readinessDrivers = [
+    { label: 'Supplier readiness', score: supplierReadinessScore, max: 25 },
+    { label: 'RSVP confidence', score: rsvpReadinessScore, max: 20 },
+    { label: 'Budget health', score: budgetReadinessScore, max: 15 },
+    { label: 'Timeline tasks', score: timelineTasksScore, max: 15 },
+    { label: 'Payments & deposits', score: paymentsReadinessScore, max: 10 },
+    { label: 'Weather & logistics', score: weatherReadinessScore, max: 5 },
+    { label: 'Cultural milestones', score: milestoneReadinessScore, max: 5 },
+    { label: 'Coach coordination', score: coachReadinessScore, max: 5 },
+  ].sort((a, b) => (b.max - b.score) - (a.max - a.score));
   const readinessTone = readinessScore >= 85 ? 'healthy' : readinessScore >= 70 ? 'watch' : 'risk';
   const readinessLabel = readinessTone === 'healthy' ? 'On Track' : readinessTone === 'watch' ? 'Watch' : 'Risk';
-  const weatherStatus = selectedWeather.rainChance <= 20 ? 'Safe' : selectedWeather.rainChance <= 45 ? 'Watch' : 'Risk';
   const savingsIdentified = 12700;
   const coachQuickActions = [
     { label: 'Call', href: 'tel:+27821234567', Icon: PhoneIcon },
@@ -1342,18 +1527,60 @@ export function App() {
     { label: 'Message', action: () => openMessageThread(), Icon: MessageSquareIcon },
     { label: 'Schedule Meeting', action: () => setCoachScheduleOpen(true), Icon: CalendarIcon },
   ];
-  const coachNote = 'Venue walkthrough recommended next week.';
+  const coachNote = adminCoachNote;
+  const tentVendor = findVendorByMatch(/tent/i);
+  const coachRecommendations = [
+    rsvpConfidence < 75 ? `Follow up with ${rsvpTotalPending} pending guests — especially Bride's Family group (72 still unconfirmed).` : null,
+    photographyVendor?.status === 'at_risk' ? 'Pay the photographer deposit this week to secure Memories by TK before the booking expires.' : null,
+    selectedWeather.rainChance > 45 && !tentVendor ? 'Add a tent supplier to the squad before final payment approvals. Rain chance is elevated.' : null,
+    'Schedule a venue walkthrough before the month end to lock the floorplan and seating layout.',
+    'Review and approve or reject the R18,500 in unapproved decor extras before they delay supplier confirmation.',
+  ].filter(Boolean).slice(0, 3) as string[];
+  const photographyAtRisk = photographyVendor?.status === 'at_risk';
   const riskAlerts = [
-    !photographyVendor ? { title: 'Photographer not confirmed', impact: 'Medium', action: 'Confirm within 7 days' } : null,
-    budgetProgress > 85 ? { title: 'Budget usage is climbing fast', impact: 'Medium', action: 'Review decor and add-on spend this week' } : null,
-    shouldShowWeatherAlert ? { title: activeWeatherAlert?.title || 'Weather risk elevated', impact: 'High', action: activeWeatherAlert?.ctaLabel.replace(' >', '') || 'Review contingency suppliers' } : null,
+    // Risk 1: RSVP confidence low
+    rsvpConfidence < 75 ? { title: `RSVP confidence is low — ${rsvpTotalPending} guests still pending`, impact: 'High', action: 'Start follow-ups this week to protect catering and seating.' } : null,
+    // Risk 2: Decor extras awaiting approval (unapproved R18,500 in extras)
+    { title: 'Decor quote has R18,500 in unapproved extras', impact: 'Medium', action: 'Review before approving payment.' },
+    // Risk 3: Photographer deposit not confirmed
+    photographyAtRisk || !photographyVendor ? { title: 'Photographer deposit not confirmed', impact: 'High', action: 'Confirm deposit with Memories by TK within 7 days.' } : null,
+    // Risk 4: Weather backup not confirmed
+    shouldShowWeatherAlert && !tentVendor ? { title: 'Weather backup (tent supplier) not confirmed', impact: 'Medium', action: 'Rain chance is elevated. Add a tent supplier to the squad.' } : null,
+    // Fallback: budget climbing
+    budgetProgress > 92 ? { title: 'Budget usage is above 92%', impact: 'Medium', action: 'Review decor and add-on spend this week.' } : null,
   ].filter(Boolean) as Array<{ title: string; impact: string; action: string }>;
   const timelineItems = [
-    { label: 'Venue Confirmed', status: venueVendor ? 'done' : 'upcoming', dependency: null },
-    { label: 'Decor Selected', status: decorVendor ? 'done' : venueVendor ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot finalize decor until venue is selected.' },
-    { label: 'Photographer Confirmed', status: photographyVendor ? 'done' : 'active', dependency: null },
-    { label: 'Invitations', status: completedTaskCount >= 5 ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot start invitations until venue details are locked.' },
-    { label: 'Seating Plan', status: completedTaskCount >= 6 ? 'active' : 'upcoming', dependency: venueVendor ? null : 'Cannot start seating plan until venue selected.' },
+    // Phase: Discovery
+    { phase: 'Discovery', label: 'Wedding Vision Defined', status: 'done', criticality: 'High', dependency: null },
+    { phase: 'Discovery', label: 'Guest Count Estimated', status: 'done', criticality: 'High', dependency: null },
+    { phase: 'Discovery', label: 'Budget Range Set', status: 'done', criticality: 'Critical', dependency: null },
+    // Phase: Planning
+    { phase: 'Planning', label: 'Coach Assigned', status: 'done', criticality: 'High', dependency: null },
+    { phase: 'Planning', label: 'Venue Shortlist Created', status: 'done', criticality: 'High', dependency: null },
+    { phase: 'Planning', label: 'Event Date Locked', status: 'done', criticality: 'Critical', dependency: null },
+    // Phase: Supplier Booking
+    { phase: 'Supplier Booking', label: 'Venue Confirmed', status: venueVendor && venueVendor.status === 'secured' ? 'done' : venueVendor ? 'active' : 'upcoming', criticality: 'Critical', dependency: null },
+    { phase: 'Supplier Booking', label: 'Catering Booked', status: cateringVendor && cateringVendor.status === 'secured' ? 'done' : cateringVendor ? 'active' : 'upcoming', criticality: 'Critical', dependency: venueVendor ? null : 'Venue must be confirmed before catering headcount can be finalised.' },
+    { phase: 'Supplier Booking', label: 'Photographer Deposit Paid', status: photographyVendor && photographyVendor.status !== 'at_risk' ? 'done' : 'overdue', criticality: 'High', dependency: null },
+    { phase: 'Supplier Booking', label: 'Decor Supplier Selected', status: decorVendor ? 'done' : venueVendor ? 'active' : 'upcoming', criticality: 'High', dependency: venueVendor ? null : 'Cannot finalise decor until venue floorplan is locked.' },
+    { phase: 'Supplier Booking', label: 'Entertainment Confirmed', status: entertainmentVendor && (entertainmentVendor.status === 'secured' || entertainmentVendor.status === 'booked') ? 'done' : 'active', criticality: 'Medium', dependency: null },
+    // Phase: Cultural Milestones
+    { phase: 'Cultural Milestones', label: 'Traditional Ceremony Date Set', status: milestones.find((m) => m.title.includes('Traditional Ceremony'))?.status === 'complete' ? 'done' : 'active', criticality: 'High', dependency: null },
+    { phase: 'Cultural Milestones', label: 'Traditional Attire Confirmed', status: milestones.find((m) => m.title.includes('Attire'))?.status === 'complete' ? 'done' : 'upcoming', criticality: 'Medium', dependency: null },
+    // Phase: Finalisation
+    { phase: 'Finalisation', label: 'Finalise Catering Count', status: rsvpConfidence >= 80 ? 'active' : 'blocked', criticality: 'High', dependency: rsvpConfidence < 80 ? `Blocked: RSVP confidence is ${rsvpConfidence}% — needs 80% before catering count can be finalised.` : null },
+    { phase: 'Finalisation', label: 'Seating Plan Complete', status: rsvpConfidence >= 80 && venueVendor ? 'active' : 'blocked', criticality: 'High', dependency: rsvpConfidence < 80 ? 'Blocked: Cannot complete seating plan until RSVP confidence reaches 80%.' : !venueVendor ? 'Venue must be selected first.' : null },
+    { phase: 'Finalisation', label: 'Invitations Sent', status: completedTaskCount >= 22 ? 'done' : completedTaskCount >= 12 ? 'active' : 'upcoming', criticality: 'High', dependency: venueVendor ? null : 'Cannot send invitations until venue address and date are locked.' },
+    // Phase: Wedding Week
+    { phase: 'Wedding Week', label: 'Supplier Briefing Done', status: completedTaskCount >= 40 ? 'done' : 'upcoming', criticality: 'Critical', dependency: null },
+    { phase: 'Wedding Week', label: 'Final Payments Settled', status: completedTaskCount >= 45 ? 'done' : 'upcoming', criticality: 'Critical', dependency: null },
+    { phase: 'Wedding Week', label: 'Weather Contingency Ready', status: tentVendor ? 'done' : selectedWeather.rainChance > 45 ? 'overdue' : 'upcoming', criticality: selectedWeather.rainChance > 45 ? 'High' : 'Medium', dependency: selectedWeather.rainChance > 45 && !tentVendor ? 'Rain chance is elevated. Tent supplier not yet confirmed.' : null },
+    // Phase: Wedding Day
+    { phase: 'Wedding Day', label: 'Ceremony Run Sheet Ready', status: completedTaskCount >= 48 ? 'done' : 'upcoming', criticality: 'Critical', dependency: null },
+    { phase: 'Wedding Day', label: 'Coach On-Site Confirmed', status: completedTaskCount >= 48 ? 'done' : 'upcoming', criticality: 'Critical', dependency: null },
+    // Phase: Post-Event
+    { phase: 'Post-Event', label: 'Supplier Feedback Submitted', status: 'upcoming', criticality: 'Low', dependency: null },
+    { phase: 'Post-Event', label: 'Final Invoice Reconciliation', status: 'upcoming', criticality: 'Medium', dependency: null },
   ];
   const supplierBundles = { title: 'Venue + Decor + DJ', saveLabel: 'Save R8,500', boostLabel: 'Readiness Boost +12%' };
   const valueAddMarketplace = ['Drone Photography', 'Photo Booth', 'Luxury Cars', 'Jumping Castles', 'Kids Entertainment', 'Live Streaming', 'Fireworks', 'Wedding Website'];
@@ -1730,7 +1957,8 @@ export function App() {
     clearAdminSession();
     setMockSession(null);
     setSurfaceMode('planner');
-    setAuthStep('identify');
+    setActiveTab('squad');
+    setAuthStep('landing');
     setAuthIdentifier('');
     setAuthOtp('');
     setAuthNotice('');
@@ -1781,7 +2009,8 @@ export function App() {
       identity: baseIdentity,
       contact: trimmedIdentifier,
     });
-    setSurfaceMode(authRole === 'admin' ? surfaceMode : 'planner');
+    setSurfaceMode('planner');
+    setActiveTab('squad');
     setAuthStep('identify');
     setAuthOtp('');
     setAuthNotice(`${config.label} signed in successfully.`);
@@ -1988,6 +2217,39 @@ export function App() {
   }
 
   if (!mockSession) {
+    // Landing hero screen
+    if (authStep === 'landing') {
+      return (
+        <main className="stitchdShell landingShell">
+          <div className="pageGlow pageGlowLeft" />
+          <div className="pageGlow pageGlowRight" />
+          <div className="landingBg" style={{ backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.72) 100%), url(${venueImage})` }} />
+          <section className="landingContent">
+            <div className="landingBrand">
+              <StitchdWordmark variant="landing" />
+              <p className="landingTagline">Your wedding, fully coordinated.</p>
+            </div>
+            <div className="landingHero">
+              <h1 className="landingHeadline">A premium wedding command centre.</h1>
+              <p className="landingSubtext">Track your suppliers, budget, RSVP confidence, cultural milestones, and wedding readiness from one place. Built for South African weddings.</p>
+            </div>
+            <div className="landingCtas">
+              <button type="button" className="landingPrimaryBtn" onClick={() => {
+                setMockSession({ role: 'client', identity: 'demo@stitchd.co.za', contact: 'demo@stitchd.co.za' });
+                localStorage.setItem('stitchd.mock.session', JSON.stringify({ role: 'client', identity: 'demo@stitchd.co.za', contact: 'demo@stitchd.co.za' }));
+              }}>
+                View Demo Wedding
+              </button>
+              <button type="button" className="landingSecondaryBtn" onClick={() => setAuthStep('identify')}>
+                Sign In
+              </button>
+            </div>
+            <p className="landingDisclaimer">Thabo &amp; Lelo Wedding • Midrand, Gauteng • 26 September 2026</p>
+          </section>
+        </main>
+      );
+    }
+
     return (
       <main className="stitchdShell authShell">
         <div className="pageGlow pageGlowLeft" />
@@ -1996,16 +2258,9 @@ export function App() {
           {authStep === 'identify' ? (
             <form className="authEntryCard authEntryCardCompact glassPanelNested" onSubmit={requestMockOtp}>
               <div className="authBrandLockup">
-                <div className="brandWordmark">STITCHD</div>
-                <span className="minorLabel">Sign in</span>
+                <StitchdWordmark variant="auth" />
+                <span className="minorLabel">{authRoleConfig[authRole].label} access</span>
               </div>
-              <div className="authIntroBlock">
-                <h1>Sign in or sign up before entering the planner.</h1>
-                <p>Choose how you want to enter STITCHD, then continue with your work email or mobile number.</p>
-              </div>
-              <span className="minorLabel">Sign in</span>
-              <h2>{authRoleConfig[authRole].label} access</h2>
-              <p>Use your {authRole === 'admin' ? 'work email' : 'mobile number'} to continue into the STITCHD experience.</p>
               <label>
                 Continue as
                 <select value={authRole} onChange={(event) => handleRoleSelection(event.target.value as AuthRole)}>
@@ -2026,21 +2281,18 @@ export function App() {
               </label>
               {authNotice ? <p className="statusOk">{authNotice}</p> : null}
               {authError ? <p className="statusError">{authError}</p> : null}
-              <button type="submit" className="primaryButton">Continue</button>
+              <div className="authActionsRow">
+                <button type="button" className="secondaryButton" onClick={() => setAuthStep('landing')}>Back</button>
+                <button type="submit" className="primaryButton">Continue</button>
+              </div>
             </form>
           ) : (
             <form className="authEntryCard authEntryCardCompact glassPanelNested" onSubmit={completeMockSignIn}>
               <div className="authBrandLockup">
-                <div className="brandWordmark">STITCHD</div>
-                <span className="minorLabel">Verify access</span>
+                <StitchdWordmark variant="auth" />
+                <span className="minorLabel">Verify your number</span>
               </div>
-              <div className="authIntroBlock">
-                <h1>Sign in or sign up before entering the planner.</h1>
-                <p>Finish verification to continue into your STITCHD workspace.</p>
-              </div>
-              <span className="minorLabel">Verify access</span>
-              <h2>Enter verification code</h2>
-              <p>{authNotice || `A verification code was sent to ${authIdentifier}.`}</p>
+              <p className="authVerifyHint">{authNotice || `A code was sent to ${authIdentifier}.`}</p>
               <label>
                 Verification code
                 <input value={authOtp} onChange={(event) => setAuthOtp(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} />
@@ -2088,7 +2340,7 @@ export function App() {
           <header className="plannerHeader glassPanel">
             <div className="brandPanel">
               <div className="brandPanelRow">
-                <div className="brandWordmark">STITCHD</div>
+                <StitchdWordmark variant="header" />
                 <button type="button" className="headerMenuButton" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((current) => !current)}>
                   {mobileNavOpen ? <CloseIcon className="plannerIcon" /> : <MenuIcon className="plannerIcon" />}
                 </button>
@@ -2097,7 +2349,7 @@ export function App() {
             </div>
 
             <nav className={`plannerNav ${mobileNavOpen ? 'is-open' : ''}`} aria-label="Primary planner tabs">
-              {plannerTabs.map((tab) => (
+              {plannerTabs.filter((tab) => !tab.adminOnly || mockSession?.role === 'admin').map((tab) => (
                 <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => handlePlannerTabChange(tab.id)}>
                   {tab.label}
                 </button>
@@ -2229,22 +2481,43 @@ export function App() {
               </div>
               {activeTab === 'squad' ? (
                 <div className="dashboardTab">
+                  {/* Top hero strip — brief requirement */}
+                  <div className="dashboardHeroStrip glassPanelNested">
+                    <div className="heroStripLeft">
+                      <div className="heroStripCouple">Thabo &amp; Lelo Wedding</div>
+                      <div className="heroStripMeta">
+                        <span>26 September 2026</span>
+                        <span className="heroStripDot">·</span>
+                        <span>{locationLabel}</span>
+                        <span className="heroStripDot">·</span>
+                        <span>{rsvpTotalInvited} invited guests</span>
+                      </div>
+                    </div>
+                    <div className="heroStripRight">
+                      <span className="heroStripDays">{daysToEvent}</span>
+                      <span className="heroStripDaysLabel">days to go</span>
+                    </div>
+                  </div>
                   <div className="kpiGrid">
-                    <article className="kpiMetricCard glassPanelNested">
-                      <span className="minorLabel">Days To Wedding</span>
-                      <strong>{daysToEvent}</strong>
+                    <article className="kpiMetricCard glassPanelNested kpiClickable" onClick={() => handlePlannerTabChange('budget')}>
+                      <span className="minorLabel">Budget Pulse</span>
+                      <strong>{formatCurrencyFromRands(budgetUsed)}</strong>
+                      <p className="kpiSub">{formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)} total • {formatCurrencyFromRands(budgetRemaining)} left</p>
                     </article>
-                    <article className="kpiMetricCard glassPanelNested">
+                    <article className={`kpiMetricCard glassPanelNested kpiClickable ${rsvpConfidence < 75 ? 'kpiAtRisk' : rsvpConfidence >= 80 ? 'kpiHealthy' : 'kpiWatch'}`} onClick={() => handlePlannerTabChange('rsvp')}>
+                      <span className="minorLabel">RSVP Confidence</span>
+                      <strong>{rsvpConfidence}%</strong>
+                      <p className="kpiSub">{rsvpTotalConfirmed} / {rsvpTotalInvited} confirmed</p>
+                    </article>
+                    <article className="kpiMetricCard glassPanelNested kpiClickable" onClick={() => handlePlannerTabChange('inspiration')}>
                       <span className="minorLabel">Tasks Complete</span>
                       <strong>{completedTaskCount}/{totalTaskCount}</strong>
+                      <p className="kpiSub">{riskAlerts.filter((a) => a.impact === 'High').length > 0 ? `${riskAlerts.filter((a) => a.impact === 'High').length} overdue` : 'On track'}</p>
                     </article>
-                    <article className="kpiMetricCard glassPanelNested">
-                      <span className="minorLabel">Budget Used</span>
-                      <strong>{formatCurrencyFromRands(budgetUsed)} / {formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</strong>
-                    </article>
-                    <article className="kpiMetricCard glassPanelNested">
-                      <span className="minorLabel">Risk Alerts</span>
+                    <article className={`kpiMetricCard glassPanelNested ${riskAlerts.length > 0 ? 'kpiAtRisk' : 'kpiHealthy'}`}>
+                      <span className="minorLabel">Open Risks</span>
                       <strong>{riskAlerts.length}</strong>
+                      <p className="kpiSub">{riskAlerts.filter((a) => a.impact === 'High').length} high priority</p>
                     </article>
                   </div>
 
@@ -2263,16 +2536,38 @@ export function App() {
                   </div>
 
                   <div className="riskList">
-                    {riskAlerts.map((alert) => (
+                    {riskAlerts.slice(0, 3).map((alert) => (
                       <article key={alert.title} className="riskAlertCard glassPanelNested">
                         <div>
-                          <span className="minorLabel">Risk Alert</span>
+                          <span className={`riskSeverityDot ${alert.impact === 'High' ? 'dot-high' : 'dot-medium'}`} />
+                          <span className="minorLabel">Risk · {alert.impact}</span>
                           <strong>{alert.title}</strong>
                         </div>
-                        <div className="splitMeta"><span>Impact: {alert.impact}</span><span>Action: {alert.action}</span></div>
+                        <div className="splitMeta"><span>{alert.action}</span></div>
                       </article>
                     ))}
                   </div>
+
+                  {/* Coach Recommendations — brief requirement */}
+                  <article className="coachRecommendationsCard glassPanelNested">
+                    <div className="coachRecHeader">
+                      <div className="coachRecAvatar" style={{ backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.4)), url(${coachByEvent.wedding.image})` }} />
+                      <div>
+                        <span className="minorLabel">Coach Recommendations</span>
+                        <strong>{coachByEvent.wedding.name}</strong>
+                        <span className="coachCompanyTag">{coachByEvent.wedding.company}</span>
+                      </div>
+                    </div>
+                    <ol className="coachRecList">
+                      {coachRecommendations.map((rec, i) => (
+                        <li key={i} className="coachRecItem">
+                          <span className="coachRecNum">{i + 1}</span>
+                          <p>{rec}</p>
+                        </li>
+                      ))}
+                    </ol>
+                    <button type="button" className="ghostButton" onClick={() => handlePlannerTabChange('marketplace')}>Open Coach Screen</button>
+                  </article>
 
                   <div className="sectionHeadingRow supportHeading">
                     <div>
@@ -2375,11 +2670,18 @@ export function App() {
                 <div className="budgetPulseGrid">
                   <article className="budgetOverviewCard glassPanelNested">
                     <span className="minorLabel">Budget Pulse</span>
-                    <div className="budgetSummaryRow"><span>Budget</span><strong>{formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</strong></div>
-                    <div className="budgetSummaryRow"><span>Spent</span><strong>{formatCurrencyFromRands(budgetUsed)}</strong></div>
-                    <div className="budgetSummaryRow"><span>Remaining</span><strong>{formatCurrencyFromRands(budgetRemaining)}</strong></div>
-                    <div className="budgetSummaryRow"><span>Budget Health</span><strong className={budgetProgress <= 70 ? 'is-green' : budgetProgress <= 90 ? 'is-gold' : 'is-red'}>{budgetProgress <= 70 ? 'Healthy' : budgetProgress <= 90 ? 'Watch' : 'Risk'}</strong></div>
-                    <div className="progressTrack"><span className={budgetProgress > 95 ? 'is-over' : ''} style={{ width: `${budgetProgress}%` }} /></div>
+                    <div className="budgetSummaryRow"><span>Total Budget</span><strong>{formatCurrencyFromRands(plannerSurface?.budget.total || totalBudget)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Approved Spend</span><strong>{formatCurrencyFromRands(budgetUsed)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Paid</span><strong>{formatCurrencyFromRands(Math.round(budgetUsed * 0.5625))}</strong></div>
+                    <div className="budgetSummaryRow"><span>Outstanding</span><strong>{formatCurrencyFromRands(Math.round(budgetUsed * 0.4375))}</strong></div>
+                    <div className="budgetSummaryRow budgetExtrasRow"><span>Unapproved Extras</span><strong className="is-amber">{formatCurrencyFromRands(18500)}</strong></div>
+                    <div className="budgetSummaryRow"><span>Estimated Savings Found</span><strong className="is-green">{formatCurrencyFromRands(savingsIdentified)}</strong></div>
+                    <div className="progressTrack budgetProgressTrack"><span className={budgetProgress > 95 ? 'is-over' : ''} style={{ width: `${budgetProgress}%` }} /></div>
+                    <div className="budgetHealthBadge">
+                      <span className="budgetHealthTag health-review">
+                        Needs Review — Unapproved Extras
+                      </span>
+                    </div>
                   </article>
 
                   <article className="budgetChartCard glassPanelNested">
@@ -2424,23 +2726,394 @@ export function App() {
                       ))}
                     </div>
                   </article>
+
+                  {/* Unapproved extras panel — per brief */}
+                  <article className="budgetExtrasPanel glassPanelNested fullWidthPanel">
+                    <div className="budgetExtrasHeader">
+                      <div>
+                        <span className="minorLabel">Unapproved Extras</span>
+                        <strong>Items awaiting your approval before they enter the budget</strong>
+                      </div>
+                      <span className="budgetExtrasTotal is-amber">{formatCurrencyFromRands(18500)} pending</span>
+                    </div>
+                    {[
+                      { id: 'ex1', label: 'Additional floral arch', supplier: 'Bloom Room', amount: 8500, status: 'Awaiting Approval' },
+                      { id: 'ex2', label: 'Extended DJ set (2 extra hours)', supplier: 'Vibe Creators', amount: 5000, status: 'Awaiting Approval' },
+                      { id: 'ex3', label: 'Upgraded chair covers', supplier: 'Decor Elegance', amount: 5000, status: 'Awaiting Approval' },
+                    ].map((extra) => (
+                      <div key={extra.id} className="budgetExtraRow">
+                        <div className="budgetExtraInfo">
+                          <strong>{extra.label}</strong>
+                          <span className="budgetExtraSupplier">{extra.supplier}</span>
+                        </div>
+                        <div className="budgetExtraMeta">
+                          <strong className="is-amber">{formatCurrencyFromRands(extra.amount)}</strong>
+                          <span className="budgetExtraStatus">{extra.status}</span>
+                        </div>
+                        <div className="budgetExtraActions">
+                          <button type="button" className="budgetExtraBtn is-approve" onClick={() => setPlannerToast(`${extra.label} approved and added to budget.`)}>Approve</button>
+                          <button type="button" className="budgetExtraBtn is-reject" onClick={() => setPlannerToast(`${extra.label} rejected and removed.`)}>Reject</button>
+                          <button type="button" className="budgetExtraBtn is-coach" onClick={() => handlePlannerTabChange('marketplace')}>Ask Coach</button>
+                        </div>
+                      </div>
+                    ))}
+                  </article>
                 </div>
               ) : null}
 
               {activeTab === 'inspiration' ? (
                 <div className="journeyPanel">
-                  {timelineItems.map((item, index) => (
-                    <article key={item.label} className={`journeyStep glassPanelNested ${item.status === 'done' ? 'is-done' : item.status === 'active' ? 'is-active' : ''}`}>
-                      <div className="journeyStepMarker">
-                        <span>{item.status === 'done' ? '✓' : item.status === 'active' ? '⚠' : '○'}</span>
-                        {index < timelineItems.length - 1 ? <div className="journeyConnector" /> : null}
+                  {(() => {
+                    const phases = [...new Set(timelineItems.map((i) => i.phase))];
+                    return phases.map((phase) => {
+                      const items = timelineItems.filter((i) => i.phase === phase);
+                      return (
+                        <div key={phase} className="timelinePhase">
+                          <div className="timelinePhaseHeader">
+                            <span className="minorLabel">Phase</span>
+                            <strong>{phase}</strong>
+                          </div>
+                          {items.map((item, index) => (
+                            <article key={item.label} className={`journeyStep glassPanelNested ${item.status === 'done' ? 'is-done' : item.status === 'active' ? 'is-active' : item.status === 'blocked' ? 'is-blocked' : item.status === 'overdue' ? 'is-overdue' : ''}`}>
+                              <div className="journeyStepMarker">
+                                <span className="journeyStepIcon">
+                                  {item.status === 'done' ? '✓' : item.status === 'active' ? '⚡' : item.status === 'blocked' ? '⛔' : item.status === 'overdue' ? '⚠' : '○'}
+                                </span>
+                                {index < items.length - 1 ? <div className="journeyConnector" /> : null}
+                              </div>
+                              <div className="journeyStepBody">
+                                <div className="journeyStepHeader">
+                                  <strong>{item.label}</strong>
+                                  <span className={`criticalityBadge criticality-${item.criticality.toLowerCase()}`}>{item.criticality}</span>
+                                </div>
+                                {item.dependency
+                                  ? <p className="journeyBlockReason">{item.dependency}</p>
+                                  : <p>{item.status === 'done' ? 'Completed and synced into your wedding plan.' : item.status === 'overdue' ? 'This task is overdue and affecting readiness.' : 'Next action is open.'}</p>}
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              ) : null}
+
+              {activeTab === 'rsvp' ? (
+                <div className="rsvpScreen">
+                  {/* Hero confidence score */}
+                  <div className="rsvpHero glassPanelNested">
+                    <div className="rsvpHeroLeft">
+                      <span className="minorLabel">RSVP Confidence</span>
+                      <div className={`rsvpConfidenceScore ${rsvpConfidence >= 80 ? 'is-healthy' : rsvpConfidence >= 65 ? 'is-watch' : 'is-risk'}`}>
+                        <strong>{rsvpConfidence}%</strong>
+                        <span>{rsvpConfidence >= 80 ? 'Healthy' : rsvpConfidence >= 65 ? 'Needs Attention' : 'At Risk'}</span>
                       </div>
-                      <div>
-                        <strong>{item.label}</strong>
-                        {item.dependency ? <p>{item.dependency}</p> : <p>{item.status === 'done' ? 'Completed and synced into your wedding plan.' : 'Next action is still open.'}</p>}
+                      <div className="rsvpHeroStats">
+                        <span className="rsvpStatPill is-confirmed">{rsvpTotalConfirmed} Confirmed</span>
+                        <span className="rsvpStatPill is-pending">{rsvpTotalPending} Pending</span>
+                        <span className="rsvpStatPill is-declined">{rsvpTotalDeclined} Declined</span>
+                        <span className="rsvpStatPill">{rsvpTotalInvited} Invited</span>
                       </div>
+                    </div>
+                    <div className="rsvpHeroProgress">
+                      <div className="rsvpProgressBar">
+                        <div className="rsvpProgressFill" style={{ width: `${rsvpConfidence}%`, background: rsvpConfidence >= 80 ? '#2ECC71' : rsvpConfidence >= 65 ? '#FFB81C' : '#D9534F' }} />
+                      </div>
+                      <p className="rsvpProgressLabel">Target: 80% for a confirmed catering and seating plan</p>
+                    </div>
+                  </div>
+
+                  {/* RSVP risk alert */}
+                  {rsvpConfidence < 75 ? (
+                    <article className="rsvpRiskAlert glassPanelNested">
+                      <span className="minorLabel">RSVP Risk</span>
+                      <strong>Your RSVP confidence is low</strong>
+                      <p>Catering and seating may be inaccurate unless follow-ups start this week. {rsvpTotalPending} guests are still pending confirmation.</p>
                     </article>
-                  ))}
+                  ) : null}
+
+                  {/* Group breakdown */}
+                  <div className="sectionHeadingRow">
+                    <div><span className="minorLabel">Guest Groups</span><h2>Breakdown by family and group</h2></div>
+                  </div>
+                  <div className="rsvpGroupGrid">
+                    {rsvpGroups.map((group) => {
+                      const groupConfidence = Math.round((group.confirmed / group.invited) * 100);
+                      return (
+                        <article key={group.id} className={`rsvpGroupCard glassPanelNested ${group.risk === 'High' ? 'is-high-risk' : group.risk === 'Medium' ? 'is-medium-risk' : 'is-low-risk'}`}>
+                          <div className="rsvpGroupHeader">
+                            <strong>{group.label}</strong>
+                            <span className={`rsvpRiskBadge risk-${group.risk.toLowerCase()}`}>{group.risk} Risk</span>
+                          </div>
+                          <div className="rsvpGroupStats">
+                            <div className="rsvpGroupStat"><span className="minorLabel">Invited</span><strong>{group.invited}</strong></div>
+                            <div className="rsvpGroupStat"><span className="minorLabel">Confirmed</span><strong className="text-healthy">{group.confirmed}</strong></div>
+                            <div className="rsvpGroupStat"><span className="minorLabel">Pending</span><strong className="text-warning">{group.pending}</strong></div>
+                            <div className="rsvpGroupStat"><span className="minorLabel">Declined</span><strong>{group.declined}</strong></div>
+                          </div>
+                          <div className="rsvpGroupBar">
+                            <div className="rsvpGroupBarFill" style={{ width: `${groupConfidence}%`, background: group.risk === 'High' ? '#D9534F' : group.risk === 'Medium' ? '#FFB81C' : '#2ECC71' }} />
+                          </div>
+                          <p className="rsvpGroupConfidence">{groupConfidence}% confirmed</p>
+                        </article>
+                      );
+                    })}
+                  </div>
+
+                  {/* Guest list */}
+                  <div className="sectionHeadingRow">
+                    <div><span className="minorLabel">Guest List</span><h2>Individual tracking</h2></div>
+                    <div className="rsvpGuestActions">
+                      <button type="button" className="primaryButton rsvpActionBtn" onClick={() => {
+                        const newGuest: RsvpGuest = { id: `g-${Date.now()}`, name: 'New Guest', phone: '', group: "Bride's Family", status: 'Pending', plusOnes: 0, lastContacted: '', notes: '' };
+                        setRsvpGuests((prev) => [...prev, newGuest]);
+                        setPlannerToast('New guest added. Update their details below.');
+                      }}>+ Add Guest</button>
+                      <button type="button" className="ghostButton rsvpActionBtn" onClick={() => setPlannerToast('CSV import coming soon. Export your guest list from WhatsApp or Excel and paste here.')}>Import CSV</button>
+                    </div>
+                    <div className="rsvpFilterRow">
+                      {(['all', 'Confirmed', 'Pending', 'No Response', 'Declined', 'Maybe'] as const).map((f) => (
+                        <button key={f} type="button" className={`filterChip ${rsvpFilter === f ? 'is-active' : ''}`} onClick={() => setRsvpFilter(f)}>{f === 'all' ? 'All' : f}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rsvpGuestList glassPanelNested">
+                    {rsvpGuests.filter((g) => rsvpFilter === 'all' || g.status === rsvpFilter).map((guest) => (
+                      <div key={guest.id} className="rsvpGuestRow">
+                        <div className="rsvpGuestInfo">
+                          <strong>{guest.name}</strong>
+                          <span className="rsvpGuestGroup">{guest.group}</span>
+                          {guest.plusOnes > 0 ? <span className="rsvpGuestPlus">+{guest.plusOnes}</span> : null}
+                        </div>
+                        <div className="rsvpGuestMeta">
+                          <span className={`rsvpStatusBadge status-${guest.status.toLowerCase().replace(/\s+/g, '-')}`}>{guest.status}</span>
+                          <span className="rsvpGuestPhone">{guest.phone}</span>
+                        </div>
+                        <div className="rsvpGuestActions">
+                          <button type="button" className="ghostButton" onClick={() => {
+                            setRsvpGuests((prev) => prev.map((g) => g.id === guest.id ? { ...g, status: 'Confirmed' } : g));
+                          }}>Confirm</button>
+                          <button type="button" className="ghostButton" onClick={() => setRsvpReminderGuestId(guest.id)}>Reminder</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {/* WhatsApp reminder modal */}
+              {rsvpReminderGuestId ? (() => {
+                const guest = rsvpGuests.find((g) => g.id === rsvpReminderGuestId);
+                if (!guest) return null;
+                const reminderText = `Hi ${guest.name.split(' ')[0]}, Thabo &amp; Lelo Wedding • Midrand, Gauteng • 26 September 2026. Please reply YES or NO. Thank you.`;
+                return (
+                  <div className="overlayShell" role="dialog" aria-modal="true">
+                    <div className="overlayPanel glassPanel">
+                      <div className="overlayHeader">
+                        <div><span className="minorLabel">WhatsApp Reminder</span><strong>{guest.name}</strong></div>
+                        <button type="button" className="ghostButton" onClick={() => setRsvpReminderGuestId(null)}>Close</button>
+                      </div>
+                      <p className="reminderText">{reminderText}</p>
+                      <div className="reminderActions">
+                        <button type="button" className="primaryButton" onClick={() => { navigator.clipboard.writeText(reminderText); setPlannerToast('Reminder text copied to clipboard'); setRsvpReminderGuestId(null); }}>Copy Text</button>
+                        <a className="primaryButton whatsappButton" href={`https://wa.me/${guest.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(reminderText)}`} target="_blank" rel="noreferrer">Open WhatsApp</a>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : null}
+
+              {activeTab === 'milestones' ? (
+                <div className="milestonesScreen">
+                  {/* Progress header */}
+                  <div className="milestonesHero glassPanelNested">
+                    <span className="minorLabel">Cultural Milestones</span>
+                    <strong>{completedMilestonesCount} of {totalMilestonesCount} milestones complete</strong>
+                    <div className="milestonesProgressBar">
+                      <div className="milestonesProgressFill" style={{ width: `${Math.round((completedMilestonesCount / totalMilestonesCount) * 100)}%` }} />
+                    </div>
+                    <p>Cultural milestones are optional — add only what applies to your ceremony.</p>
+                  </div>
+
+                  {/* Milestone cards */}
+                  <div className="milestonesList">
+                    {milestones.map((milestone) => (
+                      <article key={milestone.id} className={`milestoneCard glassPanelNested milestone-${milestone.status}`}>
+                        <div className="milestoneCardLeft">
+                          <div className={`milestoneStatusDot dot-${milestone.status}`}>
+                            {milestone.status === 'complete' ? '✓' : milestone.status === 'in-progress' ? '⚡' : '○'}
+                          </div>
+                        </div>
+                        <div className="milestoneCardBody">
+                          <strong>{milestone.title}</strong>
+                          <div className="milestoneMeta">
+                            <span className="minorLabel">Owner: {milestone.ownerName}</span>
+                            {milestone.dueDate ? <span className="minorLabel">Due: {milestone.dueDate}</span> : null}
+                          </div>
+                          {milestone.notes ? <p>{milestone.notes}</p> : null}
+                        </div>
+                        <div className="milestoneCardActions">
+                          {milestone.status !== 'complete' ? (
+                            <button type="button" className="ghostButton" onClick={() => setMilestones((prev) => prev.map((m) => m.id === milestone.id ? { ...m, status: 'complete' } : m))}>Mark Complete</button>
+                          ) : <span className="milestoneCompletedLabel">Completed</span>}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+
+                  {/* Add custom milestone */}
+                  <div className="milestonesAddRow glassPanelNested">
+                    <span className="minorLabel">Add Custom Milestone</span>
+                    <div className="milestonesAddForm">
+                      <input
+                        type="text"
+                        placeholder="e.g. White wedding confirmed"
+                        value={newMilestoneTitle}
+                        onChange={(e) => setNewMilestoneTitle(e.target.value)}
+                        className="milestonesInput"
+                      />
+                      <button type="button" className="primaryButton" onClick={() => {
+                        if (!newMilestoneTitle.trim()) return;
+                        setMilestones((prev) => [...prev, { id: `cm-${Date.now()}`, title: newMilestoneTitle.trim(), status: 'pending', dueDate: '', ownerName: 'Couple', notes: '' }]);
+                        setNewMilestoneTitle('');
+                      }}>Add</button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {activeTab === 'event-admin' ? (
+                <div className="eventAdminScreen">
+                  <div className="adminSectionBanner glassPanelNested">
+                    <span className="minorLabel">Admin Mode</span>
+                    <strong>Wedding Demo Management</strong>
+                    <p>Edit demo data live. All changes reflect immediately across the dashboard without a code deploy.</p>
+                  </div>
+
+                  {/* Event details */}
+                  <details className="adminSection glassPanelNested" open>
+                    <summary className="adminSectionTitle">Event Details</summary>
+                    <div className="adminSectionBody">
+                      <div className="adminFieldGrid">
+                        <label className="adminField"><span>Couple Name</span><input defaultValue="Thabo & Lelo" className="adminInput" /></label>
+                        <label className="adminField"><span>Event Date</span><input defaultValue="26 September 2026" className="adminInput" /></label>
+                        <label className="adminField"><span>Location</span><input defaultValue="Midrand, Gauteng" className="adminInput" /></label>
+                        <label className="adminField"><span>Guest Target</span><input defaultValue="500" type="number" className="adminInput" /></label>
+                        <label className="adminField"><span>Total Budget (R)</span><input defaultValue="400000" type="number" className="adminInput" /></label>
+                      </div>
+                    </div>
+                  </details>
+
+                  {/* Supplier status manager */}
+                  <details className="adminSection glassPanelNested">
+                    <summary className="adminSectionTitle">Supplier Status Manager</summary>
+                    <div className="adminSectionBody">
+                      <p className="adminHint">Change supplier statuses to simulate different readiness scenarios.</p>
+                      {allVendors.map((vendor) => (
+                        <div key={vendor.id} className="adminSupplierRow">
+                          <span className="adminSupplierName">{vendor.slot} — {vendor.name}</span>
+                          <select
+                            defaultValue={vendor.status}
+                            className="adminSelect"
+                            onChange={(e) => {
+                              const newStatus = e.target.value as VendorStatus;
+                              const updatedBoard = {
+                                core: selectedBoard.core.map((v) => v.id === vendor.id ? { ...v, status: newStatus } : v),
+                                support: selectedBoard.support.map((v) => v.id === vendor.id ? { ...v, status: newStatus } : v),
+                              };
+                              setPlannerBoardOverride(updatedBoard);
+                            }}
+                          >
+                            <option value="secured">Secured</option>
+                            <option value="booked">Booked</option>
+                            <option value="shortlisted">Shortlisted</option>
+                            <option value="optional">Optional</option>
+                            <option value="recommended">Recommended</option>
+                            <option value="at_risk">At Risk</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+
+                  {/* Alerts manager */}
+                  <details className="adminSection glassPanelNested">
+                    <summary className="adminSectionTitle">Alerts & Risks</summary>
+                    <div className="adminSectionBody">
+                      {adminAlerts.map((alert) => (
+                        <div key={alert.id} className="adminAlertRow">
+                          <select value={alert.severity} className="adminSelect adminSelectSmall" onChange={(e) => setAdminAlerts((prev) => prev.map((a) => a.id === alert.id ? { ...a, severity: e.target.value } : a))}>
+                            <option>High</option>
+                            <option>Medium</option>
+                            <option>Low</option>
+                          </select>
+                          <input value={alert.message} className="adminInput adminInputGrow" onChange={(e) => setAdminAlerts((prev) => prev.map((a) => a.id === alert.id ? { ...a, message: e.target.value } : a))} />
+                          <button type="button" className="ghostButton adminDeleteBtn" onClick={() => setAdminAlerts((prev) => prev.filter((a) => a.id !== alert.id))}>✕</button>
+                        </div>
+                      ))}
+                      <div className="adminAlertRow adminAlertAdd">
+                        <select value={adminNewAlert.severity} className="adminSelect adminSelectSmall" onChange={(e) => setAdminNewAlert((prev) => ({ ...prev, severity: e.target.value }))}>
+                          <option>High</option>
+                          <option>Medium</option>
+                          <option>Low</option>
+                        </select>
+                        <input value={adminNewAlert.message} placeholder="New alert message..." className="adminInput adminInputGrow" onChange={(e) => setAdminNewAlert((prev) => ({ ...prev, message: e.target.value }))} />
+                        <button type="button" className="primaryButton" onClick={() => {
+                          if (!adminNewAlert.message.trim()) return;
+                          setAdminAlerts((prev) => [...prev, { id: `a-${Date.now()}`, ...adminNewAlert }]);
+                          setAdminNewAlert({ severity: 'Medium', message: '', action: '' });
+                        }}>Add</button>
+                      </div>
+                    </div>
+                  </details>
+
+                  {/* Coach note editor */}
+                  <details className="adminSection glassPanelNested">
+                    <summary className="adminSectionTitle">Coach Note</summary>
+                    <div className="adminSectionBody">
+                      <p className="adminHint">This note appears on the Dashboard and Coach tab.</p>
+                      <textarea value={adminCoachNote} rows={4} className="adminTextarea" onChange={(e) => setAdminCoachNote(e.target.value)} />
+                    </div>
+                  </details>
+
+                  {/* RSVP guest manager */}
+                  <details className="adminSection glassPanelNested">
+                    <summary className="adminSectionTitle">Guest List ({rsvpGuests.length} guests)</summary>
+                    <div className="adminSectionBody">
+                      {rsvpGuests.map((guest) => (
+                        <div key={guest.id} className="adminGuestRow">
+                          <span className="adminGuestName">{guest.name}</span>
+                          <span className="adminGuestGroup">{guest.group}</span>
+                          <select value={guest.status} className="adminSelect adminSelectSmall" onChange={(e) => setRsvpGuests((prev) => prev.map((g) => g.id === guest.id ? { ...g, status: e.target.value as RsvpGuest['status'] } : g))}>
+                            <option>Confirmed</option>
+                            <option>Pending</option>
+                            <option>Declined</option>
+                            <option>No Response</option>
+                            <option>Maybe</option>
+                            <option>Verbal Confirmation</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+
+                  {/* Milestone manager */}
+                  <details className="adminSection glassPanelNested">
+                    <summary className="adminSectionTitle">Cultural Milestones</summary>
+                    <div className="adminSectionBody">
+                      {milestones.map((milestone) => (
+                        <div key={milestone.id} className="adminMilestoneRow">
+                          <span className="adminMilestoneName">{milestone.title}</span>
+                          <select value={milestone.status} className="adminSelect adminSelectSmall" onChange={(e) => setMilestones((prev) => prev.map((m) => m.id === milestone.id ? { ...m, status: e.target.value as CulturalMilestone['status'] } : m))}>
+                            <option value="complete">Complete</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="pending">Pending</option>
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
                 </div>
               ) : null}
 
@@ -2459,10 +3132,17 @@ export function App() {
                         <span className="minorLabel">Coach Profile</span>
                         <strong>{selectedCoach.name}</strong>
                         <p>{selectedCoach.role}</p>
+                        {'company' in selectedCoach ? <span className="coachCompanyTag">{(selectedCoach as typeof coachByEvent.wedding).company}</span> : null}
                         <div className="coachMeta">
                           <span className="scorePill">{selectedCoach.score} Rating</span>
-                          <span>{selectedCoach.events} Weddings Managed</span>
+                          <span>{selectedCoach.events} Events Managed</span>
                         </div>
+                        {'responseTime' in selectedCoach ? (
+                          <div className="coachMeta">
+                            <span>Response: {(selectedCoach as typeof coachByEvent.wedding).responseTime}</span>
+                            <span>Specialty: {(selectedCoach as typeof coachByEvent.wedding).specialty}</span>
+                          </div>
+                        ) : null}
                         <div className="coachQuickActions">
                           {coachQuickActions.map((item) => item.href ? (
                             <a key={item.label} className={`coachActionLink ${item.label === 'WhatsApp' ? 'is-whatsapp' : ''}`} href={item.href} target={item.href.startsWith('http') ? '_blank' : undefined} rel={item.href.startsWith('http') ? 'noreferrer' : undefined}>
@@ -2589,7 +3269,7 @@ export function App() {
           </footer>
 
           <nav className="plannerBottomNav glassPanel" aria-label="Primary planner navigation">
-            {plannerTabs.map((tab) => {
+            {plannerTabs.filter((tab) => !tab.adminOnly || mockSession?.role === 'admin').map((tab) => {
               const Icon = plannerTabIcons[tab.id];
               return (
                 <button key={tab.id} type="button" className={`plannerBottomNavButton ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => handlePlannerTabChange(tab.id)}>
@@ -2720,6 +3400,53 @@ export function App() {
                     <p>{selectedSupplier.subcategory}</p>
                   </article>
                 </div>
+                {/* Included / Excluded / Optional Extras */}
+                {(() => {
+                  const details = getSupplierScopeDetails(selectedSupplier.slot);
+                  return (
+                    <div className="supplierScopeGrid">
+                      <div className="supplierScopeSection is-included">
+                        <span className="minorLabel">Included</span>
+                        {details.included.map((item) => <div key={item} className="scopeItem"><span className="scopeDot dot-included">✓</span>{item}</div>)}
+                      </div>
+                      <div className="supplierScopeSection is-excluded">
+                        <span className="minorLabel">Excluded</span>
+                        {details.excluded.map((item) => <div key={item} className="scopeItem"><span className="scopeDot dot-excluded">✕</span>{item}</div>)}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Optional Extras */}
+                {(() => {
+                  const extras = getSupplierOptionalExtras(selectedSupplier.slot);
+                  if (extras.length === 0) return null;
+                  return (
+                    <div className="supplierExtrasSection glassPanelNested">
+                      <span className="minorLabel">Optional Extras</span>
+                      <p className="extrasDisclaimer">These are NOT included in the quoted price. Add them individually after coach review.</p>
+                      {extras.map((extra) => (
+                        <div key={extra.label} className="extraRow">
+                          <span className="extraLabel">{extra.label}</span>
+                          <span className="extraPrice">{extra.price}</span>
+                          <button type="button" className="ghostButton extraAddBtn" onClick={() => setPlannerToast(`${extra.label} added as pending budget item — awaiting approval.`)}>Add Extra</button>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+
+                {/* Coach Note */}
+                {(() => {
+                  const note = getSupplierCoachNote(selectedSupplier.slot);
+                  return note ? (
+                    <div className="supplierCoachNote glassPanelNested">
+                      <span className="minorLabel">Coach Note</span>
+                      <p>{note}</p>
+                    </div>
+                  ) : null;
+                })()}
+
                 <div className="detailChecklist">
                   {getSupplierDeliverables(selectedSupplier.slot).map((item) => (
                     <article key={item} className="detailChecklistItem is-complete">
