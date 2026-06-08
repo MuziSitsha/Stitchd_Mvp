@@ -1070,6 +1070,20 @@ textarea {
   gap: 16px;
 }
 
+.dashboardTab,
+.marketplaceScreen,
+.budgetPulseGrid,
+.coachScreen,
+.rsvpScreen,
+.journeyPanel,
+.tabPanelGrid,
+.kpiGrid,
+.twoUpGrid,
+.supplierRail,
+.valueAddCarousel {
+  min-width: 0;
+}
+
 .kpiGrid,
 .twoUpGrid {
   display: grid;
@@ -2952,6 +2966,7 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    min-width: 0;
     order: 1;
   }
 
@@ -2972,6 +2987,8 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 16px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .heroStrip {
@@ -3024,7 +3041,7 @@ textarea {
   }
 
   .kpiGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
   .sectionHeadingRow,
@@ -3227,6 +3244,9 @@ textarea {
   .plannerLeftRail,
   .plannerSidebar,
   .statsGrid,
+  .kpiGrid,
+  .twoUpGrid,
+  .tabPanelGrid,
   .vendorGridCore,
   .vendorGridSupport,
   .forecastStrip,
@@ -3236,7 +3256,7 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .kpiGrid { grid-template-columns: repeat(2, 1fr); }
+  .kpiGrid { grid-template-columns: 1fr; }
 
   .brandWordmark {
     font-size: 1.8rem;
