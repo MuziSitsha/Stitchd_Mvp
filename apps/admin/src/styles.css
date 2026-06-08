@@ -575,13 +575,22 @@ textarea {
 @media (max-width: 480px) {
   .brandLogo { height: 40px; max-width: 160px; }
   .landingLogo { height: 64px; max-width: 260px; }
+  .brandPanel {
+    width: 100%;
+  }
   .brandPanelRow {
     width: 100%;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
   }
   .headerMenuButton {
-    margin-left: auto;
+    justify-self: end;
     flex-shrink: 0;
+  }
+  .brandPanel .stitchdWordmark[data-variant='header'] {
+    transform: translateX(-4px);
   }
   .brandPanel .stitchdWordmarkText,
   .brandPanel .stitchdWordmarkDash {
@@ -591,6 +600,7 @@ textarea {
   .brandPanel p {
     font-size: 0.68rem;
     letter-spacing: 0.18em;
+    padding-left: 0;
   }
 }
 .headerMenuButton {
@@ -3183,9 +3193,10 @@ textarea {
 @media (max-width: 560px) {
   .supplierRail,
   .valueAddCarousel {
-    grid-auto-columns: minmax(78vw, 1fr);
-    scroll-snap-type: x proximity;
-    scroll-padding-inline: 10px;
+    grid-auto-columns: minmax(100%, 1fr);
+    scroll-snap-type: x mandatory;
+    scroll-snap-stop: always;
+    scroll-padding-inline: 0;
   }
 
   .pulseScoreCircle {
@@ -3275,8 +3286,8 @@ textarea {
 
   .supplierRail,
   .valueAddCarousel {
-    grid-auto-columns: minmax(84vw, 1fr);
-    padding-inline: 2px 6px;
+    grid-auto-columns: minmax(100%, 1fr);
+    padding-inline: 0;
   }
 
   .brandWordmark {
