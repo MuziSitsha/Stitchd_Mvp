@@ -2884,7 +2884,6 @@ textarea {
     grid-template-columns: minmax(132px, 160px) minmax(0, 1fr);
   }
 
-  .coachPrimaryCard,
   .coachButton {
     display: none;
   }
@@ -2944,23 +2943,75 @@ textarea {
     grid-template-columns: 1fr;
   }
 
-  .heroStrip {
-    order: 2;
-  }
-
   .plannerLayout {
     display: flex;
     flex-direction: column;
-    order: 1;
   }
 
   .plannerMainBoard {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
     order: 1;
   }
 
   .plannerLeftRail {
     order: 2;
   }
+
+  .plannerSidebar {
+    order: 3;
+  }
+
+  .dashboardTab,
+  .marketplaceScreen,
+  .budgetPulseGrid,
+  .coachScreen,
+  .rsvpScreen,
+  .journeyPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .heroStrip {
+    order: 1;
+  }
+
+  .plannerLayout {
+    order: 2;
+  }
+
+  .statusBar {
+    order: 3;
+  }
+
+  .plannerBottomNav {
+    order: 4;
+  }
+
+  .dashboardHeroStrip { order: 1; }
+  .dashboardTab { order: 3; }
+  .marketplaceScreen { order: 3; }
+  .budgetPulseGrid { order: 3; }
+  .coachScreen { order: 3; }
+  .rsvpScreen { order: 3; }
+  .journeyPanel { order: 3; }
+  .supportHeading { order: 2; }
+  .supplierRail { order: 3; }
+  .kpiGrid { order: 4; }
+  .tabPanelGrid { order: 5; }
+  .riskList { order: 6; }
+  .coachRecommendationsCard { order: 7; }
+  .plannerMainBoard > .sectionHeadingRow:not(.supportHeading) { order: 8; }
+
+  .marketplaceScreen > .supplierRail { order: 1; }
+  .marketplaceScreen > .bundleCard { order: 2; }
+  .marketplaceScreen > .valueAddCarousel { order: 3; }
+
+  .coachScreen > .coachPrimaryCard { order: 1; }
+  .coachScreen > .coachNoteCard { order: 2; }
+  .coachScreen > .coachConversationPreview { order: 3; }
 
   .statsGrid,
   .forecastStrip {
@@ -3244,6 +3295,14 @@ textarea {
     font-size: 0.9rem;
   }
 
+  .coachPrimaryCard {
+    grid-template-columns: 1fr;
+  }
+
+  .coachQuickActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .coachMeta {
     display: flex;
     gap: 8px;
@@ -3261,6 +3320,12 @@ textarea {
 
   .alertCard {
     grid-column: span 1;
+  }
+}
+
+@media (max-width: 560px) {
+  .coachQuickActions {
+    grid-template-columns: 1fr;
   }
 }
 
