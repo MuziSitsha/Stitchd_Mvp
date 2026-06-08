@@ -2902,6 +2902,11 @@ textarea {
     padding: 12px 12px 90px;
   }
 
+  .plannerSurface {
+    display: flex;
+    flex-direction: column;
+  }
+
   .plannerBottomNav {
     grid-template-columns: repeat(7, minmax(0, 1fr));
     gap: 0;
@@ -2939,6 +2944,24 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .heroStrip {
+    order: 2;
+  }
+
+  .plannerLayout {
+    display: flex;
+    flex-direction: column;
+    order: 1;
+  }
+
+  .plannerMainBoard {
+    order: 1;
+  }
+
+  .plannerLeftRail {
+    order: 2;
+  }
+
   .statsGrid,
   .forecastStrip {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2966,11 +2989,16 @@ textarea {
   }
 
   .plannerHeader {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr;
     padding: 12px 16px;
+    align-items: start;
   }
 
-  .coachCard { display: none; }
+  .coachCard {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: minmax(96px, 132px) minmax(0, 1fr);
+  }
 
   .statusBar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
