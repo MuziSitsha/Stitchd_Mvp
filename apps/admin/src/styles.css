@@ -2984,21 +2984,9 @@ textarea {
   .coachScreen,
   .rsvpScreen,
   .journeyPanel {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: 16px;
     width: 100%;
-    max-width: 100%;
-  }
-
-  .dashboardTab > *,
-  .marketplaceScreen > *,
-  .budgetPulseGrid > *,
-  .coachScreen > *,
-  .rsvpScreen > *,
-  .journeyPanel > * {
-    width: 100%;
-    min-width: 0;
     max-width: 100%;
   }
 
@@ -3019,37 +3007,22 @@ textarea {
   }
 
   .dashboardHeroStrip { order: 1; }
-  .dashboardTab { order: 3; }
-  .marketplaceScreen { order: 3; }
-  .budgetPulseGrid { order: 3; }
-  .coachScreen { order: 3; }
-  .rsvpScreen { order: 3; }
-  .journeyPanel { order: 3; }
-  .supportHeading { order: 2; }
-  .supplierRail { order: 3; }
-  .kpiGrid { order: 4; }
-  .tabPanelGrid { order: 5; }
-  .riskList { order: 6; }
-  .coachRecommendationsCard { order: 7; }
-  .plannerMainBoard > .sectionHeadingRow:not(.supportHeading) { order: 8; }
+  .dashboardTab { order: 2; }
+  .marketplaceScreen { order: 2; }
+  .budgetPulseGrid { order: 2; }
+  .coachScreen { order: 2; }
+  .rsvpScreen { order: 2; }
+  .journeyPanel { order: 2; }
+  .supportHeading { order: 6; }
+  .supplierRail { order: 7; }
+  .kpiGrid { order: 2; }
+  .tabPanelGrid { order: 3; }
+  .riskList { order: 4; }
+  .coachRecommendationsCard { order: 5; }
 
   .marketplaceScreen > .supplierRail { order: 1; }
   .marketplaceScreen > .bundleCard { order: 2; }
   .marketplaceScreen > .valueAddCarousel { order: 3; }
-
-  .dashboardHeroStrip,
-  .supportHeading,
-  .kpiGrid,
-  .tabPanelGrid,
-  .riskList,
-  .coachRecommendationsCard,
-  .supplierRail,
-  .bundleCard,
-  .valueAddCarousel,
-  .budgetPulseGrid > *,
-  .coachScreen > * {
-    width: 100%;
-  }
 
   .coachScreen > .coachPrimaryCard { order: 1; }
   .coachScreen > .coachNoteCard { order: 2; }
@@ -3066,7 +3039,7 @@ textarea {
   }
 
   .kpiGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .sectionHeadingRow,
