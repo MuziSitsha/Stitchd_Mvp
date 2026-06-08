@@ -3176,6 +3176,22 @@ textarea {
     flex: 1;
   }
 
+  .pulseScoreCircle {
+    width: 112px;
+    height: 112px;
+    border-width: 7px;
+  }
+
+  .pulseScoreCircle strong {
+    font-size: 1.55rem;
+    line-height: 0.95;
+  }
+
+  .pulseScoreCircle span {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+  }
+
   .coachCard {
     grid-template-columns: 1fr;
     gap: 12px;
