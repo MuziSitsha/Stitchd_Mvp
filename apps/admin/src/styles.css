@@ -2991,6 +2991,17 @@ textarea {
     max-width: 100%;
   }
 
+  .dashboardTab > *,
+  .marketplaceScreen > *,
+  .budgetPulseGrid > *,
+  .coachScreen > *,
+  .rsvpScreen > *,
+  .journeyPanel > * {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .heroStrip {
     order: 1;
   }
@@ -3025,6 +3036,20 @@ textarea {
   .marketplaceScreen > .supplierRail { order: 1; }
   .marketplaceScreen > .bundleCard { order: 2; }
   .marketplaceScreen > .valueAddCarousel { order: 3; }
+
+  .dashboardHeroStrip,
+  .supportHeading,
+  .kpiGrid,
+  .tabPanelGrid,
+  .riskList,
+  .coachRecommendationsCard,
+  .supplierRail,
+  .bundleCard,
+  .valueAddCarousel,
+  .budgetPulseGrid > *,
+  .coachScreen > * {
+    width: 100%;
+  }
 
   .coachScreen > .coachPrimaryCard { order: 1; }
   .coachScreen > .coachNoteCard { order: 2; }
@@ -3177,7 +3202,7 @@ textarea {
 @media (max-width: 560px) {
   .supplierRail,
   .valueAddCarousel {
-    grid-auto-columns: minmax(86vw, 1fr);
+    grid-auto-columns: minmax(calc(100vw - 24px), 1fr);
   }
 
   .pulseScoreCircle {
