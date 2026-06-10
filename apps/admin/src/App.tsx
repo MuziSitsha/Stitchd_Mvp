@@ -11,8 +11,8 @@ const glamImage = 'https://upload.wikimedia.org/wikipedia/commons/0/02/White_wed
 const transportImage = 'https://upload.wikimedia.org/wikipedia/commons/1/16/Chev_wedding_car_SA.jpg';
 const decorImage = 'https://upload.wikimedia.org/wikipedia/commons/6/68/Wedding_table_SA1.jpg';
 const tentImage = 'https://upload.wikimedia.org/wikipedia/commons/a/af/Marquee_tents_for_events.jpg';
-const coachCoordinatorImage = 'https://upload.wikimedia.org/wikipedia/commons/d/d9/Event_coordinator_Mr._Mothusi_Sekhomba.jpg';
-const coachPortraitImage = 'https://upload.wikimedia.org/wikipedia/commons/4/44/African_woman_portrait.jpg';
+const coachCoordinatorImage = 'https://images.pexels.com/photos/36551042/pexels-photo-36551042.jpeg?auto=compress&cs=tinysrgb&w=600';
+const coachPortraitImage = 'https://images.pexels.com/photos/14535948/pexels-photo-14535948.jpeg?auto=compress&cs=tinysrgb&w=600';
 
 type IconProps = {
   className?: string;
@@ -78,13 +78,30 @@ function BellIcon({ className }: IconProps) {
   );
 }
 
-function StitchdWordmark({ variant = 'header' }: { variant?: 'header' | 'landing' | 'auth' }) {
+function StitchdWordmark({ variant = 'header' }: { variant?: 'header' | 'landing' | 'auth' | 'topbar' }) {
   return (
     <div className="stitchdWordmark" data-variant={variant} aria-label="STITCH-D">
       <span className="stitchdWordmarkText">STITCH</span>
       <span className="stitchdWordmarkDash">-</span>
       <span className="stitchdWordmarkText">D</span>
     </div>
+  );
+}
+
+function LightModeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="4.5" />
+      <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+    </svg>
+  );
+}
+
+function DarkModeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
   );
 }
 
@@ -361,6 +378,7 @@ type AuthRole = 'client' | 'supplier' | 'coach' | 'admin';
 type PlannerTab = 'squad' | 'rsvp' | 'inspiration' | 'suppliers' | 'budget' | 'milestones' | 'marketplace' | 'event-admin';
 type EventType = 'wedding' | 'lobola' | 'funeral' | 'corporate' | 'birthday';
 type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk' | 'shortlisted';
+type CoachBullet = { tone: 'risk' | 'warn' | 'good'; text: string };
 
 type MockSession = {
   role: AuthRole;
@@ -702,7 +720,7 @@ const eventOptions: Array<{ value: EventType; label: string; strapline: string; 
 ];
 
 const eventNames: Record<EventType, string> = {
-  wedding: 'Thabo and Lelo Wedding Weekend',
+  wedding: 'Edna and Merc Wedding Weekend',
   lobola: 'Masego Lobola Delegation',
   funeral: 'Ndlovu Memorial Service',
   corporate: 'Founders Summit 2026',
@@ -1269,9 +1287,13 @@ export function App() {
   const [authStep, setAuthStep] = useState<'landing' | 'identify' | 'verify'>('landing');
   const [authNotice, setAuthNotice] = useState('');
   const [authError, setAuthError] = useState('');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [surfaceMode, setSurfaceMode] = useState<SurfaceMode>('planner');
   const [activeTab, setActiveTab] = useState<PlannerTab>('squad');
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
   const [selectedEventType, setSelectedEventType] = useState<EventType>('wedding');
   const [plannerExperience, setPlannerExperience] = useState<PlannerExperience | null>(null);
   const [plannerSurface, setPlannerSurface] = useState<PlannerSurfaceData | null>(null);
@@ -1529,13 +1551,23 @@ export function App() {
   ];
   const coachNote = adminCoachNote;
   const tentVendor = findVendorByMatch(/tent/i);
-  const coachRecommendations = [
-    rsvpConfidence < 75 ? `Follow up with ${rsvpTotalPending} pending guests — especially Bride's Family group (72 still unconfirmed).` : null,
-    photographyVendor?.status === 'at_risk' ? 'Pay the photographer deposit this week to secure Memories by TK before the booking expires.' : null,
-    selectedWeather.rainChance > 45 && !tentVendor ? 'Add a tent supplier to the squad before final payment approvals. Rain chance is elevated.' : null,
-    'Schedule a venue walkthrough before the month end to lock the floorplan and seating layout.',
-    'Review and approve or reject the R18,500 in unapproved decor extras before they delay supplier confirmation.',
-  ].filter(Boolean).slice(0, 3) as string[];
+  const coachRecommendations: CoachBullet[] = ([
+    rsvpConfidence < 75 ? { tone: 'risk' as const, text: `Follow up with ${rsvpTotalPending} pending guests — especially Bride's Family group (72 still unconfirmed).` } : null,
+    photographyVendor?.status === 'at_risk' ? { tone: 'risk' as const, text: 'Pay the photographer deposit this week to secure Memories by TK before the booking expires.' } : null,
+    selectedWeather.rainChance > 45 && !tentVendor ? { tone: 'warn' as const, text: 'Add a tent supplier to the squad before final payment approvals. Rain chance is elevated.' } : null,
+    { tone: 'warn' as const, text: 'Schedule a venue walkthrough before month end to lock the floorplan and seating layout.' },
+    { tone: 'risk' as const, text: 'Review and approve or reject the R18,500 in unapproved decor extras before they delay supplier confirmation.' },
+  ] as (CoachBullet | null)[]).filter((x): x is CoachBullet => x !== null).slice(0, 3);
+  const adminCoachBullets: CoachBullet[] = [
+    { tone: 'risk', text: 'RSVP follow-up urgently needed for Bride\'s Family group — 72 guests still unconfirmed.' },
+    { tone: 'risk', text: 'Photographer deposit overdue — secure Memories by TK this week before booking lapses.' },
+    { tone: 'risk', text: 'R18,500 in unapproved decor extras must be reviewed and resolved before final payment.' },
+    { tone: 'warn', text: 'Venue walkthrough recommended next week to lock floorplan, seating and décor flow.' },
+    { tone: 'warn', text: 'Rain probability at 55% — tent cover supplier should be added to the squad now.' },
+    { tone: 'good', text: 'Catering menu fully signed off — no outstanding approvals in this category.' },
+    { tone: 'good', text: 'Entertainment and MC suppliers both confirmed and under contract.' },
+    { tone: 'good', text: 'Budget is in a controllable zone — savings of R12,700 identified so far.' },
+  ];
   const photographyAtRisk = photographyVendor?.status === 'at_risk';
   const riskAlerts = [
     // Risk 1: RSVP confidence low
@@ -1718,7 +1750,7 @@ export function App() {
   }, [canAccessOps, surfaceMode]);
 
   useEffect(() => {
-    setMobileNavOpen(false);
+    // mobile nav removed — nothing to close
   }, [activeTab, selectedEventType, surfaceMode]);
 
   useEffect(() => {
@@ -2027,7 +2059,6 @@ export function App() {
 
   function handlePlannerTabChange(tabId: PlannerTab) {
     setActiveTab(tabId);
-    setMobileNavOpen(false);
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -2244,7 +2275,7 @@ export function App() {
                 Sign In
               </button>
             </div>
-            <p className="landingDisclaimer">Thabo &amp; Lelo Wedding • Midrand, Gauteng • 26 September 2026</p>
+            <p className="landingDisclaimer">Edna &amp; Merc Wedding • Midrand, Gauteng • 26 September 2026</p>
           </section>
         </main>
       );
@@ -2315,14 +2346,20 @@ export function App() {
       <div className="pageGlow pageGlowRight" />
       <section className="topRail">
         <section className="modeRail">
-        <button type="button" className={`modePill ${surfaceMode === 'planner' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('planner')}>
-          STITCHD Planner
-        </button>
-          {canAccessOps ? (
-            <button type="button" className={`modePill ${surfaceMode === 'ops' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('ops')}>
-              STITCHD Ops Console
+          <div className="modeRailRow">
+            <button type="button" className={`modePill modePillBrand ${surfaceMode === 'planner' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('planner')}>
+              <StitchdWordmark variant="topbar" />
             </button>
-          ) : null}
+            {canAccessOps ? (
+              <button type="button" className={`modePill ${surfaceMode === 'ops' ? 'is-active' : ''}`} onClick={() => setSurfaceMode('ops')}>
+                STITCHD Ops Console
+              </button>
+            ) : null}
+          </div>
+          <button type="button" className="themeToggle" onClick={() => setIsDark((d) => !d)} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+            {isDark ? <LightModeIcon className="plannerIcon" /> : <DarkModeIcon className="plannerIcon" />}
+            <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+          </button>
         </section>
 
         <section className="sessionRail glassPanelNested">
@@ -2337,72 +2374,6 @@ export function App() {
       {surfaceMode === 'planner' ? (
         <section className="plannerSurface">
           {plannerToast ? <div className="plannerToast">{plannerToast}</div> : null}
-          <header className="plannerHeader glassPanel">
-            <div className="brandPanel">
-              <div className="brandPanelRow">
-                <StitchdWordmark variant="header" />
-                <button type="button" className="headerMenuButton" aria-label={mobileNavOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={mobileNavOpen} onClick={() => setMobileNavOpen((current) => !current)}>
-                  {mobileNavOpen ? <CloseIcon className="plannerIcon" /> : <MenuIcon className="plannerIcon" />}
-                </button>
-              </div>
-              <p>{selectedEventOption.label}</p>
-            </div>
-
-            <nav className={`plannerNav ${mobileNavOpen ? 'is-open' : ''}`} aria-label="Primary planner tabs">
-              {plannerTabs.filter((tab) => !tab.adminOnly || mockSession?.role === 'admin').map((tab) => (
-                <button key={tab.id} type="button" className={`plannerNavTab ${activeTab === tab.id ? 'is-active' : ''}`} onClick={() => handlePlannerTabChange(tab.id)}>
-                  {tab.label}
-                </button>
-              ))}
-            </nav>
-
-            {selectedCoach ? (
-              <div className="coachCard glassPanel">
-                <div className="coachAvatar" aria-hidden="true" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.46) 100%), url(${selectedCoach.image})` }}>
-                  <span className="coachAvatarLabel">{selectedCoach.cardLabel}</span>
-                  <div className="coachAvatarScore">
-                    <span>OVR</span>
-                    <strong>{selectedCoach.score}</strong>
-                  </div>
-                </div>
-                <div className="coachCardContent">
-                  <div className="coachInfo">
-                    <span className="minorLabel">COACH</span>
-                    <strong>{selectedCoach.name}</strong>
-                    <p>{selectedCoach.role}</p>
-                    <div className="coachMeta">
-                      <span className="scorePill">Rated {selectedCoach.score}</span>
-                      <span>{selectedCoach.events} events led</span>
-                    </div>
-                  </div>
-                  <div className="coachActions">
-                    <button type="button" className="ghostButton coachButton" onClick={() => {
-                      if (!activeCoachProfile) {
-                        setPlannerToast('Coach profile is still loading.');
-                        return;
-                      }
-                      setCoachProfileOpen(true);
-                    }}>View Profile &gt;</button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="coachCard coachCardEmpty glassPanel">
-                <div className="coachAvatar coachAvatarEmpty" aria-hidden="true">+</div>
-                <div className="coachCardContent">
-                  <div className="coachInfo">
-                    <span className="minorLabel">COACH</span>
-                    <strong>Find a Coach</strong>
-                    <p>Get a curated planning partner assigned to this event.</p>
-                  </div>
-                  <div className="coachActions">
-                    <button type="button" className="ghostButton coachButton" onClick={() => setPlannerToast('Coach matching will open after the next shortlist refresh.')}>Assign Coach &gt;</button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </header>
-
           <section className="heroStrip glassPanel">
             <div>
               <span className="minorLabel">Wedding Pulse</span>
@@ -2484,7 +2455,7 @@ export function App() {
                   {/* Top hero strip — brief requirement */}
                   <div className="dashboardHeroStrip glassPanelNested">
                     <div className="heroStripLeft">
-                      <div className="heroStripCouple">Thabo &amp; Lelo Wedding</div>
+                      <div className="heroStripCouple">Edna &amp; Merc Wedding</div>
                       <div className="heroStripMeta">
                         <span>26 September 2026</span>
                         <span className="heroStripDot">·</span>
@@ -2558,14 +2529,14 @@ export function App() {
                         <span className="coachCompanyTag">{coachByEvent.wedding.company}</span>
                       </div>
                     </div>
-                    <ol className="coachRecList">
+                    <ul className="coachBulletList">
                       {coachRecommendations.map((rec, i) => (
-                        <li key={i} className="coachRecItem">
-                          <span className="coachRecNum">{i + 1}</span>
-                          <p>{rec}</p>
+                        <li key={i} className={`coachBullet is-${rec.tone}`}>
+                          <span className="coachBulletDot" aria-hidden="true" />
+                          <p>{rec.text}</p>
                         </li>
                       ))}
-                    </ol>
+                    </ul>
                     <button type="button" className="ghostButton" onClick={() => handlePlannerTabChange('marketplace')}>Open Coach Screen</button>
                   </article>
 
@@ -2906,7 +2877,7 @@ export function App() {
               {rsvpReminderGuestId ? (() => {
                 const guest = rsvpGuests.find((g) => g.id === rsvpReminderGuestId);
                 if (!guest) return null;
-                const reminderText = `Hi ${guest.name.split(' ')[0]}, Thabo &amp; Lelo Wedding • Midrand, Gauteng • 26 September 2026. Please reply YES or NO. Thank you.`;
+                const reminderText = `Hi ${guest.name.split(' ')[0]}, Edna &amp; Merc Wedding • Midrand, Gauteng • 26 September 2026. Please reply YES or NO. Thank you.`;
                 return (
                   <div className="overlayShell" role="dialog" aria-modal="true">
                     <div className="overlayPanel glassPanel">
@@ -2996,7 +2967,7 @@ export function App() {
                     <summary className="adminSectionTitle">Event Details</summary>
                     <div className="adminSectionBody">
                       <div className="adminFieldGrid">
-                        <label className="adminField"><span>Couple Name</span><input defaultValue="Thabo & Lelo" className="adminInput" /></label>
+                        <label className="adminField"><span>Couple Name</span><input defaultValue="Edna & Merc" className="adminInput" /></label>
                         <label className="adminField"><span>Event Date</span><input defaultValue="26 September 2026" className="adminInput" /></label>
                         <label className="adminField"><span>Location</span><input defaultValue="Midrand, Gauteng" className="adminInput" /></label>
                         <label className="adminField"><span>Guest Target</span><input defaultValue="500" type="number" className="adminInput" /></label>
@@ -3120,8 +3091,8 @@ export function App() {
               {activeTab === 'marketplace' ? (
                 <div className="coachScreen">
                   {selectedCoach ? (
-                    <article className="coachPrimaryCard glassPanelNested">
-                      <div className="coachAvatar" aria-hidden="true" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.04) 0%, rgba(16, 33, 22, 0.46) 100%), url(${selectedCoach.image})` }}>
+                    <article className="coachPrimaryCard coachPrimaryCardFeatured glassPanelNested">
+                      <div className="coachAvatarLarge" aria-hidden="true" style={{ backgroundImage: `linear-gradient(180deg, rgba(16, 33, 22, 0.02) 0%, rgba(16, 33, 22, 0.55) 100%), url(${selectedCoach.image})` }}>
                         <span className="coachAvatarLabel">{selectedCoach.cardLabel}</span>
                         <div className="coachAvatarScore">
                           <span>OVR</span>
@@ -3129,8 +3100,8 @@ export function App() {
                         </div>
                       </div>
                       <div className="coachInfoStack">
-                        <span className="minorLabel">Coach Profile</span>
-                        <strong>{selectedCoach.name}</strong>
+                        <span className="minorLabel">Your Wedding Coach</span>
+                        <strong className="coachFeaturedName">{selectedCoach.name}</strong>
                         <p>{selectedCoach.role}</p>
                         {'company' in selectedCoach ? <span className="coachCompanyTag">{(selectedCoach as typeof coachByEvent.wedding).company}</span> : null}
                         <div className="coachMeta">
@@ -3161,9 +3132,18 @@ export function App() {
                   ) : null}
 
                   <article className="coachNoteCard glassPanelNested">
-                    <span className="minorLabel">Coach Notes</span>
-                    <strong>{coachNote}</strong>
-                    <p>{plannerSurface?.coachProfile.bio}</p>
+                    <div className="coachNotesHeader">
+                      <span className="minorLabel">Coach Analysis</span>
+                      <p className="coachNotesSubtitle">{selectedCoach?.name || 'Your coach'}'s current read on your wedding</p>
+                    </div>
+                    <ul className="coachBulletList">
+                      {adminCoachBullets.map((bullet, i) => (
+                        <li key={i} className={`coachBullet is-${bullet.tone}`}>
+                          <span className="coachBulletDot" aria-hidden="true" />
+                          <p>{bullet.text}</p>
+                        </li>
+                      ))}
+                    </ul>
                   </article>
 
                   <article className="coachConversationPreview glassPanelNested">

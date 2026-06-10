@@ -109,13 +109,50 @@ textarea {
 
 .modeRail {
   display: inline-flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
   border: 1px solid var(--border-card);
-  border-radius: 999px;
+  border-radius: 18px;
   background: rgba(28, 28, 28, 0.85);
   backdrop-filter: blur(18px);
+  align-items: flex-start;
+}
+
+.modeRailRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-card);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  transition: var(--transition);
+}
+
+.themeToggle .plannerIcon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.themeToggle:hover {
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border-color: var(--border-active);
 }
 
 .topRail {
@@ -351,6 +388,12 @@ textarea {
   font-size: clamp(2.4rem, 4.8vw, 4.1rem);
 }
 
+.stitchdWordmark[data-variant='topbar'] {
+  font-size: 1.05rem;
+  letter-spacing: 0.04em;
+  gap: 0.08em;
+}
+
 .landingBrand .stitchdWordmark {
   align-self: flex-start;
   padding: 0;
@@ -452,6 +495,20 @@ textarea {
   box-shadow: 0 18px 40px rgba(28, 107, 61, 0.14);
 }
 
+.modePillBrand {
+  padding: 8px 18px;
+  background: rgba(18, 18, 18, 0.82);
+  border: 1px solid rgba(255, 184, 28, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.modePillBrand.is-active {
+  background: rgba(18, 18, 18, 0.92);
+  border-color: rgba(255, 184, 28, 0.42);
+  box-shadow: 0 0 18px rgba(255, 184, 28, 0.10);
+}
+
 .glassPanel,
 .glassPanelNested,
 .addSupplierCard {
@@ -532,14 +589,14 @@ textarea {
   color: var(--text-primary);
 }
 
-/* Logo image replaces text wordmark */
+/* Logo image replaces text wordmark — mix-blend-mode:lighten removes black bg */
 .brandLogo {
-  height: 72px;
+  height: 90px;
   width: auto;
-  max-width: 280px;
+  max-width: 300px;
   display: block;
   object-fit: contain;
-  /* dark logo blends naturally into dark header */
+  mix-blend-mode: lighten;
 }
 
 .landingLogo {
@@ -548,10 +605,20 @@ textarea {
   max-width: 480px;
   display: block;
   object-fit: contain;
+  mix-blend-mode: lighten;
+}
+
+.modePillLogo {
+  height: 26px;
+  width: auto;
+  max-width: 160px;
+  display: block;
+  object-fit: contain;
+  mix-blend-mode: lighten;
 }
 
 @media (max-width: 900px) {
-  .brandLogo { height: 52px; max-width: 200px; }
+  .brandLogo { height: 66px; max-width: 220px; }
   .landingLogo { height: 86px; max-width: 340px; }
   .topRail {
     flex-direction: column;
@@ -573,7 +640,7 @@ textarea {
   }
 }
 @media (max-width: 480px) {
-  .brandLogo { height: 40px; max-width: 160px; }
+  .brandLogo { height: 48px; max-width: 180px; }
   .landingLogo { height: 64px; max-width: 260px; }
   .brandPanel {
     width: 100%;
@@ -2482,6 +2549,10 @@ textarea {
 }
 
 .statusMetric {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 96px;
   padding: 12px 14px;
   border-radius: 16px;
   border: 1px solid var(--border-card);
@@ -2497,6 +2568,13 @@ textarea {
 .statusMetric strong,
 .statusMetric .minorLabel {
   margin: 0;
+}
+
+.statusMetric p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .statusMetricHeader {
@@ -3661,38 +3739,91 @@ input, select, textarea, button {
   font-size: 0.95rem;
   margin-bottom: 3px;
 }
-.coachRecList {
+/* ─── Coach bullet list (dashboard recs + coach tab analysis) ───────────── */
+.coachBulletList {
   list-style: none;
-  margin: 0;
+  margin: 12px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
-.coachRecItem {
+
+.coachBullet {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border-left: 3px solid transparent;
 }
-.coachRecNum {
-  min-width: 24px;
-  height: 24px;
+
+.coachBullet.is-risk {
+  border-left-color: var(--brand-risk);
+  background: rgba(217, 83, 79, 0.09);
+}
+.coachBullet.is-warn {
+  border-left-color: var(--brand-gold);
+  background: rgba(255, 184, 28, 0.08);
+}
+.coachBullet.is-good {
+  border-left-color: var(--brand-success);
+  background: rgba(46, 204, 113, 0.08);
+}
+
+.coachBulletDot {
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
-  background: rgba(255, 184, 28, 0.15);
-  color: var(--gold);
-  font-size: 0.75rem;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   flex-shrink: 0;
-  margin-top: 1px;
+  margin-top: 5px;
 }
-.coachRecItem p {
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
+.coachBullet.is-risk  .coachBulletDot { background: var(--brand-risk); }
+.coachBullet.is-warn  .coachBulletDot { background: var(--brand-gold); }
+.coachBullet.is-good  .coachBulletDot { background: var(--brand-success); }
+
+.coachBullet p {
   margin: 0;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  line-height: 1.52;
+}
+
+/* Coach notes header */
+.coachNotesHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.coachNotesSubtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Featured coach card (coach tab top) */
+.coachPrimaryCardFeatured {
+  border: 1px solid rgba(255, 184, 28, 0.18) !important;
+  box-shadow: 0 0 30px rgba(0, 107, 63, 0.12), var(--shadow-card) !important;
+}
+.coachAvatarLarge {
+  width: 100%;
+  min-height: 240px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center top;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 12px;
+  gap: 6px;
+}
+.coachFeaturedName {
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text-primary);
 }
 
 /* ─── Budget Extras Panel ────────────────────────────────────────────────── */
@@ -4379,4 +4510,463 @@ details[open] .adminSectionTitle::before { transform: rotate(90deg); }
   .filterChip { padding: 4px 10px; font-size: 0.74rem; }
   .reminderActions { flex-direction: column; }
   .milestonesAddForm { flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LIGHT MODE THEME — vibrant tints, same brand energy as dark mode
+   Rule of thumb: dark bg makes 0.08 opacity glow pop; white bg needs 0.22+.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html[data-theme="light"] {
+  --bg-primary:     #F2EFE8;
+  --bg-card:        rgba(255, 255, 255, 0.98);
+  --bg-card-hover:  rgba(252, 252, 250, 0.99);
+  --bg-sidebar:     rgba(248, 245, 237, 0.98);
+  --bg-overlay:     rgba(0, 0, 0, 0.38);
+  --bg-glass:       rgba(255, 255, 255, 0.92);
+  --accent-glow:    rgba(0, 107, 63, 0.22);
+  --gold-dim:       rgba(180, 120, 5, 0.80);
+  --text-primary:   #111111;
+  --text-secondary: rgba(17, 17, 17, 0.62);
+  --text-tertiary:  rgba(17, 17, 17, 0.40);
+  --text-disabled:  rgba(17, 17, 17, 0.24);
+  --border:         rgba(0, 107, 63, 0.10);
+  --border-card:    rgba(0, 107, 63, 0.14);
+  --border-active:  rgba(0, 107, 63, 0.50);
+  --shadow-card:    0 4px 22px rgba(0, 107, 63, 0.08), 0 1px 4px rgba(0,0,0,0.05);
+  --shadow-glow:    0 0 0 2px var(--accent), 0 0 18px var(--accent-glow);
+  --shadow-gold:    0 0 14px rgba(180, 120, 5, 0.22);
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+html[data-theme="light"] body {
+  background:
+    radial-gradient(circle at 14% 8%,  rgba(0, 107, 63, 0.14),  transparent 22%),
+    radial-gradient(circle at 78% 6%,  rgba(180, 120, 5, 0.10), transparent 24%),
+    radial-gradient(circle at 90% 80%, rgba(0, 107, 63, 0.09),  transparent 24%),
+    radial-gradient(circle at 6%  90%, rgba(180, 120, 5, 0.09), transparent 22%),
+    linear-gradient(160deg, #F9F6EF 0%, #F4F1E8 55%, #EDE9DF 100%);
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] .pageGlow { opacity: 0.28; }
+
+/* ── Top bar ──────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .modeRail {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 107, 63, 0.18);
+  box-shadow: 0 2px 14px rgba(0, 107, 63, 0.08);
+}
+
+html[data-theme="light"] .sessionRail {
+  background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(240,250,244,0.97));
+  border-color: rgba(0, 107, 63, 0.20);
+  box-shadow: 0 2px 14px rgba(0, 107, 63, 0.07);
+}
+
+html[data-theme="light"] .modePillBrand {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(0, 107, 63, 0.35);
+}
+
+html[data-theme="light"] .modePillBrand.is-active {
+  background: rgba(240, 250, 244, 0.98);
+  border-color: rgba(0, 107, 63, 0.55);
+  box-shadow: 0 0 16px rgba(0, 107, 63, 0.16);
+}
+
+html[data-theme="light"] .stitchdWordmarkText { color: #111111; }
+
+html[data-theme="light"] .modePill { color: var(--text-secondary); }
+html[data-theme="light"] .modePill.is-active {
+  color: var(--accent);
+  background: rgba(0, 107, 63, 0.10);
+}
+
+/* ── Base glass panels ────────────────────────────────────────────────────── */
+html[data-theme="light"] .glassPanel,
+html[data-theme="light"] .addSupplierCard {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.12), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(255, 184, 28, 0.10), transparent 36%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.14);
+  box-shadow: 0 4px 22px rgba(0, 107, 63, 0.08), 0 1px 4px rgba(0,0,0,0.04);
+}
+
+html[data-theme="light"] .glassPanelNested {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.10), transparent 38%),
+    radial-gradient(circle at bottom left, rgba(255, 184, 28, 0.08), transparent 36%),
+    rgba(245, 250, 247, 0.96);
+  border-color: rgba(0, 107, 63, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 107, 63, 0.06);
+}
+
+/* ── Hero strip ───────────────────────────────────────────────────────────── */
+html[data-theme="light"] .heroStrip {
+  background:
+    radial-gradient(circle at top left, rgba(0, 107, 63, 0.16), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(255, 184, 28, 0.12), transparent 38%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.16);
+  box-shadow: 0 4px 24px rgba(0, 107, 63, 0.09);
+}
+
+/* ── Wedding Readiness card (heroSummary) ─────────────────────────────────── */
+html[data-theme="light"] .heroSummary {
+  background:
+    radial-gradient(circle at top left,    rgba(255, 184, 28, 0.28), transparent 50%),
+    radial-gradient(circle at bottom right, rgba(0, 107, 63, 0.20), transparent 40%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(255, 184, 28, 0.35);
+  box-shadow: 0 4px 20px rgba(255, 184, 28, 0.14);
+}
+
+html[data-theme="light"] .pulseScoreCircle {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 0 22px rgba(255, 184, 28, 0.22);
+}
+
+html[data-theme="light"] .pulseScoreCard.is-healthy {
+  background: linear-gradient(180deg, rgba(0, 107, 63, 0.18), rgba(46, 204, 113, 0.10));
+  border: 1px solid rgba(46, 204, 113, 0.35);
+}
+html[data-theme="light"] .pulseScoreCard.is-watch {
+  background: linear-gradient(180deg, rgba(255, 184, 28, 0.22), rgba(180, 120, 5, 0.12));
+  border: 1px solid rgba(255, 184, 28, 0.32);
+}
+html[data-theme="light"] .pulseScoreCard.is-risk {
+  background: linear-gradient(180deg, rgba(217, 83, 79, 0.20), rgba(180, 50, 46, 0.10));
+  border: 1px solid rgba(217, 83, 79, 0.28);
+}
+
+/* ── Status bar ───────────────────────────────────────────────────────────── */
+html[data-theme="light"] .statusBar {
+  background:
+    radial-gradient(circle at top left, rgba(0, 107, 63, 0.10), transparent 40%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.16);
+  box-shadow: 0 4px 18px rgba(0, 107, 63, 0.08);
+}
+
+/* Odd cards — warm cream with a gold glow (mirrors dark's charcoal card) */
+html[data-theme="light"] .statusMetric {
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 28, 0.18), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(0, 107, 63, 0.08), transparent 50%),
+    #F8F4EA;
+  border: 1px solid rgba(255, 184, 28, 0.30);
+  box-shadow: 0 2px 10px rgba(255, 184, 28, 0.08);
+}
+
+/* Even cards — strong green tint (mirrors dark's green-tinted card) */
+html[data-theme="light"] .statusMetric:nth-child(2n) {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.28), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(0, 107, 63, 0.12), transparent 50%),
+    #E8F5EE;
+  border-color: rgba(0, 107, 63, 0.38);
+  box-shadow: 0 2px 14px rgba(0, 107, 63, 0.14);
+}
+
+/* ── Section heading panels ───────────────────────────────────────────────── */
+html[data-theme="light"] .plannerMainBoard > .sectionHeadingRow:not(.supportHeading) {
+  background:
+    radial-gradient(circle at left, rgba(0, 107, 63, 0.14), transparent 50%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.14);
+  box-shadow: 0 2px 12px rgba(0, 107, 63, 0.06);
+}
+
+html[data-theme="light"] .supportHeading {
+  background:
+    radial-gradient(circle at left, rgba(255, 184, 28, 0.18), transparent 50%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(255, 184, 28, 0.24);
+  box-shadow: 0 2px 12px rgba(255, 184, 28, 0.07);
+}
+
+/* ── Sidebar summary cards ────────────────────────────────────────────────── */
+html[data-theme="light"] .summaryCard,
+html[data-theme="light"] .summaryCard.glassPanel {
+  background:
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.18), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(0, 107, 63, 0.14), transparent 38%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.16);
+  box-shadow: 0 4px 20px rgba(0, 107, 63, 0.08);
+}
+
+/* Chemistry bar tracks */
+html[data-theme="light"] .chemistryBars span {
+  background: rgba(0, 107, 63, 0.18);
+}
+html[data-theme="light"] .chemistryBars .is-filled {
+  background: linear-gradient(90deg, #006B3F, #b58a2f);
+}
+
+/* Progress bar track */
+html[data-theme="light"] .progressTrack {
+  background: rgba(0, 107, 63, 0.16);
+}
+
+/* ── KPI / insight / metric cards ─────────────────────────────────────────── */
+html[data-theme="light"] .kpiMetricCard,
+html[data-theme="light"] .insightsBoxCard,
+html[data-theme="light"] .miniMetricCard,
+html[data-theme="light"] .statCard,
+html[data-theme="light"] .detailMetricCard {
+  background:
+    radial-gradient(circle at top left, rgba(255, 184, 28, 0.16), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(0, 107, 63, 0.08), transparent 50%),
+    #F8F4EA;
+  border-color: rgba(255, 184, 28, 0.28);
+  box-shadow: 0 2px 10px rgba(255, 184, 28, 0.08);
+}
+
+/* Even kpi cards — green tinted, same alternating logic as dark mode */
+html[data-theme="light"] .kpiGrid > .kpiMetricCard:nth-child(2n) {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.26), transparent 55%),
+    radial-gradient(circle at bottom left, rgba(0, 107, 63, 0.10), transparent 50%),
+    #E8F5EE;
+  border-color: rgba(0, 107, 63, 0.36);
+  box-shadow: 0 2px 14px rgba(0, 107, 63, 0.13);
+}
+
+/* Hover ring — strong green outline visible on light backgrounds */
+html[data-theme="light"] .kpiClickable:hover {
+  box-shadow: 0 0 0 2.5px #006B3F, 0 0 22px rgba(0, 107, 63, 0.30) !important;
+  border-color: rgba(0, 107, 63, 0.70) !important;
+  transform: translateY(-2px);
+}
+
+/* ── Coach cards & notes ──────────────────────────────────────────────────── */
+html[data-theme="light"] .coachNoteCard,
+html[data-theme="light"] .coachConversationPreview,
+html[data-theme="light"] .coachRecommendationsCard {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.12), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(255, 184, 28, 0.08), transparent 36%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 107, 63, 0.08);
+}
+
+html[data-theme="light"] .coachActionLink {
+  background: rgba(235, 248, 240, 0.96);
+  border-color: rgba(0, 107, 63, 0.20);
+  color: var(--text-primary);
+}
+html[data-theme="light"] .coachActionLink:hover {
+  background: rgba(0, 107, 63, 0.12);
+  border-color: rgba(0, 107, 63, 0.38);
+}
+
+html[data-theme="light"] .coachPrimaryCardFeatured {
+  border-color: rgba(0, 107, 63, 0.28) !important;
+  box-shadow: 0 0 30px rgba(0, 107, 63, 0.12), var(--shadow-card) !important;
+}
+
+/* ── Coach bullet tints ───────────────────────────────────────────────────── */
+html[data-theme="light"] .coachBullet.is-risk {
+  background: rgba(217, 83, 79, 0.10);
+}
+html[data-theme="light"] .coachBullet.is-warn {
+  background: rgba(180, 120, 5, 0.10);
+}
+html[data-theme="light"] .coachBullet.is-good {
+  background: rgba(46, 204, 113, 0.12);
+}
+
+/* ── Budget cards & donut ─────────────────────────────────────────────────── */
+html[data-theme="light"] .budgetChartCard,
+html[data-theme="light"] .budgetOverviewCard {
+  background:
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.16), transparent 38%),
+    radial-gradient(circle at bottom left, rgba(0, 107, 63, 0.10), transparent 36%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(255, 184, 28, 0.20);
+  box-shadow: 0 4px 18px rgba(255, 184, 28, 0.08);
+}
+
+html[data-theme="light"] .budgetDonut > div {
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="light"] .tabInsightCard,
+html[data-theme="light"] .budgetPanel {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.10), transparent 36%),
+    rgba(255, 255, 255, 0.97);
+  border-color: rgba(0, 107, 63, 0.12);
+}
+
+/* ── Weather / forecast ───────────────────────────────────────────────────── */
+html[data-theme="light"] .weatherWidgetCard {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.12), transparent 38%),
+    rgba(255, 255, 255, 0.97);
+  border-color: rgba(0, 107, 63, 0.14);
+}
+
+html[data-theme="light"] .forecastDay {
+  background: rgba(235, 248, 240, 0.70);
+  border-color: rgba(0, 107, 63, 0.10);
+}
+
+html[data-theme="light"] .forecastDay.is-active {
+  background: rgba(0, 107, 63, 0.14);
+  border-color: var(--border-active);
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 107, 63, 0.14);
+}
+
+/* ── Bottom nav ───────────────────────────────────────────────────────────── */
+html[data-theme="light"] .plannerBottomNav {
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1px solid rgba(0, 107, 63, 0.14);
+  box-shadow: 0 -4px 20px rgba(0, 107, 63, 0.08);
+}
+
+html[data-theme="light"] .plannerBottomNavButton {
+  color: rgba(17, 17, 17, 0.48);
+}
+
+html[data-theme="light"] .plannerBottomNavButton.is-active {
+  color: var(--accent);
+}
+
+/* ── Risk alerts ──────────────────────────────────────────────────────────── */
+html[data-theme="light"] .riskAlertCard {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.07), transparent 36%),
+    rgba(255, 255, 255, 0.97);
+  border-color: rgba(0, 107, 63, 0.12);
+}
+
+html[data-theme="light"] .alertCard {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 107, 63, 0.12);
+}
+html[data-theme="light"] .alertCard.is-high {
+  border-left-color: var(--brand-risk);
+  background: rgba(217, 83, 79, 0.06);
+}
+html[data-theme="light"] .alertCard.is-medium {
+  border-left-color: var(--brand-gold);
+  background: rgba(255, 184, 28, 0.06);
+}
+
+/* ── Vendor cards ─────────────────────────────────────────────────────────── */
+html[data-theme="light"] .vendorCard:hover {
+  border-color: rgba(0, 107, 63, 0.30);
+  box-shadow: 0 12px 28px rgba(0, 107, 63, 0.12);
+}
+
+/* ── Dashboard inner hero strip ───────────────────────────────────────────── */
+html[data-theme="light"] .dashboardHeroStrip,
+html[data-theme="light"] .dashboardHeroStrip .glassPanelNested {
+  background:
+    radial-gradient(circle at top left, rgba(0, 107, 63, 0.12), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(255, 184, 28, 0.10), transparent 36%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.14);
+}
+
+/* ── Overlays / modals ────────────────────────────────────────────────────── */
+html[data-theme="light"] .overlayPanel,
+html[data-theme="light"] .drawerPanel {
+  background:
+    radial-gradient(circle at top right, rgba(0, 107, 63, 0.10), transparent 40%),
+    rgba(255, 255, 255, 0.99);
+  border-color: rgba(0, 107, 63, 0.14);
+  box-shadow: 0 20px 60px rgba(0, 107, 63, 0.12);
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .ghostButton,
+html[data-theme="light"] .secondaryButton {
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(0, 107, 63, 0.22);
+  color: var(--text-primary);
+}
+html[data-theme="light"] .ghostButton:hover,
+html[data-theme="light"] .secondaryButton:hover {
+  background: rgba(0, 107, 63, 0.08);
+  border-color: rgba(0, 107, 63, 0.38);
+  color: var(--accent);
+}
+
+html[data-theme="light"] .themeToggle:hover {
+  background: rgba(0, 107, 63, 0.08);
+  border-color: var(--border-active);
+  color: var(--accent);
+}
+
+/* ── Event chip ───────────────────────────────────────────────────────────── */
+html[data-theme="light"] .eventChip:not(.is-active) {
+  background: linear-gradient(135deg,
+    rgba(0, 107, 63, 0.12) 0%,
+    rgba(245, 250, 247, 0.97) 55%,
+    rgba(255, 184, 28, 0.10) 100%);
+  border-color: rgba(0, 107, 63, 0.18);
+  color: var(--text-secondary);
+}
+
+/* ── Tab labels / minor labels ────────────────────────────────────────────── */
+html[data-theme="light"] .minorLabel,
+html[data-theme="light"] .eyebrow {
+  color: var(--text-tertiary);
+}
+
+html[data-theme="light"] .plannerNavTab { color: var(--text-secondary); }
+html[data-theme="light"] .plannerNavTab.is-active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+html[data-theme="light"] .scorePill {
+  background: rgba(180, 120, 5, 0.14);
+  color: #7a5202;
+}
+
+/* ── Inputs ───────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .adminInput,
+html[data-theme="light"] .adminTextarea,
+html[data-theme="light"] .adminSelect {
+  background: rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.18);
+  color: var(--text-primary);
+}
+
+html[data-theme="light"] textarea {
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text-primary);
+}
+
+/* ── Toast ────────────────────────────────────────────────────────────────── */
+html[data-theme="light"] .plannerToast {
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text-primary);
+  border-color: rgba(0, 107, 63, 0.30);
+  box-shadow: 0 8px 24px rgba(0, 107, 63, 0.12);
+}
+
+/* ── Landing & auth ───────────────────────────────────────────────────────── */
+html[data-theme="light"] .landingShell { background: transparent; }
+html[data-theme="light"] .authShell    { background: transparent; }
+
+/* ── Left rail nested panels ──────────────────────────────────────────────── */
+html[data-theme="light"] .plannerLeftRail .glassPanelNested,
+html[data-theme="light"] .plannerLeftRail > .glassPanelNested,
+html[data-theme="light"] .plannerSidebar > .glassPanel {
+  background:
+    radial-gradient(circle at top right, rgba(255, 184, 28, 0.14), transparent 40%),
+    radial-gradient(circle at bottom left, rgba(0, 107, 63, 0.10), transparent 38%),
+    rgba(255, 255, 255, 0.98);
+  border-color: rgba(0, 107, 63, 0.14);
+  box-shadow: 0 2px 14px rgba(0, 107, 63, 0.07);
 }
