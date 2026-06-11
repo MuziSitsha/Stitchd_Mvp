@@ -1232,12 +1232,41 @@ textarea {
 .riskList,
 .journeyPanel,
 .budgetLegend {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.budgetLegendSwatch {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.budgetLegendLabel {
+  flex: 1;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.budgetLegendPct {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  min-width: 32px;
+  text-align: right;
+}
+
+.budgetLegendAmt {
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-width: 72px;
+  text-align: right;
+  color: var(--text-primary);
 }
 
 .riskAlertCard strong,
-.budgetLegendRow strong,
 .coachConversationRow strong {
   display: block;
   margin: 6px 0;
@@ -1349,7 +1378,30 @@ textarea {
 }
 
 .budgetSummaryRow,
-.budgetLegendRow,
+.budgetLegendRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  border-radius: 8px;
+  border: none;
+  border-left: 3px solid transparent;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.18s, border-left-color 0.18s;
+  color: inherit;
+}
+
+.budgetLegendRow:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.budgetLegendRow.is-active {
+  border-left-width: 3px;
+}
+
 .coachConversationRow {
   display: flex;
   align-items: center;
@@ -1386,6 +1438,15 @@ textarea {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+.budgetDonutPct {
+  font-size: 1.1rem !important;
+  font-weight: 700;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+  color: var(--text-primary) !important;
+  margin-top: 2px;
 }
 
 .journeyStep {

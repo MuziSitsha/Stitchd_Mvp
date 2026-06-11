@@ -1308,6 +1308,7 @@ export function App() {
   const [coachProfileOpen, setCoachProfileOpen] = useState(false);
   const [coachScheduleOpen, setCoachScheduleOpen] = useState(false);
   const [selectedCoachSlot, setSelectedCoachSlot] = useState<string | null>(null);
+  const [selectedBudgetCategory, setSelectedBudgetCategory] = useState<string | null>(null);
   const [readinessReportOpen, setReadinessReportOpen] = useState(false);
   const [plannerToast, setPlannerToast] = useState('');
   const [plannerLoading, setPlannerLoading] = useState(false);
@@ -1469,26 +1470,62 @@ export function App() {
   const locationLabel = plannerSurface?.locationLabel || weatherCoordinatesByEvent[selectedEventType].locationLabel;
   const budgetUsed = plannerSurface?.budget.allocated || allocatedAmount;
   const budgetRemaining = Math.max((plannerSurface?.budget.total || totalBudget) - budgetUsed, 0);
+  const categoryDefs: { label: string; pattern: RegExp }[] = [
+    { label: 'Venue',              pattern: /venue/i },
+    { label: 'Catering & Bar',     pattern: /(catering|bar\b|cake\b|drink|beverage)/i },
+    { label: 'Decor & Florals',    pattern: /(decor|floral|flower|set.design|styling)/i },
+    { label: 'Photography',        pattern: /(photo|video|film|drone|content)/i },
+    { label: 'Entertainment',      pattern: /(entertainment|dj\b|^mc$|choir|^av\b|host|band|sound|music|performer)/i },
+    { label: 'Hair & Beauty',      pattern: /(hair|makeup|make.up|glam|beauty)/i },
+    { label: 'Transport',          pattern: /transport/i },
+    { label: 'Structures',         pattern: /(tent\b|marquee|covered|power.backup|generator|check.in)/i },
+    { label: 'Coordination',       pattern: /(planner|producer|delegation)/i },
+    { label: 'Traditional',        pattern: /(traditional|cattle|livestock|attire|elder|ancestor)/i },
+  ];
+  const allCategoryPattern = new RegExp(categoryDefs.map((c) => c.pattern.source).join('|'), 'i');
   const spendByCategory = [
-    { label: 'Venue', amount: allVendors.filter((vendor) => /venue/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
-    { label: 'Decor', amount: allVendors.filter((vendor) => /(decor|floral|flowers)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
-    { label: 'Catering', amount: allVendors.filter((vendor) => /catering/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
-    { label: 'Entertainment', amount: allVendors.filter((vendor) => /(entertainment|dj|mc|host|choir|av)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
-    { label: 'Photography', amount: allVendors.filter((vendor) => /photo/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
-    { label: 'Other', amount: allVendors.filter((vendor) => !/(venue|decor|floral|flowers|catering|entertainment|dj|mc|host|choir|av|photo)/i.test(vendor.slot)).reduce((sum, vendor) => sum + parsePriceLabelToRands(vendor.priceLabel), 0) },
+    ...categoryDefs.map((cat) => ({
+      label: cat.label,
+      amount: allVendors
+        .filter((v) => cat.pattern.test(v.slot))
+        .reduce((sum, v) => sum + parsePriceLabelToRands(v.priceLabel), 0),
+    })),
+    {
+      label: 'Other',
+      amount: allVendors
+        .filter((v) => !allCategoryPattern.test(v.slot))
+        .reduce((sum, v) => sum + parsePriceLabelToRands(v.priceLabel), 0),
+    },
   ].filter((entry) => entry.amount > 0);
+  const CHART_COLORS = [
+    '#006B3F',  // Springbok green (brand)
+    '#FFB81C',  // Springbok gold (brand)
+    '#C62828',  // SA flag red
+    '#E65100',  // African sunset orange
+    '#558B2F',  // Veld / highveld green
+    '#AD1457',  // Fynbos pink-magenta
+    '#795548',  // Karoo earth brown
+    '#F9A825',  // Harvest amber
+    '#BF360C',  // Deep terracotta
+    '#4E342E',  // African soil dark
+    '#827717',  // Olive / SA bush
+    '#6D4C41',  // Reddish earth
+  ];
+  const budgetChartTotal = spendByCategory.reduce((sum, entry) => sum + entry.amount, 0) || 1;
   const budgetChartStops = (() => {
-    const colors = ['#007a4d', '#ffb81c', '#14532d', '#f59e0b', '#5b7f61', '#c88a14'];
-    const total = spendByCategory.reduce((sum, entry) => sum + entry.amount, 0) || 1;
     let offset = 0;
-
     return spendByCategory.map((entry, index) => {
-      const start = Math.round((offset / total) * 100);
+      const start = Math.round((offset / budgetChartTotal) * 100);
       offset += entry.amount;
-      const end = Math.round((offset / total) * 100);
-      return `${colors[index % colors.length]} ${start}% ${end}%`;
+      const end = Math.round((offset / budgetChartTotal) * 100);
+      const isSelected = selectedBudgetCategory === null || selectedBudgetCategory === entry.label;
+      const color = isSelected ? CHART_COLORS[index % CHART_COLORS.length] : 'rgba(80,80,80,0.35)';
+      return `${color} ${start}% ${end}%`;
     }).join(', ');
   })();
+  const selectedCategoryEntry = selectedBudgetCategory
+    ? spendByCategory.find((e) => e.label === selectedBudgetCategory) ?? null
+    : null;
   const findVendorByMatch = (pattern: RegExp) => allVendors.find((vendor) => pattern.test(`${vendor.slot} ${vendor.name} ${vendor.subcategory}`));
   const venueVendor = findVendorByMatch(/venue/i);
   const photographyVendor = findVendorByMatch(/photo/i);
@@ -2657,19 +2694,46 @@ export function App() {
 
                   <article className="budgetChartCard glassPanelNested">
                     <span className="minorLabel">Category Split</span>
-                    <div className="budgetDonut" style={{ backgroundImage: `conic-gradient(${budgetChartStops})` }}>
+                    <div
+                      className="budgetDonut"
+                      style={{ backgroundImage: `conic-gradient(${budgetChartStops})`, transition: 'background-image 0.3s' }}
+                    >
                       <div>
-                        <strong>{formatCurrencyFromRands(budgetUsed)}</strong>
-                        <span>Spent</span>
+                        {selectedCategoryEntry ? (
+                          <>
+                            <strong style={{ color: CHART_COLORS[spendByCategory.findIndex((e) => e.label === selectedBudgetCategory) % CHART_COLORS.length] }}>
+                              {formatCurrencyFromRands(selectedCategoryEntry.amount)}
+                            </strong>
+                            <span>{selectedCategoryEntry.label}</span>
+                            <span className="budgetDonutPct">{Math.round((selectedCategoryEntry.amount / budgetChartTotal) * 100)}%</span>
+                          </>
+                        ) : (
+                          <>
+                            <strong>{formatCurrencyFromRands(budgetUsed)}</strong>
+                            <span>Total Spent</span>
+                          </>
+                        )}
                       </div>
                     </div>
                     <div className="budgetLegend">
-                      {spendByCategory.map((entry) => (
-                        <div key={entry.label} className="budgetLegendRow">
-                          <span>{entry.label}</span>
-                          <strong>{formatCurrencyFromRands(entry.amount)}</strong>
-                        </div>
-                      ))}
+                      {spendByCategory.map((entry, i) => {
+                        const color = CHART_COLORS[i % CHART_COLORS.length];
+                        const isActive = selectedBudgetCategory === entry.label;
+                        return (
+                          <button
+                            key={entry.label}
+                            type="button"
+                            className={`budgetLegendRow ${isActive ? 'is-active' : ''}`}
+                            style={isActive ? { borderLeftColor: color, background: `${color}18` } : {}}
+                            onClick={() => setSelectedBudgetCategory(isActive ? null : entry.label)}
+                          >
+                            <span className="budgetLegendSwatch" style={{ background: color }} />
+                            <span className="budgetLegendLabel">{entry.label}</span>
+                            <span className="budgetLegendPct">{Math.round((entry.amount / budgetChartTotal) * 100)}%</span>
+                            <strong className="budgetLegendAmt">{formatCurrencyFromRands(entry.amount)}</strong>
+                          </button>
+                        );
+                      })}
                     </div>
                   </article>
 
