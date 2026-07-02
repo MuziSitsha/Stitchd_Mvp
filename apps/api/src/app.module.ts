@@ -63,6 +63,13 @@ const databaseImports = plannerOnlyMode
           ssl: config.get<string>('app.env') === 'production'
             ? { rejectUnauthorized: false }
             : false,
+          // Each Vercel serverless invocation gets its own connection pool, and
+          // Supabase's free-tier transaction pooler only has so many slots to give
+          // out. Keep each instance's pool small so concurrent invocations don't
+          // starve it; a local dev process can afford the driver default.
+          extra: config.get<string>('app.env') === 'production'
+            ? { max: 3 }
+            : undefined,
         }),
       }),
     ];
