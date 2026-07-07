@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -7,12 +8,16 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
+import { AdminService } from '../admin/admin.service';
 import {
   BookingEntity,
   BookingStatus,
   PaymentMethod,
   PaymentStatus,
 } from '../bookings/entities/booking.entity';
+import { WeddingEventEntity } from '../planner/entities/wedding-event.entity';
+import { WeddingVendorPaymentEntity } from '../planner/entities/wedding-vendor-payment.entity';
+import { WeddingVendorSelectionEntity } from '../planner/entities/wedding-vendor-selection.entity';
 import { UserEntity, UserRole } from '../users/entities/user.entity';
 import {
   WalletReferenceType,
@@ -20,6 +25,7 @@ import {
 } from '../wallet/entities/wallet-transaction.entity';
 import { WalletService } from '../wallet/wallet.service';
 import { InitiateBookingPaymentDto } from './dto/initiate-booking-payment.dto';
+import { InitiateVendorPaymentDto } from './dto/initiate-vendor-payment.dto';
 import { PaymentTransactionEntity } from './entities/payment-transaction.entity';
 
 type SettlementActor = {
@@ -40,6 +46,13 @@ export class PaymentsService {
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
     private readonly walletService: WalletService,
+    @InjectRepository(WeddingVendorPaymentEntity)
+    private readonly vendorPaymentsRepository: Repository<WeddingVendorPaymentEntity>,
+    @InjectRepository(WeddingVendorSelectionEntity)
+    private readonly vendorSelectionsRepository: Repository<WeddingVendorSelectionEntity>,
+    @InjectRepository(WeddingEventEntity)
+    private readonly weddingEventsRepository: Repository<WeddingEventEntity>,
+    private readonly adminService: AdminService,
   ) {}
 
   async listMyPayments(userId: string, role: UserRole) {
@@ -97,35 +110,21 @@ export class PaymentsService {
     const payment = await this.ensurePaymentRecord(booking);
     const customer = await this.usersRepository.findOne({ where: { id: booking.customerId } });
     const amountCents = payment.amountCents || booking.finalPriceCents || booking.quotedPriceCents;
-    const amount = (amountCents / 100).toFixed(2);
-    const baseUrl = this.getPayfastBaseUrl();
     const merchantTransactionId = booking.id;
-    const notificationUrl = `${this.getPublicApiUrl()}/api/v1/payments/webhooks/payfast`;
-    const returnUrl = dto.returnUrl || `${this.getPublicApiUrl()}/api/v1/payments/checkout/result`;
-    const cancelUrl = `${this.getPublicApiUrl()}/api/v1/payments/checkout/result?status=cancelled`;
-    const itemName = booking.bookingRef || 'STITCHD booking';
-    const paymentPayload = {
-      merchant_id: merchantId,
-      merchant_key: merchantKey,
-      return_url: returnUrl,
-      cancel_url: cancelUrl,
-      notify_url: notificationUrl,
-      name_first: customer?.firstName || 'STITCHD',
-      name_last: customer?.lastName || 'Customer',
-      email_address: customer?.email || `${booking.customerId}@stitchd.local`,
-      m_payment_id: merchantTransactionId,
-      amount,
-      item_name: itemName,
-      item_description: `Payment for booking ${booking.bookingRef}`,
-      custom_str1: booking.paymentMethod,
-      custom_str2: booking.customerId,
-      custom_str3: booking.providerId || '',
-    };
-    const signature = this.createPayfastSignature(paymentPayload);
-    const checkoutUrl = `${baseUrl}/eng/process?${this.createPayfastQueryString({
-      ...paymentPayload,
-      signature,
-    })}`;
+    const checkoutUrl = this.buildPayfastCheckout({
+      merchantId,
+      merchantKey,
+      merchantTransactionId,
+      amountCents,
+      customer,
+      fallbackCustomerId: booking.customerId,
+      itemName: booking.bookingRef || 'STITCHD booking',
+      itemDescription: `Payment for booking ${booking.bookingRef}`,
+      returnUrl: dto.returnUrl || `${this.getPublicApiUrl()}/api/v1/payments/checkout/result`,
+      customStr1: booking.paymentMethod,
+      customStr2: booking.customerId,
+      customStr3: booking.providerId || '',
+    });
 
     payment.checkoutId = merchantTransactionId;
     payment.checkoutUrl = checkoutUrl;
@@ -145,6 +144,90 @@ export class PaymentsService {
       checkoutUrl,
       amountCents,
     };
+  }
+
+  async initiateVendorPaymentCheckout(
+    selectionId: string,
+    actor: { id: string; role: UserRole },
+    dto: InitiateVendorPaymentDto,
+  ) {
+    const selection = await this.vendorSelectionsRepository.findOne({ where: { id: selectionId } });
+    if (!selection) throw new NotFoundException('Vendor selection not found');
+
+    const event = await this.weddingEventsRepository.findOne({ where: { id: selection.weddingEventId } });
+    if (!event) throw new NotFoundException('Wedding event not found');
+    this.assertActorCanAccessVendorPayment(event, actor);
+
+    const remainingCents = Math.max(selection.priceCents - selection.amountPaidCents, 0);
+    if (remainingCents <= 0) {
+      throw new BadRequestException('This vendor is already paid in full');
+    }
+    const amountCents = dto.amountCents ? Math.min(dto.amountCents, remainingCents) : remainingCents;
+
+    const merchantId = this.configService.get<string>('app.payfastMerchantId');
+    const merchantKey = this.configService.get<string>('app.payfastMerchantKey');
+    if (!merchantId || !merchantKey) {
+      throw new ForbiddenException('PayFast is not configured for this environment');
+    }
+
+    const commissionRate = await this.adminService.getEffectiveCommissionRate();
+    const commissionCents = Math.round(amountCents * commissionRate);
+
+    const payment = await this.vendorPaymentsRepository.save(
+      this.vendorPaymentsRepository.create({
+        vendorSelectionId: selection.id,
+        weddingEventId: event.id,
+        customerId: event.ownerUserId,
+        amountCents,
+        commissionCents,
+      }),
+    );
+
+    const customer = await this.usersRepository.findOne({ where: { id: event.ownerUserId } });
+    const merchantTransactionId = `vendor:${payment.id}`;
+    const checkoutUrl = this.buildPayfastCheckout({
+      merchantId,
+      merchantKey,
+      merchantTransactionId,
+      amountCents,
+      customer,
+      fallbackCustomerId: event.ownerUserId,
+      itemName: selection.vendorName || 'STITCHD vendor payment',
+      itemDescription: `Payment toward ${selection.vendorName} (${selection.slot})`,
+      returnUrl: dto.returnUrl || `${this.getPublicApiUrl()}/api/v1/payments/checkout/result`,
+      customStr1: 'wedding_vendor_payment',
+      customStr2: selection.id,
+      customStr3: event.ownerUserId,
+    });
+
+    payment.checkoutId = merchantTransactionId;
+    payment.checkoutUrl = checkoutUrl;
+    payment.gatewayReference = merchantTransactionId;
+    const savedPayment = await this.vendorPaymentsRepository.save(payment);
+
+    return {
+      selectionId: selection.id,
+      paymentId: savedPayment.id,
+      status: savedPayment.status,
+      checkoutId: savedPayment.checkoutId,
+      checkoutUrl,
+      amountCents,
+      commissionCents,
+    };
+  }
+
+  async getVendorPayment(selectionId: string, actor: { id: string; role: UserRole }) {
+    const selection = await this.vendorSelectionsRepository.findOne({ where: { id: selectionId } });
+    if (!selection) throw new NotFoundException('Vendor selection not found');
+
+    const event = await this.weddingEventsRepository.findOne({ where: { id: selection.weddingEventId } });
+    if (!event) throw new NotFoundException('Wedding event not found');
+    this.assertActorCanAccessVendorPayment(event, actor);
+
+    return this.vendorPaymentsRepository.findOne({
+      where: { vendorSelectionId: selectionId },
+      order: { createdAt: 'DESC' },
+    });
   }
 
   async settleBookingCompletion(booking: BookingEntity, actor: SettlementActor) {
@@ -213,6 +296,10 @@ export class PaymentsService {
       return { received: true, ignored: true };
     }
 
+    if (merchantTransactionId.startsWith('vendor:')) {
+      return this.confirmVendorPaymentWebhook(merchantTransactionId.slice('vendor:'.length), payload);
+    }
+
     const booking = await this.bookingsRepository.findOne({ where: { id: merchantTransactionId } });
     if (!booking) {
       return { received: true, ignored: true };
@@ -240,6 +327,43 @@ export class PaymentsService {
 
     await this.bookingsRepository.save(booking);
     await this.paymentsRepository.save(payment);
+
+    return { received: true, status: PaymentStatus.FAILED };
+  }
+
+  private async confirmVendorPaymentWebhook(paymentId: string, payload: Record<string, unknown>) {
+    const payment = await this.vendorPaymentsRepository.findOne({ where: { id: paymentId } });
+    if (!payment || payment.status === PaymentStatus.PAID) {
+      return { received: true, ignored: true };
+    }
+
+    const transactionId = this.getString(payload, 'pf_payment_id') || payment.checkoutId || payment.gatewayReference;
+    const paymentStatus = this.getString(payload, 'payment_status');
+    const isSuccess = paymentStatus === 'COMPLETE';
+
+    if (isSuccess) {
+      payment.status = PaymentStatus.PAID;
+      payment.gatewayReference = transactionId;
+      payment.note = 'PayFast webhook confirmed payment';
+      payment.settledAt = new Date();
+      await this.vendorPaymentsRepository.save(payment);
+
+      const selection = await this.vendorSelectionsRepository.findOne({ where: { id: payment.vendorSelectionId } });
+      if (selection) {
+        selection.amountPaidCents += payment.amountCents;
+        selection.paidAt = selection.priceCents > 0 && selection.amountPaidCents >= selection.priceCents
+          ? new Date()
+          : null;
+        await this.vendorSelectionsRepository.save(selection);
+      }
+
+      return { received: true, status: PaymentStatus.PAID };
+    }
+
+    payment.status = PaymentStatus.FAILED;
+    payment.gatewayReference = transactionId;
+    payment.note = paymentStatus || 'PayFast webhook reported payment failure';
+    await this.vendorPaymentsRepository.save(payment);
 
     return { received: true, status: PaymentStatus.FAILED };
   }
@@ -283,6 +407,71 @@ export class PaymentsService {
     if (actorRole === UserRole.ADMIN) return;
     if (booking.customerId === actorId || booking.providerId === actorId) return;
     throw new ForbiddenException('You do not have access to this booking payment');
+  }
+
+  private assertActorCanAccessVendorPayment(
+    event: WeddingEventEntity,
+    actor: { id: string; role: UserRole },
+  ) {
+    if (actor.role === UserRole.ADMIN) return;
+    if (event.ownerUserId === actor.id) return;
+    throw new ForbiddenException('You do not have access to this wedding event payment');
+  }
+
+  private buildPayfastCheckout(options: {
+    merchantId: string;
+    merchantKey: string;
+    merchantTransactionId: string;
+    amountCents: number;
+    customer: UserEntity | null;
+    fallbackCustomerId: string;
+    itemName: string;
+    itemDescription: string;
+    returnUrl: string;
+    customStr1: string;
+    customStr2: string;
+    customStr3: string;
+  }) {
+    const {
+      merchantId,
+      merchantKey,
+      merchantTransactionId,
+      amountCents,
+      customer,
+      fallbackCustomerId,
+      itemName,
+      itemDescription,
+      returnUrl,
+      customStr1,
+      customStr2,
+      customStr3,
+    } = options;
+
+    const baseUrl = this.getPayfastBaseUrl();
+    const notificationUrl = `${this.getPublicApiUrl()}/api/v1/payments/webhooks/payfast`;
+    const cancelUrl = `${this.getPublicApiUrl()}/api/v1/payments/checkout/result?status=cancelled`;
+    const paymentPayload = {
+      merchant_id: merchantId,
+      merchant_key: merchantKey,
+      return_url: returnUrl,
+      cancel_url: cancelUrl,
+      notify_url: notificationUrl,
+      name_first: customer?.firstName || 'STITCHD',
+      name_last: customer?.lastName || 'Customer',
+      email_address: customer?.email || `${fallbackCustomerId}@stitchd.local`,
+      m_payment_id: merchantTransactionId,
+      amount: (amountCents / 100).toFixed(2),
+      item_name: itemName,
+      item_description: itemDescription,
+      custom_str1: customStr1,
+      custom_str2: customStr2,
+      custom_str3: customStr3,
+    };
+    const signature = this.createPayfastSignature(paymentPayload);
+    return `${baseUrl}/eng/process?${this.createPayfastQueryString({
+      ...paymentPayload,
+      signature,
+    })}`;
   }
 
   private async ensurePaymentRecord(booking: BookingEntity) {

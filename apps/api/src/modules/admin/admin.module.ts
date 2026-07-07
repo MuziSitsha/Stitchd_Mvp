@@ -6,6 +6,7 @@ import { PaymentTransactionEntity } from '../payments/entities/payment-transacti
 import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
 import { WeddingEventEntity } from '../planner/entities/wedding-event.entity';
 import { WeddingVendorEntity } from '../planner/entities/wedding-vendor.entity';
+import { WeddingVendorPaymentEntity } from '../planner/entities/wedding-vendor-payment.entity';
 import { WeddingVendorSelectionEntity } from '../planner/entities/wedding-vendor-selection.entity';
 import { ProviderDocumentEntity } from '../providers/entities/provider-document.entity';
 import { ProviderProfileEntity } from '../providers/entities/provider-profile.entity';
@@ -31,6 +32,7 @@ import { PlatformSettingsEntity } from './entities/platform-settings.entity';
 			WeddingEventEntity,
 			WeddingVendorSelectionEntity,
 			WeddingVendorEntity,
+			WeddingVendorPaymentEntity,
 			CoachProfileEntity,
 		]),
 	],

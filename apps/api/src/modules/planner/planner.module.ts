@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { PaymentsModule } from '../payments/payments.module';
 import { UserEntity } from '../users/entities/user.entity';
 import { CoachProfileEntity } from './entities/coach-profile.entity';
 import { WeddingEventEntity } from './entities/wedding-event.entity';
@@ -21,6 +22,7 @@ import { PlannerService } from './planner.service';
       WeddingMessageEntity,
       UserEntity,
     ]),
+    PaymentsModule,
   ],
   controllers: [PlannerController],
   providers: [PlannerService],

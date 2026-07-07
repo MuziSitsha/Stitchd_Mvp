@@ -2,6 +2,8 @@ import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, R
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 
+import { InitiateVendorPaymentDto } from '../payments/dto/initiate-vendor-payment.dto';
+import { PaymentsService } from '../payments/payments.service';
 import { UserRole } from '../users/entities/user.entity';
 import { PlannerService, PlannerEventType, PlannerPersona } from './planner.service';
 import { CreateInspirationNoteDto } from './dto/create-inspiration-note.dto';
@@ -19,7 +21,10 @@ function assertCoach(role: UserRole) {
 @ApiTags('planner')
 @Controller('planner')
 export class PlannerController {
-  constructor(private readonly plannerService: PlannerService) {}
+  constructor(
+    private readonly plannerService: PlannerService,
+    private readonly paymentsService: PaymentsService,
+  ) {}
 
   @Get('events/mine')
   @ApiBearerAuth()
@@ -55,6 +60,26 @@ export class PlannerController {
     @Body() dto: UpdateVendorSelectionDto,
   ) {
     return this.plannerService.updateVendorSelection(req.user.id, id, dto);
+  }
+
+  @Post('events/mine/vendors/:id/checkout')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Start a real PayFast checkout to pay a vendor selection (deposit or balance)' })
+  initiateVendorPaymentCheckout(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() dto: InitiateVendorPaymentDto,
+  ) {
+    return this.paymentsService.initiateVendorPaymentCheckout(id, req.user, dto);
+  }
+
+  @Get('events/mine/vendors/:id/payment')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get the latest PayFast payment attempt for a vendor selection' })
+  getVendorPayment(@Request() req, @Param('id') id: string) {
+    return this.paymentsService.getVendorPayment(id, req.user);
   }
 
   @Get('events/mine/inspiration')

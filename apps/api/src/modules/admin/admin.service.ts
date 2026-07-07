@@ -11,6 +11,7 @@ import { PaymentTransactionEntity } from '../payments/entities/payment-transacti
 import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
 import { WeddingEventEntity } from '../planner/entities/wedding-event.entity';
 import { WeddingVendorEntity } from '../planner/entities/wedding-vendor.entity';
+import { WeddingVendorPaymentEntity } from '../planner/entities/wedding-vendor-payment.entity';
 import { WeddingVendorSelectionEntity } from '../planner/entities/wedding-vendor-selection.entity';
 import {
   ProviderDocumentEntity,
@@ -57,6 +58,8 @@ export class AdminService {
     private readonly coachProfilesRepository: Repository<CoachProfileEntity>,
     @InjectRepository(WeddingVendorEntity)
     private readonly weddingVendorsRepository: Repository<WeddingVendorEntity>,
+    @InjectRepository(WeddingVendorPaymentEntity)
+    private readonly vendorPaymentsRepository: Repository<WeddingVendorPaymentEntity>,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {}
@@ -409,6 +412,26 @@ export class AdminService {
     return payments.map((payment) => ({
       ...payment,
       bookingRef: bookingsById.get(payment.bookingId)?.bookingRef,
+    }));
+  }
+
+  async listRecentVendorPayments(actorRole: UserRole) {
+    this.assertAdmin(actorRole);
+
+    const payments = await this.vendorPaymentsRepository.find({
+      order: { updatedAt: 'DESC' },
+      take: 10,
+    });
+
+    const selections = payments.length === 0
+      ? []
+      : await this.vendorSelectionsRepository.find({ where: { id: In(payments.map((payment) => payment.vendorSelectionId)) } });
+    const selectionsById = new Map(selections.map((selection) => [selection.id, selection]));
+
+    return payments.map((payment) => ({
+      ...payment,
+      vendorName: selectionsById.get(payment.vendorSelectionId)?.vendorName,
+      slot: selectionsById.get(payment.vendorSelectionId)?.slot,
     }));
   }
 

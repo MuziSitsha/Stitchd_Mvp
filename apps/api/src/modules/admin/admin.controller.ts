@@ -56,6 +56,12 @@ export class AdminController {
     return this.adminService.listRecentPayments(req.user.role);
   }
 
+  @Get('vendor-payments/recent')
+  @ApiOperation({ summary: 'List recent real wedding vendor payments (PayFast) for admin review' })
+  listRecentVendorPayments(@Request() req) {
+    return this.adminService.listRecentVendorPayments(req.user.role);
+  }
+
   @Patch('providers/:providerUserId/verification')
   @ApiOperation({ summary: 'Approve or reject provider verification' })
   reviewProviderVerification(

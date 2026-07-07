@@ -2556,6 +2556,19 @@ export function App() {
     }
   }
 
+  async function payVendorSelection(selectionId: string) {
+    if (!clientAccessToken) return;
+    try {
+      const checkout = await request<{ checkoutUrl: string }>(`/planner/events/mine/vendors/${selectionId}/checkout`, {
+        method: 'POST',
+        body: JSON.stringify({ returnUrl: window.location.href }),
+      }, clientAccessToken);
+      window.location.href = checkout.checkoutUrl;
+    } catch (error) {
+      setPlannerToast(error instanceof Error ? error.message : 'Could not start PayFast checkout.');
+    }
+  }
+
   function handlePlannerTabChange(tabId: PlannerTab) {
     setActiveTab(tabId);
     window.requestAnimationFrame(() => {
@@ -3361,9 +3374,14 @@ export function App() {
                                 {isPaid ? (
                                   <p className="statusOk">Paid</p>
                                 ) : (
-                                  <button type="button" className="secondaryButton" onClick={() => void markSelectionPaid(selection.id, selection.priceCents)}>
-                                    Mark as Paid
-                                  </button>
+                                  <div className="budgetLineActions">
+                                    <button type="button" className="primaryButton" onClick={() => void payVendorSelection(selection.id)}>
+                                      Pay via PayFast
+                                    </button>
+                                    <button type="button" className="secondaryButton" onClick={() => void markSelectionPaid(selection.id, selection.priceCents)}>
+                                      Mark as Paid
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </article>

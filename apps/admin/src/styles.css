@@ -2452,6 +2452,13 @@ textarea {
   text-align: right;
 }
 
+.budgetLineActions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
 .overlayShell,
 .drawerShell {
   position: fixed;

@@ -27,6 +27,7 @@ describe('AdminService', () => {
     const vendorSelectionsRepository = createRepositoryMock();
     const coachProfilesRepository = createRepositoryMock();
     const weddingVendorsRepository = createRepositoryMock();
+    const vendorPaymentsRepository = createRepositoryMock();
     const configService = { get: jest.fn() };
 
     usersRepository.count
@@ -71,6 +72,7 @@ describe('AdminService', () => {
       vendorSelectionsRepository as never,
       coachProfilesRepository as never,
       weddingVendorsRepository as never,
+      vendorPaymentsRepository as never,
       { createFromPhone: jest.fn() } as never,
       configService as never,
     );
