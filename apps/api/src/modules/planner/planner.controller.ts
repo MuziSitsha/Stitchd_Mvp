@@ -18,6 +18,12 @@ function assertCoach(role: UserRole) {
   }
 }
 
+function assertVendor(role: UserRole) {
+  if (role !== UserRole.VENDOR) {
+    throw new ForbiddenException('Vendor access is required for this action');
+  }
+}
+
 @ApiTags('planner')
 @Controller('planner')
 export class PlannerController {
@@ -80,6 +86,49 @@ export class PlannerController {
   @ApiOperation({ summary: 'Get the latest PayFast payment attempt for a vendor selection' })
   getVendorPayment(@Request() req, @Param('id') id: string) {
     return this.paymentsService.getVendorPayment(id, req.user);
+  }
+
+  @Get('events/mine/vendors/:id/messages')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'List messages between the caller and the vendor for a selection' })
+  listMySelectionMessages(@Request() req, @Param('id') id: string) {
+    return this.plannerService.listMySelectionMessages(req.user.id, id);
+  }
+
+  @Post('events/mine/vendors/:id/messages')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Send a message to the vendor for a selection' })
+  sendMySelectionMessage(@Request() req, @Param('id') id: string, @Body() dto: SendMessageDto) {
+    return this.plannerService.sendMySelectionMessage(req.user.id, id, dto);
+  }
+
+  @Get('vendor/selections')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'List the wedding vendor selections assigned to the calling vendor' })
+  getVendorSelections(@Request() req) {
+    assertVendor(req.user.role);
+    return this.plannerService.getVendorSelections(req.user.id);
+  }
+
+  @Get('vendor/selections/:id/messages')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'List messages between the vendor and the couple for a selection' })
+  listVendorSelectionMessages(@Request() req, @Param('id') id: string) {
+    assertVendor(req.user.role);
+    return this.plannerService.listVendorSelectionMessages(req.user.id, id);
+  }
+
+  @Post('vendor/selections/:id/messages')
+  @ApiBearerAuth()
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Send a message as the vendor to the couple for a selection' })
+  sendVendorSelectionMessage(@Request() req, @Param('id') id: string, @Body() dto: SendMessageDto) {
+    assertVendor(req.user.role);
+    return this.plannerService.sendVendorSelectionMessage(req.user.id, id, dto);
   }
 
   @Get('events/mine/inspiration')

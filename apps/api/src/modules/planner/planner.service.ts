@@ -1,11 +1,13 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { CoachProfileEntity } from './entities/coach-profile.entity';
 import { WeddingEventEntity, WeddingEventType } from './entities/wedding-event.entity';
 import { WeddingInspirationNoteEntity } from './entities/wedding-inspiration-note.entity';
 import { WeddingMessageEntity, WeddingMessageSenderRole } from './entities/wedding-message.entity';
 import { WeddingVendorEntity } from './entities/wedding-vendor.entity';
+import { WeddingVendorMessageEntity, WeddingVendorMessageSenderRole } from './entities/wedding-vendor-message.entity';
+import { WeddingVendorProfileEntity } from './entities/wedding-vendor-profile.entity';
 import {
   WeddingVendorSelectionEntity,
   WeddingVendorStatus,
@@ -206,7 +208,92 @@ export class PlannerService {
     private readonly inspirationNotesRepository: Repository<WeddingInspirationNoteEntity>,
     @InjectRepository(WeddingMessageEntity)
     private readonly messagesRepository: Repository<WeddingMessageEntity>,
+    @InjectRepository(WeddingVendorProfileEntity)
+    private readonly vendorProfilesRepository: Repository<WeddingVendorProfileEntity>,
+    @InjectRepository(WeddingVendorMessageEntity)
+    private readonly vendorMessagesRepository: Repository<WeddingVendorMessageEntity>,
   ) {}
+
+  private async getSelectionOwnedByClient(ownerUserId: string, selectionId: string) {
+    const selection = await this.vendorSelectionsRepository.findOne({ where: { id: selectionId } });
+    if (!selection) throw new NotFoundException('Vendor selection not found');
+
+    const event = await this.weddingEventsRepository.findOne({ where: { id: selection.weddingEventId } });
+    if (!event || event.ownerUserId !== ownerUserId) {
+      throw new ForbiddenException('You do not have access to this vendor selection');
+    }
+    return selection;
+  }
+
+  private async getSelectionOwnedByVendor(vendorUserId: string, selectionId: string) {
+    const profile = await this.vendorProfilesRepository.findOne({ where: { userId: vendorUserId } });
+    if (!profile) throw new ForbiddenException('You are not an approved vendor account');
+
+    const selection = await this.vendorSelectionsRepository.findOne({ where: { id: selectionId } });
+    if (!selection || selection.vendorId !== profile.vendorId) {
+      throw new ForbiddenException('You are not the assigned vendor for this selection');
+    }
+    return selection;
+  }
+
+  async getVendorSelections(vendorUserId: string) {
+    const profile = await this.vendorProfilesRepository.findOne({ where: { userId: vendorUserId } });
+    if (!profile) throw new ForbiddenException('You are not an approved vendor account');
+
+    const selections = await this.vendorSelectionsRepository.find({
+      where: { vendorId: profile.vendorId },
+      order: { createdAt: 'DESC' },
+    });
+
+    const eventIds = selections.map((selection) => selection.weddingEventId);
+    const events = eventIds.length === 0
+      ? []
+      : await this.weddingEventsRepository.find({ where: { id: In(eventIds) }, relations: ['owner'] });
+    const eventsById = new Map(events.map((event) => [event.id, event]));
+
+    return selections.map((selection) => ({
+      ...selection,
+      event: eventsById.get(selection.weddingEventId),
+    }));
+  }
+
+  async listMySelectionMessages(ownerUserId: string, selectionId: string) {
+    await this.getSelectionOwnedByClient(ownerUserId, selectionId);
+    return this.vendorMessagesRepository.find({
+      where: { vendorSelectionId: selectionId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async sendMySelectionMessage(ownerUserId: string, selectionId: string, dto: SendMessageDto) {
+    await this.getSelectionOwnedByClient(ownerUserId, selectionId);
+    const message = this.vendorMessagesRepository.create({
+      vendorSelectionId: selectionId,
+      senderUserId: ownerUserId,
+      senderRole: WeddingVendorMessageSenderRole.CLIENT,
+      message: dto.message,
+    });
+    return this.vendorMessagesRepository.save(message);
+  }
+
+  async listVendorSelectionMessages(vendorUserId: string, selectionId: string) {
+    await this.getSelectionOwnedByVendor(vendorUserId, selectionId);
+    return this.vendorMessagesRepository.find({
+      where: { vendorSelectionId: selectionId },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async sendVendorSelectionMessage(vendorUserId: string, selectionId: string, dto: SendMessageDto) {
+    await this.getSelectionOwnedByVendor(vendorUserId, selectionId);
+    const message = this.vendorMessagesRepository.create({
+      vendorSelectionId: selectionId,
+      senderUserId: vendorUserId,
+      senderRole: WeddingVendorMessageSenderRole.VENDOR,
+      message: dto.message,
+    });
+    return this.vendorMessagesRepository.save(message);
+  }
 
   private async getEventOwnedByCoach(coachUserId: string, eventId: string) {
     const event = await this.weddingEventsRepository.findOne({
@@ -398,6 +485,7 @@ export class PlannerService {
     const event = await this.getOrCreateMyEvent(ownerUserId);
     const selection = this.vendorSelectionsRepository.create({
       weddingEventId: event.id,
+      vendorId: dto.vendorId,
       slot: dto.slot,
       subcategory: dto.subcategory,
       vendorName: dto.vendorName,

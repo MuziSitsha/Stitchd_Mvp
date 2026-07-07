@@ -9,11 +9,6 @@ import {
 
 type PlatformSettings = {
   defaultCommissionRate: number;
-  cashPaymentsEnabled: boolean;
-  cardPaymentsEnabled: boolean;
-  walletPaymentsEnabled: boolean;
-  instantBookingsEnabled: boolean;
-  scheduledBookingsEnabled: boolean;
   businessLegalName?: string;
   payoutBankName?: string;
   payoutAccountHolder?: string;
@@ -21,78 +16,6 @@ type PlatformSettings = {
   payoutAccountType?: string;
   payoutBranchCode?: string;
   payoutReference?: string;
-};
-
-type ProviderDocument = {
-  id: string;
-  documentType: string;
-  fileName: string;
-  fileUrl?: string;
-  status: 'submitted' | 'approved' | 'rejected';
-  reviewNote?: string;
-  createdAt: string;
-};
-
-type PendingProvider = {
-  userId: string;
-  serviceArea?: string;
-  yearsExperience?: number;
-  verificationStatus: 'pending' | 'approved' | 'rejected';
-  documentsSubmitted: boolean;
-  user?: {
-    firstName?: string;
-    lastName?: string;
-    phone: string;
-    email?: string;
-  };
-  documents: ProviderDocument[];
-};
-
-type RecentPayment = {
-  id: string;
-  bookingId: string;
-  bookingRef?: string;
-  paymentMethod: string;
-  status: 'pending' | 'paid' | 'failed' | 'refunded';
-  amountCents: number;
-  commissionCents: number;
-  providerEarningsCents: number;
-  checkoutUrl?: string;
-  updatedAt: string;
-};
-
-type BookingJourneyStage = {
-  key: string;
-  label: string;
-  status: 'done' | 'active' | 'upcoming';
-  timestamp?: string;
-  note: string;
-};
-
-type BookingJourneyNotification = {
-  id: string;
-  type: string;
-  audience: 'customer' | 'provider';
-  message: string;
-  timestamp: string;
-};
-
-type BookingJourney = {
-  id: string;
-  bookingRef: string;
-  service: string;
-  type: 'instant' | 'scheduled';
-  customerName: string;
-  providerName: string;
-  currentStage: string;
-  paymentMethod: string;
-  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
-  amountCents: number;
-  commissionCents: number;
-  providerEarningsCents: number;
-  scheduledAt?: string;
-  stages: BookingJourneyStage[];
-  notifications: BookingJourneyNotification[];
 };
 
 type VendorStatus = 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk';
@@ -242,7 +165,7 @@ type PlannerSurfaceData = {
   };
 };
 
-type MockMobileRole = 'customer' | 'provider' | 'coach' | 'admin';
+type MockMobileRole = 'customer' | 'coach' | 'vendor' | 'admin';
 
 type MockMobileUser = {
   id: string;
@@ -250,10 +173,9 @@ type MockMobileUser = {
   role: MockMobileRole;
   firstName: string;
   lastName: string;
-  walletBalanceCents: number;
 };
 
-const plannerService = new PlannerService(null as never, null as never, null as never, null as never, null as never, null as never);
+const plannerService = new PlannerService(null as never, null as never, null as never, null as never, null as never, null as never, null as never, null as never);
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 3001);
 const mockAccessToken = 'mock-admin-access-token';
@@ -266,199 +188,14 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS
 
 const settings: PlatformSettings = {
   defaultCommissionRate: 0.15,
-  cashPaymentsEnabled: true,
-  cardPaymentsEnabled: true,
-  walletPaymentsEnabled: true,
-  instantBookingsEnabled: true,
-  scheduledBookingsEnabled: true,
-  businessLegalName: 'STITCHD Marketplace (Pty) Ltd',
+  businessLegalName: 'STITCHD Wedding Planning (Pty) Ltd',
   payoutBankName: 'FNB',
-  payoutAccountHolder: 'STITCHD Marketplace',
+  payoutAccountHolder: 'STITCHD Wedding Planning',
   payoutAccountNumber: '62123456789',
   payoutAccountType: 'Business Cheque',
   payoutBranchCode: '250655',
   payoutReference: 'STITCHD settlements',
 };
-
-let pendingProviders: PendingProvider[] = [
-  {
-    userId: 'provider-1',
-    serviceArea: 'Johannesburg North',
-    yearsExperience: 6,
-    verificationStatus: 'pending',
-    documentsSubmitted: true,
-    user: {
-      firstName: 'Lebo',
-      lastName: 'Ndlovu',
-      phone: '+27821234567',
-      email: 'lebo.ndlovu@example.com',
-    },
-    documents: [
-      {
-        id: 'doc-1',
-        documentType: 'id_book',
-        fileName: 'lebo-id.pdf',
-        status: 'submitted',
-        reviewNote: 'Awaiting identity check.',
-        createdAt: '2026-05-22T08:15:00.000Z',
-      },
-      {
-        id: 'doc-2',
-        documentType: 'proof_of_address',
-        fileName: 'lebo-address.pdf',
-        status: 'submitted',
-        createdAt: '2026-05-22T08:20:00.000Z',
-      },
-    ],
-  },
-  {
-    userId: 'provider-2',
-    serviceArea: 'Pretoria East',
-    yearsExperience: 4,
-    verificationStatus: 'pending',
-    documentsSubmitted: true,
-    user: {
-      firstName: 'Ayanda',
-      lastName: 'Mokoena',
-      phone: '+27827654321',
-      email: 'ayanda.mokoena@example.com',
-    },
-    documents: [
-      {
-        id: 'doc-3',
-        documentType: 'drivers_license',
-        fileName: 'ayanda-license.pdf',
-        status: 'submitted',
-        reviewNote: 'Needs verification against selfie.',
-        createdAt: '2026-05-21T16:45:00.000Z',
-      },
-    ],
-  },
-];
-
-const recentPayments: RecentPayment[] = [
-  {
-    id: 'payment-1',
-    bookingId: 'booking-410',
-    bookingRef: 'STC-410',
-    paymentMethod: 'payfast',
-    status: 'paid',
-    amountCents: 185000,
-    commissionCents: 27750,
-    providerEarningsCents: 157250,
-    checkoutUrl: 'https://sandbox.payfast.co.za/eng/process',
-    updatedAt: '2026-05-25T10:32:00.000Z',
-  },
-  {
-    id: 'payment-2',
-    bookingId: 'booking-411',
-    bookingRef: 'STC-411',
-    paymentMethod: 'wallet',
-    status: 'paid',
-    amountCents: 92000,
-    commissionCents: 13800,
-    providerEarningsCents: 78200,
-    updatedAt: '2026-05-25T09:10:00.000Z',
-  },
-  {
-    id: 'payment-3',
-    bookingId: 'booking-412',
-    bookingRef: 'STC-412',
-    paymentMethod: 'cash',
-    status: 'pending',
-    amountCents: 54000,
-    commissionCents: 8100,
-    providerEarningsCents: 45900,
-    updatedAt: '2026-05-24T18:05:00.000Z',
-  },
-];
-
-const bookingJourneys: BookingJourney[] = [
-  {
-    id: 'booking-410',
-    bookingRef: 'STC-410',
-    service: 'Wedding planning coordination',
-    type: 'scheduled',
-    customerName: 'Mercy Khumalo',
-    providerName: 'The Perfect Plan Co.',
-    currentStage: 'completed',
-    paymentMethod: 'payfast',
-    paymentStatus: 'paid',
-    amountCents: 185000,
-    commissionCents: 27750,
-    providerEarningsCents: 157250,
-    scheduledAt: '2026-05-30T14:00:00.000Z',
-    stages: [
-      { key: 'pending', label: 'Booking requested', status: 'done', timestamp: '2026-05-25T08:04:00.000Z', note: 'Customer selected service, address, payment rail, and submitted the request.' },
-      { key: 'accepted', label: 'Provider accepted', status: 'done', timestamp: '2026-05-25T08:16:00.000Z', note: 'Provider accepted from the available booking pool and was assigned to the job.' },
-      { key: 'en_route', label: 'Provider en route', status: 'done', timestamp: '2026-05-30T12:42:00.000Z', note: 'Assigned provider shared travel status and live location updates.' },
-      { key: 'arrived', label: 'Provider arrived', status: 'done', timestamp: '2026-05-30T13:53:00.000Z', note: 'Provider reached the venue and checked in.' },
-      { key: 'in_progress', label: 'Service in progress', status: 'done', timestamp: '2026-05-30T14:07:00.000Z', note: 'Event planning handoff and on-site coordination started.' },
-      { key: 'completed', label: 'Completed and settled', status: 'active', timestamp: '2026-05-30T18:25:00.000Z', note: 'Completion triggered settlement, commission capture, and provider earnings release.' },
-    ],
-    notifications: [
-      { id: 'notif-410-1', type: 'booking_created', audience: 'customer', message: 'Your STC-410 request has been placed and is waiting for a provider.', timestamp: '2026-05-25T08:04:00.000Z' },
-      { id: 'notif-410-2', type: 'booking_accepted', audience: 'customer', message: 'A provider accepted booking STC-410. They can now share live updates.', timestamp: '2026-05-25T08:16:00.000Z' },
-      { id: 'notif-410-3', type: 'provider_booking_assigned', audience: 'provider', message: 'You are now assigned to booking STC-410.', timestamp: '2026-05-25T08:16:00.000Z' },
-      { id: 'notif-410-4', type: 'booking_completed', audience: 'customer', message: 'Booking STC-410 has been completed successfully.', timestamp: '2026-05-30T18:25:00.000Z' },
-    ],
-  },
-  {
-    id: 'booking-411',
-    bookingRef: 'STC-411',
-    service: 'Bridal glam squad',
-    type: 'scheduled',
-    customerName: 'Lerato Mena',
-    providerName: 'Glow Up Events',
-    currentStage: 'in_progress',
-    paymentMethod: 'wallet',
-    paymentStatus: 'paid',
-    amountCents: 92000,
-    commissionCents: 13800,
-    providerEarningsCents: 78200,
-    scheduledAt: '2026-05-27T11:30:00.000Z',
-    stages: [
-      { key: 'pending', label: 'Booking requested', status: 'done', timestamp: '2026-05-26T19:10:00.000Z', note: 'Customer placed a scheduled booking from the app with notes and location.' },
-      { key: 'accepted', label: 'Provider accepted', status: 'done', timestamp: '2026-05-26T19:28:00.000Z', note: 'Provider accepted after reviewing the available booking queue.' },
-      { key: 'en_route', label: 'Provider en route', status: 'done', timestamp: '2026-05-27T10:48:00.000Z', note: 'Provider updated status and enabled tracking.' },
-      { key: 'arrived', label: 'Provider arrived', status: 'done', timestamp: '2026-05-27T11:24:00.000Z', note: 'Arrival confirmed on-site.' },
-      { key: 'in_progress', label: 'Service in progress', status: 'active', timestamp: '2026-05-27T11:36:00.000Z', note: 'Service is active; wallet payment has already been reserved.' },
-      { key: 'completed', label: 'Completed and settled', status: 'upcoming', note: 'Once completed, provider earnings remain credited and the booking closes.' },
-    ],
-    notifications: [
-      { id: 'notif-411-1', type: 'booking_created', audience: 'customer', message: 'Your STC-411 request has been placed and is waiting for a provider.', timestamp: '2026-05-26T19:10:00.000Z' },
-      { id: 'notif-411-2', type: 'booking_accepted', audience: 'customer', message: 'A provider accepted booking STC-411. They can now share live updates.', timestamp: '2026-05-26T19:28:00.000Z' },
-      { id: 'notif-411-3', type: 'booking_in_progress', audience: 'customer', message: 'Booking STC-411 is now in progress.', timestamp: '2026-05-27T11:36:00.000Z' },
-    ],
-  },
-  {
-    id: 'booking-412',
-    bookingRef: 'STC-412',
-    service: 'Event transport shuttle',
-    type: 'instant',
-    customerName: 'Sibusiso Dlamini',
-    providerName: 'VIP Transport',
-    currentStage: 'accepted',
-    paymentMethod: 'cash',
-    paymentStatus: 'pending',
-    amountCents: 54000,
-    commissionCents: 8100,
-    providerEarningsCents: 45900,
-    stages: [
-      { key: 'pending', label: 'Booking requested', status: 'done', timestamp: '2026-05-24T17:41:00.000Z', note: 'Customer placed an instant booking and requested immediate dispatch.' },
-      { key: 'accepted', label: 'Provider accepted', status: 'active', timestamp: '2026-05-24T17:49:00.000Z', note: 'Provider claimed the booking; cash will settle after completion.' },
-      { key: 'en_route', label: 'Provider en route', status: 'upcoming', note: 'Provider will move to en route once they begin travel.' },
-      { key: 'arrived', label: 'Provider arrived', status: 'upcoming', note: 'Arrival confirmation is still pending.' },
-      { key: 'in_progress', label: 'Service in progress', status: 'upcoming', note: 'The ride will enter active service after pickup.' },
-      { key: 'completed', label: 'Completed and settled', status: 'upcoming', note: 'Cash bookings keep payment pending until service completion is confirmed.' },
-    ],
-    notifications: [
-      { id: 'notif-412-1', type: 'booking_created', audience: 'customer', message: 'Your STC-412 request has been placed and is waiting for a provider.', timestamp: '2026-05-24T17:41:00.000Z' },
-      { id: 'notif-412-2', type: 'booking_accepted', audience: 'customer', message: 'A provider accepted booking STC-412. They can now share live updates.', timestamp: '2026-05-24T17:49:00.000Z' },
-      { id: 'notif-412-3', type: 'provider_booking_assigned', audience: 'provider', message: 'You are now assigned to booking STC-412.', timestamp: '2026-05-24T17:49:00.000Z' },
-    ],
-  },
-];
 
 const plannerSurfaces: Record<PlannerEventType, PlannerSurfaceData> = {
   wedding: {
@@ -730,7 +467,7 @@ function getBearerToken(req: IncomingMessage) {
 }
 
 function normalizeMockMobileRole(value: string | undefined): MockMobileRole {
-  if (value === 'provider' || value === 'coach' || value === 'admin') {
+  if (value === 'coach' || value === 'vendor' || value === 'admin') {
     return value;
   }
 
@@ -746,14 +483,13 @@ function getMockUserFromToken(token: string): MockMobileUser {
   const role = normalizeMockMobileRole(rolePart);
   const phone = phonePart?.trim() || '+27821234567';
 
-  if (role === 'provider') {
+  if (role === 'vendor') {
     return {
-      id: 'mock-provider-1',
+      id: 'mock-vendor-1',
       phone,
       role,
-      firstName: 'Lebo',
-      lastName: 'Ndlovu',
-      walletBalanceCents: 128500,
+      firstName: 'Marquee',
+      lastName: 'Atelier',
     };
   }
 
@@ -764,7 +500,6 @@ function getMockUserFromToken(token: string): MockMobileUser {
       role,
       firstName: 'Lungi',
       lastName: '',
-      walletBalanceCents: 0,
     };
   }
 
@@ -775,7 +510,6 @@ function getMockUserFromToken(token: string): MockMobileUser {
       role,
       firstName: 'STITCHD',
       lastName: 'Admin',
-      walletBalanceCents: 0,
     };
   }
 
@@ -785,78 +519,17 @@ function getMockUserFromToken(token: string): MockMobileUser {
     role,
     firstName: 'Amahle',
     lastName: 'Dlamini',
-    walletBalanceCents: 24500,
   };
-}
-
-function getMockBookings(role: MockMobileRole) {
-  if (role === 'provider') {
-    return [
-      {
-        id: 'booking-provider-1',
-        bookingRef: 'STI-2048',
-        serviceId: 'clean-home',
-        serviceCategoryId: 'cleaning',
-        type: 'instant',
-        status: 'accepted',
-        paymentMethod: 'CASH',
-        paymentStatus: 'pending',
-        quotedPriceCents: 45000,
-        finalPriceCents: 45000,
-        customerLat: -26.118,
-        customerLng: 28.042,
-        customerAddress: 'Rosebank, Johannesburg',
-        providerCurrentLat: -26.115,
-        providerCurrentLng: 28.037,
-        providerLocationUpdatedAt: new Date().toISOString(),
-        isRated: false,
-        customerHasRated: false,
-        providerHasRated: false,
-        createdAt: new Date().toISOString(),
-        scheduledAt: null,
-      },
-    ];
-  }
-
-  return [
-    {
-      id: 'booking-customer-1',
-      bookingRef: 'STI-1036',
-      serviceId: 'spa-massage',
-      serviceCategoryId: 'wellness',
-      type: 'scheduled',
-      status: 'confirmed',
-      paymentMethod: 'PAYFAST',
-      paymentStatus: 'paid',
-      quotedPriceCents: 69900,
-      finalPriceCents: 69900,
-      customerLat: -26.104,
-      customerLng: 28.056,
-      customerAddress: 'Sandton, Johannesburg',
-      providerCurrentLat: null,
-      providerCurrentLng: null,
-      providerLocationUpdatedAt: null,
-      isRated: false,
-      customerHasRated: false,
-      providerHasRated: false,
-      createdAt: new Date().toISOString(),
-      scheduledAt: new Date(Date.now() + (1000 * 60 * 60 * 24)).toISOString(),
-    },
-  ];
 }
 
 function getDashboardMetrics() {
   return {
     customerCount: 248,
-    providerCount: 73,
-    pendingVerifications: pendingProviders.length,
-    activeBookings: 19,
-    scheduledBookings: 44,
-    completedBookings: 326,
-    paidTransactions: recentPayments.filter((payment) => payment.status === 'paid').length,
-    grossMerchandiseValueCents: 5480000,
-    providerPayoutsCents: 4312000,
-    averageRating: 4.7,
+    coachCount: 12,
+    totalSignups: 264,
+    activeWeddingEvents: 186,
+    totalPaidCents: 5480000,
+    vendorListingCount: 17,
   };
 }
 
@@ -1009,7 +682,7 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (pathname === '/api/v1/users/me' || pathname === '/api/v1/bookings/mine' || pathname === '/api/v1/bookings/provider/available' || pathname === '/api/v1/notifications/mine' || pathname === '/api/v1/promos/active' || pathname === '/api/v1/promos/referral-summary' || pathname === '/api/v1/providers/me' || pathname === '/api/v1/providers/me/documents') {
+    if (pathname === '/api/v1/users/me' || pathname === '/api/v1/notifications/mine') {
       if (!isAuthorized(req)) {
         sendJson(res, 401, { message: 'Unauthorized' });
         return;
@@ -1018,17 +691,6 @@ const server = createServer(async (req, res) => {
 
     if (req.method === 'GET' && pathname === '/api/v1/users/me') {
       sendJson(res, 200, getMockUserFromToken(getBearerToken(req)));
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/bookings/mine') {
-      const user = getMockUserFromToken(getBearerToken(req));
-      sendJson(res, 200, getMockBookings(user.role));
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/bookings/provider/available') {
-      sendJson(res, 200, []);
       return;
     }
 
@@ -1046,46 +708,6 @@ const server = createServer(async (req, res) => {
           },
         ],
       });
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/promos/active') {
-      sendJson(res, 200, [
-        {
-          id: 'promo-1',
-          code: 'STITCHD100',
-          title: 'Welcome credit',
-          description: 'R100 off your next confirmed booking.',
-          discountType: 'flat',
-          discountValue: 10000,
-          minBookingAmountCents: 30000,
-        },
-      ]);
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/promos/referral-summary') {
-      sendJson(res, 200, {
-        referralCode: 'AMAHLE100',
-        referredByCode: null,
-        referralsCount: 0,
-        rewardPerReferralCents: 5000,
-        referralEarningsCents: 0,
-      });
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/providers/me') {
-      sendJson(res, 200, {
-        isAvailable: true,
-        verificationStatus: 'approved',
-        documentsSubmitted: true,
-      });
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/providers/me/documents') {
-      sendJson(res, 200, { documents: [] });
       return;
     }
 
@@ -1108,44 +730,8 @@ const server = createServer(async (req, res) => {
       return;
     }
 
-    if (req.method === 'GET' && pathname === '/api/v1/admin/providers/pending-verification') {
-      sendJson(res, 200, pendingProviders);
-      return;
-    }
-
-    if (req.method === 'PATCH' && /^\/api\/v1\/admin\/providers\/[^/]+\/verification$/.test(pathname)) {
-      const providerUserId = pathname.split('/')[5];
-      const body = await readJsonBody<{ status?: 'approved' | 'rejected'; note?: string }>(req);
-      const target = pendingProviders.find((provider) => provider.userId === providerUserId);
-
-      if (!target) {
-        sendJson(res, 404, { message: 'Provider not found.' });
-        return;
-      }
-
-      target.verificationStatus = body.status || 'approved';
-      target.documents = target.documents.map((document) => ({
-        ...document,
-        status: body.status === 'rejected' ? 'rejected' : 'approved',
-        reviewNote: body.note || document.reviewNote,
-      }));
-      pendingProviders = pendingProviders.filter((provider) => provider.userId !== providerUserId);
-      sendJson(res, 200, { success: true });
-      return;
-    }
-
     if (req.method === 'GET' && pathname === '/api/v1/admin/dashboard-metrics') {
       sendJson(res, 200, getDashboardMetrics());
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/admin/payments/recent') {
-      sendJson(res, 200, recentPayments);
-      return;
-    }
-
-    if (req.method === 'GET' && pathname === '/api/v1/admin/bookings/journey') {
-      sendJson(res, 200, bookingJourneys);
       return;
     }
 

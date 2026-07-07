@@ -12,6 +12,7 @@ import * as bcrypt from 'bcrypt';
 import axios from 'axios';
 import { normalizeSaPhone } from '../../common/phone.util';
 import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
+import { WeddingVendorProfileEntity } from '../planner/entities/wedding-vendor-profile.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { UsersService } from '../users/users.service';
 import { UserEntity, UserRole } from '../users/entities/user.entity';
@@ -27,6 +28,8 @@ export class AuthService {
     private otpRepository: Repository<OtpEntity>,
     @InjectRepository(CoachProfileEntity)
     private coachProfilesRepository: Repository<CoachProfileEntity>,
+    @InjectRepository(WeddingVendorProfileEntity)
+    private vendorProfilesRepository: Repository<WeddingVendorProfileEntity>,
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -114,6 +117,25 @@ export class AuthService {
           'This number is not an approved coach account yet. Ask an admin to add you as a coach first.',
         );
       }
+    } else if (role === UserRole.VENDOR) {
+      // Vendors don't self-register either: an admin must have already
+      // linked this phone number to a real catalog listing via
+      // WeddingVendorProfileEntity before it can log in as a vendor.
+      const vendorProfile = user
+        ? await this.vendorProfilesRepository.findOne({ where: { userId: user.id } })
+        : null;
+      if (!user || user.role !== UserRole.VENDOR || !vendorProfile) {
+        throw new UnauthorizedException(
+          'This number is not an approved vendor account yet. Ask an admin to grant vendor access first.',
+        );
+      }
+    } else if (role === UserRole.PROVIDER || role === UserRole.ADMIN) {
+      // Neither role has a self-registration flow: provider is a retired
+      // legacy role with no signup UI, and admin has its own dedicated
+      // email/password login. Without this, anyone could POST role: "admin"
+      // to this public endpoint and self-provision an admin account via
+      // createFromPhone below.
+      throw new UnauthorizedException('This role cannot self-register via OTP sign-in.');
     } else if (!user) {
       user = await this.usersService.createFromPhone(normalizedPhone, role);
       isNewUser = true;

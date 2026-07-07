@@ -41,6 +41,9 @@ export class WeddingVendorSelectionEntity {
   @Column()
   vendorName: string;
 
+  @Column({ nullable: true })
+  vendorId: string;
+
   @Column({ default: 0 })
   priceCents: number;
 

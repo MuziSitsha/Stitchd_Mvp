@@ -1,8 +1,13 @@
 import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsInt, IsOptional, IsString, Min, MaxLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Min, MaxLength } from 'class-validator';
 import { WeddingVendorStatus } from '../entities/wedding-vendor-selection.entity';
 
 export class CreateVendorSelectionDto {
+  @ApiPropertyOptional({ description: 'The real wedding vendor catalog listing this selection was chosen from' })
+  @IsOptional()
+  @IsUUID()
+  vendorId?: string;
+
   @ApiProperty({ example: 'Venue' })
   @IsString()
   @MaxLength(80)

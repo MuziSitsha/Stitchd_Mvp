@@ -2953,6 +2953,16 @@ label {
   padding: 18px;
 }
 
+.settingsGroupsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.settingsGroupsRow .settingsGroup {
+  flex: 1 1 320px;
+}
+
 .statCard strong,
 .miniMetricCard strong {
   display: block;

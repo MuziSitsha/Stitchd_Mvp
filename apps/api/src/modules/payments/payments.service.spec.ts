@@ -1,9 +1,8 @@
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { UserRole } from '../users/entities/user.entity';
-import { BookingEntity, BookingStatus, PaymentMethod, PaymentStatus } from '../bookings/entities/booking.entity';
-import { WalletReferenceType, WalletTransactionDirection } from '../wallet/entities/wallet-transaction.entity';
 import { WeddingEventEntity } from '../planner/entities/wedding-event.entity';
 import { WeddingVendorSelectionEntity, WeddingVendorStatus } from '../planner/entities/wedding-vendor-selection.entity';
+import { PaymentStatus } from './payment-status.enum';
 import { PaymentsService } from './payments.service';
 
 describe('PaymentsService', () => {
@@ -19,15 +18,10 @@ describe('PaymentsService', () => {
   }
 
   function createService() {
-    const paymentsRepository = createRepositoryMock();
-    const bookingsRepository = createRepositoryMock();
     const usersRepository = createRepositoryMock();
     const vendorPaymentsRepository = createRepositoryMock();
     const vendorSelectionsRepository = createRepositoryMock();
     const weddingEventsRepository = createRepositoryMock();
-    const walletService = {
-      recordTransaction: jest.fn().mockResolvedValue(undefined),
-    };
     const adminService = {
       getEffectiveCommissionRate: jest.fn().mockResolvedValue(0.15),
     };
@@ -40,10 +34,7 @@ describe('PaymentsService', () => {
     const configService = { get: jest.fn((key: string) => configValues[key]) };
     const service = new PaymentsService(
       configService as never,
-      paymentsRepository as never,
-      bookingsRepository as never,
       usersRepository as never,
-      walletService as never,
       vendorPaymentsRepository as never,
       vendorSelectionsRepository as never,
       weddingEventsRepository as never,
@@ -52,108 +43,14 @@ describe('PaymentsService', () => {
 
     return {
       service,
-      paymentsRepository,
-      bookingsRepository,
       usersRepository,
       vendorPaymentsRepository,
       vendorSelectionsRepository,
       weddingEventsRepository,
-      walletService,
       adminService,
       configValues,
     };
   }
-
-  it('settles a wallet booking, records both ledger entries, and marks the booking paid', async () => {
-    const { service, paymentsRepository, bookingsRepository, walletService } = createService();
-
-    const booking = Object.assign(new BookingEntity(), {
-      id: 'booking-1',
-      bookingRef: 'KZ-1',
-      customerId: 'customer-1',
-      providerId: 'provider-1',
-      serviceCategoryId: 'cat-1',
-      serviceId: 'svc-1',
-      type: 'instant' as never,
-      status: BookingStatus.IN_PROGRESS,
-      paymentMethod: PaymentMethod.WALLET,
-      paymentStatus: PaymentStatus.PENDING,
-      quotedPriceCents: 10_000,
-      finalPriceCents: 10_000,
-      commissionCents: 1_500,
-      providerEarningsCents: 8_500,
-      discountCents: 0,
-      promoCode: null,
-      paymentGatewayRef: null,
-      customerLat: null,
-      customerLng: null,
-      customerAddress: 'Sandton, Johannesburg',
-      providerCurrentLat: null,
-      providerCurrentLng: null,
-      providerLocationUpdatedAt: null,
-      scheduledAt: null,
-      acceptedAt: null,
-      enRouteAt: null,
-      arrivedAt: null,
-      startedAt: null,
-      completedAt: null,
-      cancelledAt: null,
-      cancelReason: null,
-      cancelledBy: null,
-      customerNotes: null,
-      providerNotes: null,
-      isRated: false,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      customer: null,
-      provider: null,
-    });
-
-    paymentsRepository.findOne.mockResolvedValue(null);
-    paymentsRepository.save
-      .mockImplementationOnce(async (value) => ({ id: 'payment-1', status: PaymentStatus.PENDING, ...value }))
-      .mockImplementationOnce(async (value) => ({ id: 'payment-1', ...value }));
-    bookingsRepository.save.mockImplementation(async (value) => value);
-
-    const payment = await service.settleBookingCompletion(booking, {
-      actorId: 'provider-1',
-      actorRole: UserRole.PROVIDER,
-      gatewayReference: 'manual-settlement-1',
-      note: 'Provider completed booking',
-    });
-
-    expect(walletService.recordTransaction).toHaveBeenNthCalledWith(1, {
-      userId: 'customer-1',
-      direction: WalletTransactionDirection.DEBIT,
-      amountCents: 10_000,
-      referenceType: WalletReferenceType.BOOKING_PAYMENT,
-      referenceId: 'booking-1',
-      bookingId: 'booking-1',
-      paymentTransactionId: 'payment-1',
-      description: 'Wallet payment for booking KZ-1',
-    });
-    expect(walletService.recordTransaction).toHaveBeenNthCalledWith(2, {
-      userId: 'provider-1',
-      direction: WalletTransactionDirection.CREDIT,
-      amountCents: 8_500,
-      referenceType: WalletReferenceType.PROVIDER_EARNING,
-      referenceId: 'booking-1',
-      bookingId: 'booking-1',
-      paymentTransactionId: 'payment-1',
-      description: 'Provider earnings for booking KZ-1',
-    });
-    expect(bookingsRepository.save).toHaveBeenCalledWith(
-      expect.objectContaining({ paymentStatus: PaymentStatus.PAID }),
-    );
-    expect(payment).toEqual(
-      expect.objectContaining({
-        bookingId: 'booking-1',
-        status: PaymentStatus.PAID,
-        gatewayReference: 'manual-settlement-1',
-        providerId: 'provider-1',
-      }),
-    );
-  });
 
   function buildSelection(overrides: Partial<WeddingVendorSelectionEntity> = {}) {
     return Object.assign(new WeddingVendorSelectionEntity(), {
@@ -257,9 +154,9 @@ describe('PaymentsService', () => {
     });
   });
 
-  describe('confirmPayfastWebhook routing', () => {
-    it('routes a vendor:-prefixed m_payment_id to the vendor payment path without touching bookings', async () => {
-      const { service, vendorPaymentsRepository, vendorSelectionsRepository, bookingsRepository } = createService();
+  describe('confirmPayfastWebhook', () => {
+    it('routes a vendor:-prefixed m_payment_id to the vendor payment path', async () => {
+      const { service, vendorPaymentsRepository, vendorSelectionsRepository } = createService();
 
       vendorPaymentsRepository.findOne.mockResolvedValue({
         id: 'vendor-payment-1',
@@ -278,23 +175,19 @@ describe('PaymentsService', () => {
       });
 
       expect(result).toEqual({ received: true, status: PaymentStatus.PAID });
-      expect(bookingsRepository.findOne).not.toHaveBeenCalled();
       expect(vendorSelectionsRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ amountPaidCents: 20_000, paidAt: expect.any(Date) }),
       );
     });
 
-    it('still routes a bare-UUID m_payment_id to the legacy booking lookup', async () => {
-      const { service, bookingsRepository, vendorPaymentsRepository } = createService();
-
-      bookingsRepository.findOne.mockResolvedValue(null);
+    it('ignores an m_payment_id that is not vendor-prefixed', async () => {
+      const { service, vendorPaymentsRepository } = createService();
 
       const result = await service.confirmPayfastWebhook({
-        m_payment_id: 'booking-1',
+        m_payment_id: 'some-other-id',
         payment_status: 'COMPLETE',
       });
 
-      expect(bookingsRepository.findOne).toHaveBeenCalledWith({ where: { id: 'booking-1' } });
       expect(vendorPaymentsRepository.findOne).not.toHaveBeenCalled();
       expect(result).toEqual({ received: true, ignored: true });
     });

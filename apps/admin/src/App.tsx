@@ -264,11 +264,6 @@ function MessageSquareIcon({ className }: IconProps) {
 
 type PlatformSettings = {
   defaultCommissionRate: number;
-  cashPaymentsEnabled: boolean;
-  cardPaymentsEnabled: boolean;
-  walletPaymentsEnabled: boolean;
-  instantBookingsEnabled: boolean;
-  scheduledBookingsEnabled: boolean;
   businessLegalName?: string;
   payoutBankName?: string;
   payoutAccountHolder?: string;
@@ -278,45 +273,13 @@ type PlatformSettings = {
   payoutReference?: string;
 };
 
-type ProviderDocument = {
-  id: string;
-  documentType: string;
-  fileName: string;
-  fileUrl?: string;
-  status: 'submitted' | 'approved' | 'rejected';
-  reviewNote?: string;
-  createdAt: string;
-};
-
-type PendingProvider = {
-  userId: string;
-  serviceArea?: string;
-  yearsExperience?: number;
-  verificationStatus: 'pending' | 'approved' | 'rejected';
-  documentsSubmitted: boolean;
-  user?: {
-    firstName?: string;
-    lastName?: string;
-    phone: string;
-    email?: string;
-  };
-  documents: ProviderDocument[];
-};
-
 type DashboardMetrics = {
   customerCount: number;
-  providerCount: number;
-  pendingVerifications: number;
-  activeBookings: number;
-  scheduledBookings: number;
-  completedBookings: number;
-  paidTransactions: number;
-  grossMerchandiseValueCents: number;
-  providerPayoutsCents: number;
-  averageRating: number;
+  coachCount: number;
   totalSignups: number;
   activeWeddingEvents: number;
   totalPaidCents: number;
+  vendorListingCount: number;
 };
 
 type AdminWeddingEventOwner = {
@@ -369,6 +332,7 @@ type CoachBreakdownRow = {
 type WeddingVendorSelection = {
   id: string;
   weddingEventId: string;
+  vendorId?: string;
   slot: string;
   subcategory?: string;
   vendorName: string;
@@ -377,6 +341,8 @@ type WeddingVendorSelection = {
   paidAt?: string;
   status: 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk' | 'shortlisted';
 };
+
+type VendorSelectionWithEvent = WeddingVendorSelection & { event?: AdminWeddingEvent };
 
 type RealVendor = {
   id: string;
@@ -415,51 +381,26 @@ type MyWeddingEventResponse = {
   coachProfile: AdminCoach | null;
 };
 
-type RecentPayment = {
+type RecentVendorPayment = {
   id: string;
-  bookingId: string;
-  bookingRef?: string;
-  paymentMethod: string;
+  vendorSelectionId: string;
+  vendorName?: string;
+  slot?: string;
   status: 'pending' | 'paid' | 'failed' | 'refunded';
   amountCents: number;
   commissionCents: number;
-  providerEarningsCents: number;
   checkoutUrl?: string;
   updatedAt: string;
 };
 
-type BookingJourneyStage = {
-  key: string;
-  label: string;
-  status: 'done' | 'active' | 'upcoming';
-  timestamp?: string;
-  note: string;
-};
-
-type BookingJourneyNotification = {
+type VendorProfile = {
   id: string;
-  type: string;
-  audience: 'customer' | 'provider';
-  message: string;
-  timestamp: string;
-};
-
-type BookingJourney = {
-  id: string;
-  bookingRef: string;
-  service: string;
-  type: 'instant' | 'scheduled';
-  customerName: string;
-  providerName: string;
-  currentStage: string;
-  paymentMethod: string;
-  paymentStatus: RecentPayment['status'];
-  amountCents: number;
-  commissionCents: number;
-  providerEarningsCents: number;
-  scheduledAt?: string;
-  stages: BookingJourneyStage[];
-  notifications: BookingJourneyNotification[];
+  userId: string;
+  vendorId: string;
+  vendorName?: string;
+  slot?: string;
+  user?: { firstName?: string; lastName?: string; phone: string };
+  createdAt: string;
 };
 
 type AdminAuthResponse = {
@@ -1364,9 +1305,8 @@ export function App() {
   const [adminIdentity, setAdminIdentity] = useState(() => localStorage.getItem('stitchd.admin.identity') || '');
   const [settings, setSettings] = useState<PlatformSettings | null>(null);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
-  const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
-  const [bookingJourneys, setBookingJourneys] = useState<BookingJourney[]>([]);
-  const [pendingProviders, setPendingProviders] = useState<PendingProvider[]>([]);
+  const [recentVendorPayments, setRecentVendorPayments] = useState<RecentVendorPayment[]>([]);
+  const [vendorProfiles, setVendorProfiles] = useState<VendorProfile[]>([]);
   const [weddingEvents, setWeddingEvents] = useState<AdminWeddingEvent[]>([]);
   const [coaches, setCoaches] = useState<AdminCoach[]>([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownRow[]>([]);
@@ -1385,7 +1325,12 @@ export function App() {
   const [coachEventDetail, setCoachEventDetail] = useState<{ event: AdminWeddingEvent; selections: WeddingVendorSelection[] } | null>(null);
   const [coachMessages, setCoachMessages] = useState<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>([]);
   const [coachMessageInput, setCoachMessageInput] = useState('');
-  const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
+  const [newCoachAccess, setNewCoachAccess] = useState({ phone: '', firstName: '', lastName: '' });
+  const [newVendorAccess, setNewVendorAccess] = useState({ phone: '', vendorId: '', firstName: '', lastName: '' });
+  const [vendorSelectionMessages, setVendorSelectionMessages] = useState<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>([]);
+  const [vendorSelectionMessageInput, setVendorSelectionMessageInput] = useState('');
+  const [activeVendorSelectionId, setActiveVendorSelectionId] = useState<string | null>(null);
+  const [myVendorSelections, setMyVendorSelections] = useState<VendorSelectionWithEvent[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
@@ -1458,35 +1403,11 @@ export function App() {
   }
 
   const stats = useMemo(() => {
-    const pendingCount = metrics?.pendingVerifications ?? pendingProviders.length;
-    const documentCount = pendingProviders.reduce((count, provider) => count + provider.documents.length, 0);
     return [
-      { label: 'Pending Reviews', value: String(pendingCount).padStart(2, '0'), detail: 'Provider verification queue' },
-      { label: 'Documents Submitted', value: String(documentCount).padStart(2, '0'), detail: 'Files ready for compliance review' },
-      {
-        label: 'Gross Volume',
-        value: metrics ? formatCurrency(metrics.grossMerchandiseValueCents) : '--',
-        detail: 'All payment transactions on record',
-      },
-      {
-        label: 'Provider Payouts',
-        value: metrics ? formatCurrency(metrics.providerPayoutsCents) : '--',
-        detail: 'Paid earnings booked to wallets',
-      },
-      {
-        label: 'Paid Transactions',
-        value: metrics ? String(metrics.paidTransactions).padStart(2, '0') : '--',
-        detail: 'Confirmed settlements across supported rails',
-      },
-      {
-        label: 'Avg Rating',
-        value: metrics ? metrics.averageRating.toFixed(1) : '--',
-        detail: 'Marketplace quality signal from reviews',
-      },
       {
         label: 'Commission Rate',
         value: settings ? `${Math.round(settings.defaultCommissionRate * 100)}%` : '--',
-        detail: 'Applied to newly created bookings',
+        detail: 'Applied to real vendor payments',
       },
       {
         label: 'Total Signups',
@@ -1499,12 +1420,17 @@ export function App() {
         detail: 'Real couples with a wedding plan in progress',
       },
       {
+        label: 'Vendor Listings',
+        value: metrics ? String(metrics.vendorListingCount).padStart(2, '0') : '--',
+        detail: 'Real wedding vendors in the catalog',
+      },
+      {
         label: 'Total Paid',
         value: metrics ? formatCurrency(metrics.totalPaidCents) : '--',
         detail: 'Collected across all wedding packages',
       },
     ];
-  }, [metrics, pendingProviders, settings]);
+  }, [metrics, settings]);
 
   const baseEventOption = eventOptions.find((option) => option.value === selectedEventType) || eventOptions[0];
   const selectedEventOption = {
@@ -1839,7 +1765,7 @@ export function App() {
       signedInLabel: 'supplier',
       prompt: 'Phone number',
       placeholder: '+27 82 123 4567',
-      helper: 'Suppliers sign in before they can view bookings, messages, and workflow updates.',
+      helper: 'Vendors sign in once an admin has granted them access, to see their real wedding selections and messages.',
       value: 'Bookings and messages',
     },
     coach: {
@@ -1855,7 +1781,7 @@ export function App() {
       signedInLabel: 'admin',
       prompt: 'Work email',
       placeholder: 'admin@stitchd.co.za',
-      helper: 'Admins sign in before opening the planner or operations console.',
+      helper: 'Admins sign in with their email and password to open the operations console.',
       value: 'Platform control',
     },
   };
@@ -2136,7 +2062,7 @@ export function App() {
   }, [daysToEvent, plannerSurface?.locationLabel, selectedEventType, selectedSchedule.eventDate, surfaceMode, myWeddingEvent]);
 
   useEffect(() => {
-    if (surfaceMode !== 'planner' || selectedEventType !== 'wedding') return undefined;
+    if (selectedEventType !== 'wedding') return undefined;
 
     let cancelled = false;
     fetch(`${apiBaseUrl}/planner/vendors`)
@@ -2252,6 +2178,64 @@ export function App() {
     }
   }
 
+  useEffect(() => {
+    if (!clientAccessToken || mockSession?.role !== 'supplier') return undefined;
+
+    let cancelled = false;
+    request<VendorSelectionWithEvent[]>('/planner/vendor/selections', undefined, clientAccessToken)
+      .then((selections) => {
+        if (!cancelled) setMyVendorSelections(selections);
+      })
+      .catch(() => {
+        if (!cancelled) setMyVendorSelections([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientAccessToken, mockSession]);
+
+  async function selectVendorSelection(selectionId: string) {
+    if (activeVendorSelectionId === selectionId) {
+      setActiveVendorSelectionId(null);
+      setVendorSelectionMessages([]);
+      return;
+    }
+
+    setActiveVendorSelectionId(selectionId);
+    try {
+      const messages = await request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(
+        `/planner/vendor/selections/${selectionId}/messages`,
+        undefined,
+        clientAccessToken,
+      );
+      setVendorSelectionMessages(messages);
+    } catch {
+      setPlannerToast('Could not load messages for that booking.');
+    }
+  }
+
+  async function sendVendorChatMessage(event: FormEvent) {
+    event.preventDefault();
+    if (!vendorSelectionMessageInput.trim() || !activeVendorSelectionId) return;
+
+    try {
+      await request(`/planner/vendor/selections/${activeVendorSelectionId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ message: vendorSelectionMessageInput.trim() }),
+      }, clientAccessToken);
+      const messages = await request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(
+        `/planner/vendor/selections/${activeVendorSelectionId}/messages`,
+        undefined,
+        clientAccessToken,
+      );
+      setVendorSelectionMessages(messages);
+      setVendorSelectionMessageInput('');
+    } catch {
+      setPlannerToast('Could not send that message.');
+    }
+  }
+
   function mapRealVendorToBrowseItem(vendor: RealVendor): SupplierBrowseItem {
     return {
       id: vendor.id,
@@ -2274,6 +2258,7 @@ export function App() {
       await request('/planner/events/mine/vendors', {
         method: 'POST',
         body: JSON.stringify({
+          vendorId: vendor.id,
           slot: vendor.slot,
           subcategory: vendor.subcategory,
           vendorName: vendor.name,
@@ -2350,22 +2335,18 @@ export function App() {
     try {
       const [
         settingsResponse,
-        pendingResponse,
         metricsResponse,
-        recentPaymentsResponse,
-        bookingJourneysResponse,
+        recentVendorPaymentsResponse,
+        vendorProfilesResponse,
         weddingEventsResponse,
         coachesResponse,
         categoryBreakdownResponse,
         coachBreakdownResponse,
       ] = await Promise.all([
         request<PlatformSettings>('/admin/settings', undefined, accessToken),
-        request<PendingProvider[]>('/admin/providers/pending-verification', undefined, accessToken),
         request<DashboardMetrics>('/admin/dashboard-metrics', undefined, accessToken),
-        request<RecentPayment[]>('/admin/payments/recent', undefined, accessToken),
-        // Legacy marketplace endpoint - not part of the current backend, so it
-        // shouldn't block the rest of the dashboard from loading.
-        request<BookingJourney[]>('/admin/bookings/journey', undefined, accessToken).catch(() => []),
+        request<RecentVendorPayment[]>('/admin/vendor-payments/recent', undefined, accessToken).catch(() => []),
+        request<VendorProfile[]>('/admin/vendor-profiles', undefined, accessToken).catch(() => []),
         request<AdminWeddingEvent[]>('/admin/wedding-events', undefined, accessToken).catch(() => []),
         request<AdminCoach[]>('/admin/coaches', undefined, accessToken).catch(() => []),
         request<CategoryBreakdownRow[]>('/admin/analytics/category-breakdown', undefined, accessToken).catch(() => []),
@@ -2373,10 +2354,9 @@ export function App() {
       ]);
 
       setSettings(settingsResponse);
-      setPendingProviders(pendingResponse);
       setMetrics(metricsResponse);
-      setRecentPayments(recentPaymentsResponse);
-      setBookingJourneys(bookingJourneysResponse);
+      setRecentVendorPayments(recentVendorPaymentsResponse);
+      setVendorProfiles(vendorProfilesResponse);
       setWeddingEvents(weddingEventsResponse);
       setCoaches(coachesResponse);
       setCategoryBreakdown(categoryBreakdownResponse);
@@ -2395,9 +2375,8 @@ export function App() {
     setAdminIdentity('');
     setSettings(null);
     setMetrics(null);
-    setRecentPayments([]);
-    setBookingJourneys([]);
-    setPendingProviders([]);
+    setRecentVendorPayments([]);
+    setVendorProfiles([]);
     setWeddingEvents([]);
     setCoaches([]);
     setCategoryBreakdown([]);
@@ -2456,9 +2435,10 @@ export function App() {
       return;
     }
 
-    // Client and coach are backed by real OTP accounts - supplier/admin (in
-    // this demo landing flow) stay as a local-only preview.
-    if (authRole === 'client' || authRole === 'coach') {
+    // Client, coach, and supplier are backed by real OTP accounts. Admin has
+    // its own dedicated email/password login (handled in completeMockSignIn)
+    // and never sends an OTP.
+    if (authRole === 'client' || authRole === 'coach' || authRole === 'supplier') {
       try {
         await request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ phone: authIdentifier.trim() }) }, '');
         setAuthStep('verify');
@@ -2470,66 +2450,76 @@ export function App() {
     }
 
     setAuthStep('verify');
-    setAuthNotice(`Verification code sent to ${authIdentifier.trim()}. Enter the 6-digit code to continue.`);
+    setAuthNotice('Enter your admin password to continue.');
   }
 
   async function completeMockSignIn(event: FormEvent) {
     event.preventDefault();
     setAuthError('');
 
+    const config = authRoleConfig[authRole];
+    const trimmedIdentifier = authIdentifier.trim();
+
+    if (authRole === 'admin') {
+      if (!authOtp.trim()) {
+        setAuthError('Enter your admin password to continue.');
+        return;
+      }
+
+      try {
+        const auth = await request<AdminAuthResponse>(
+          '/auth/admin/login',
+          { method: 'POST', body: JSON.stringify({ email: trimmedIdentifier, password: authOtp.trim() }) },
+          '',
+        );
+        const identity = auth.user.email || [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ') || 'Admin';
+        setToken(auth.accessToken);
+        setAdminIdentity(identity);
+        setEmail(trimmedIdentifier);
+        setPassword('');
+        setMockSession({ role: 'admin', identity, contact: trimmedIdentifier });
+        setSurfaceMode('ops');
+        setAuthStep('identify');
+        setAuthOtp('');
+        setAuthNotice(`${config.label} signed in successfully.`);
+        await loadDashboard(undefined, auth.accessToken);
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Invalid admin email or password.');
+      }
+      return;
+    }
+
     if (!/^\d{6}$/.test(authOtp.trim())) {
       setAuthError('Enter a valid 6-digit verification code.');
       return;
     }
 
-    const config = authRoleConfig[authRole];
-    const trimmedIdentifier = authIdentifier.trim();
-
-    if (authRole === 'client' || authRole === 'coach') {
-      try {
-        const auth = await request<{ accessToken: string; user: { firstName?: string; lastName?: string; phone: string } }>(
-          '/auth/verify-otp',
-          {
-            method: 'POST',
-            // The backend's UserRole enum has no 'client' value - client maps
-            // to the default (customer) by omitting role; coach is passed
-            // through as-is.
-            body: JSON.stringify(authRole === 'coach'
-              ? { phone: trimmedIdentifier, code: authOtp.trim(), role: 'coach' }
-              : { phone: trimmedIdentifier, code: authOtp.trim() }),
-          },
-          '',
-        );
-        const identity = [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ') || (authRole === 'coach' ? 'Coach Workspace' : 'Client Planner');
-        setClientAccessToken(auth.accessToken);
-        setMockSession({ role: authRole, identity, contact: auth.user.phone });
-        setSurfaceMode('planner');
-        setActiveTab('squad');
-        setAuthStep('identify');
-        setAuthOtp('');
-        setAuthNotice(`${config.label} signed in successfully.`);
-      } catch (error) {
-        setAuthError(error instanceof Error ? error.message : 'Invalid or expired verification code.');
-      }
-      return;
+    // Client maps to the backend's default (customer) role by omitting role;
+    // coach and vendor (the "supplier" persona) are passed through as-is.
+    const otpRole = authRole === 'coach' ? 'coach' : authRole === 'supplier' ? 'vendor' : undefined;
+    try {
+      const auth = await request<{ accessToken: string; user: { firstName?: string; lastName?: string; phone: string } }>(
+        '/auth/verify-otp',
+        {
+          method: 'POST',
+          body: JSON.stringify(otpRole
+            ? { phone: trimmedIdentifier, code: authOtp.trim(), role: otpRole }
+            : { phone: trimmedIdentifier, code: authOtp.trim() }),
+        },
+        '',
+      );
+      const identity = [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ')
+        || (authRole === 'coach' ? 'Coach Workspace' : authRole === 'supplier' ? 'Supplier Workspace' : 'Client Planner');
+      setClientAccessToken(auth.accessToken);
+      setMockSession({ role: authRole, identity, contact: auth.user.phone });
+      setSurfaceMode('planner');
+      setActiveTab('squad');
+      setAuthStep('identify');
+      setAuthOtp('');
+      setAuthNotice(`${config.label} signed in successfully.`);
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : 'Invalid or expired verification code.');
     }
-
-    const baseIdentity = authRole === 'admin'
-      ? 'STITCHD Admin'
-      : authRole === 'supplier'
-        ? 'Supplier Workspace'
-        : 'Coach Workspace';
-
-    setMockSession({
-      role: authRole,
-      identity: baseIdentity,
-      contact: trimmedIdentifier,
-    });
-    setSurfaceMode('planner');
-    setActiveTab('squad');
-    setAuthStep('identify');
-    setAuthOtp('');
-    setAuthNotice(`${config.label} signed in successfully.`);
   }
 
   function handleRoleSelection(role: AuthRole) {
@@ -2569,6 +2559,47 @@ export function App() {
     }
   }
 
+  async function toggleMySelectionMessages(selectionId: string) {
+    if (activeVendorSelectionId === selectionId) {
+      setActiveVendorSelectionId(null);
+      setVendorSelectionMessages([]);
+      return;
+    }
+
+    setActiveVendorSelectionId(selectionId);
+    try {
+      const messages = await request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(
+        `/planner/events/mine/vendors/${selectionId}/messages`,
+        undefined,
+        clientAccessToken,
+      );
+      setVendorSelectionMessages(messages);
+    } catch {
+      setPlannerToast('Could not load messages for that vendor.');
+    }
+  }
+
+  async function sendMySelectionMessage(event: FormEvent) {
+    event.preventDefault();
+    if (!vendorSelectionMessageInput.trim() || !activeVendorSelectionId) return;
+
+    try {
+      await request(`/planner/events/mine/vendors/${activeVendorSelectionId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ message: vendorSelectionMessageInput.trim() }),
+      }, clientAccessToken);
+      const messages = await request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(
+        `/planner/events/mine/vendors/${activeVendorSelectionId}/messages`,
+        undefined,
+        clientAccessToken,
+      );
+      setVendorSelectionMessages(messages);
+      setVendorSelectionMessageInput('');
+    } catch {
+      setPlannerToast('Could not send that message.');
+    }
+  }
+
   function handlePlannerTabChange(tabId: PlannerTab) {
     setActiveTab(tabId);
     window.requestAnimationFrame(() => {
@@ -2596,23 +2627,53 @@ export function App() {
     }
   }
 
-  async function reviewProvider(providerUserId: string, status: 'approved' | 'rejected') {
+  async function grantCoachAccess(event: FormEvent) {
+    event.preventDefault();
     setErrorMessage('');
     setStatusMessage('');
 
     try {
-      await request(`/admin/providers/${providerUserId}/verification`, {
-        method: 'PATCH',
+      await request('/admin/coaches', {
+        method: 'POST',
         body: JSON.stringify({
-          status,
-          note: reviewNotes[providerUserId] || undefined,
+          phone: newCoachAccess.phone,
+          firstName: newCoachAccess.firstName || undefined,
+          lastName: newCoachAccess.lastName || undefined,
         }),
       });
-
-      setPendingProviders((current) => current.filter((provider) => provider.userId !== providerUserId));
-      setStatusMessage(`Provider ${status === 'approved' ? 'approved' : 'rejected'} successfully.`);
+      setNewCoachAccess({ phone: '', firstName: '', lastName: '' });
+      setStatusMessage('Coach access granted.');
+      await loadDashboard();
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : 'Failed to review provider.');
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to grant coach access.');
+    }
+  }
+
+  async function grantVendorAccess(event: FormEvent) {
+    event.preventDefault();
+    setErrorMessage('');
+    setStatusMessage('');
+
+    if (!newVendorAccess.vendorId) {
+      setErrorMessage('Select a catalog vendor to grant access to.');
+      return;
+    }
+
+    try {
+      await request('/admin/vendor-profiles', {
+        method: 'POST',
+        body: JSON.stringify({
+          phone: newVendorAccess.phone,
+          vendorId: newVendorAccess.vendorId,
+          firstName: newVendorAccess.firstName || undefined,
+          lastName: newVendorAccess.lastName || undefined,
+        }),
+      });
+      setNewVendorAccess({ phone: '', vendorId: '', firstName: '', lastName: '' });
+      setStatusMessage('Vendor access granted.');
+      await loadDashboard();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to grant vendor access.');
     }
   }
 
@@ -2852,13 +2913,20 @@ export function App() {
             <form className="authEntryCard authEntryCardCompact glassPanelNested" onSubmit={completeMockSignIn}>
               <div className="authBrandLockup">
                 <StitchdWordmark variant="auth" />
-                <span className="minorLabel">Verify your number</span>
+                <span className="minorLabel">{authRole === 'admin' ? 'Enter your password' : 'Verify your number'}</span>
               </div>
-              <p className="authVerifyHint">{authNotice || `A code was sent to ${authIdentifier}.`}</p>
-              <label>
-                Verification code
-                <input value={authOtp} onChange={(event) => setAuthOtp(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} />
-              </label>
+              <p className="authVerifyHint">{authNotice || (authRole === 'admin' ? 'Enter your admin password to continue.' : `A code was sent to ${authIdentifier}.`)}</p>
+              {authRole === 'admin' ? (
+                <label>
+                  Password
+                  <input type="password" value={authOtp} onChange={(event) => setAuthOtp(event.target.value)} placeholder="Enter your password" autoComplete="current-password" />
+                </label>
+              ) : (
+                <label>
+                  Verification code
+                  <input value={authOtp} onChange={(event) => setAuthOtp(event.target.value)} placeholder="123456" inputMode="numeric" maxLength={6} />
+                </label>
+              )}
               {authError ? <p className="statusError">{authError}</p> : null}
               <div className="authActionsRow">
                 <button type="button" className="secondaryButton" onClick={() => setAuthStep('identify')}>Back</button>
@@ -2977,6 +3045,103 @@ export function App() {
                               </div>
                             </>
                           )}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+        </section>
+      </main>
+    );
+  }
+
+  if (mockSession.role === 'supplier') {
+    return (
+      <main className="stitchdShell">
+        <div className="pageGlow pageGlowLeft" />
+        <div className="pageGlow pageGlowRight" />
+        <section className="topRail">
+          <section className="modeRail">
+            <div className="modeRailRow">
+              <button type="button" className="modePill modePillBrand is-active">
+                <StitchdWordmark variant="topbar" />
+              </button>
+            </div>
+            <button type="button" className="themeToggle" onClick={() => setIsDark((d) => !d)} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {isDark ? <LightModeIcon className="plannerIcon" /> : <DarkModeIcon className="plannerIcon" />}
+              <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+          </section>
+          <section className="sessionRail glassPanelNested">
+            <div>
+              <span className="sessionStatus">Signed in as supplier</span>
+              <p>{mockSession.contact}</p>
+            </div>
+            <button type="button" className="ghostButton" onClick={signOutApp}>Sign out</button>
+          </section>
+        </section>
+
+        <section className="opsSurface">
+          <header className="opsHero glassPanel">
+            <div>
+              <span className="minorLabel">Supplier Workspace</span>
+              <h1>Your real bookings, and messages with each couple.</h1>
+              <p>Every booking below is a real couple who selected your listing, granted to you by an admin.</p>
+            </div>
+          </header>
+
+          <article className="glassPanel weddingsPanel">
+            <div className="sectionHeader">
+              <div>
+                <p className="eyebrow compact">My Bookings</p>
+                <h2>{myVendorSelections.length} real booking{myVendorSelections.length === 1 ? '' : 's'}</h2>
+              </div>
+            </div>
+
+            {myVendorSelections.length === 0 ? (
+              <p className="emptyState">No couples have selected your listing yet.</p>
+            ) : (
+              <div className="weddingEventList">
+                {myVendorSelections.map((selection) => {
+                  const ownerName = [selection.event?.owner?.firstName, selection.event?.owner?.lastName].filter(Boolean).join(' ') || selection.event?.owner?.phone || 'Unnamed couple';
+                  const isSelected = activeVendorSelectionId === selection.id;
+
+                  return (
+                    <article className="weddingEventRow glassPanelNested" key={selection.id}>
+                      <button type="button" className="weddingEventHeader" onClick={() => void selectVendorSelection(selection.id)}>
+                        <div>
+                          <strong>{ownerName}</strong>
+                          <p>{selection.event?.title || 'Wedding'} • {selection.event?.eventDate || 'Date not set'}</p>
+                        </div>
+                        <div className="weddingEventMeta">
+                          <span className={`statusBadge status-${selection.status}`}>{selection.status}</span>
+                          <span>{formatCurrency(selection.priceCents)} • {formatCurrency(selection.amountPaidCents)} paid</span>
+                        </div>
+                      </button>
+
+                      {isSelected ? (
+                        <div className="weddingEventDetail">
+                          <div className="messageStack" style={{ marginTop: 16 }}>
+                            <span className="minorLabel">Messages with {ownerName}</span>
+                            {vendorSelectionMessages.length === 0 ? (
+                              <p className="emptyState">No messages yet - say hello!</p>
+                            ) : (
+                              vendorSelectionMessages.map((message) => (
+                                <div key={message.id} className="journeyNotificationRow">
+                                  <strong>{message.senderRole}</strong>
+                                  <span>{message.message}</span>
+                                  <small>{new Date(message.createdAt).toLocaleString()}</small>
+                                </div>
+                              ))
+                            )}
+                            <form className="authForm" onSubmit={sendVendorChatMessage}>
+                              <input value={vendorSelectionMessageInput} onChange={(event) => setVendorSelectionMessageInput(event.target.value)} placeholder="Write a message..." />
+                              <button type="submit" className="secondaryButton">Send</button>
+                            </form>
+                          </div>
                         </div>
                       ) : null}
                     </article>
@@ -3362,6 +3527,7 @@ export function App() {
                       <div className="budgetLineList">
                         {myWeddingEvent.selections.map((selection) => {
                           const isPaid = selection.amountPaidCents >= selection.priceCents && selection.priceCents > 0;
+                          const isMessaging = activeVendorSelectionId === selection.id;
                           return (
                             <article key={selection.id} className="budgetLineItem">
                               <div>
@@ -3383,7 +3549,30 @@ export function App() {
                                     </button>
                                   </div>
                                 )}
+                                <button type="button" className="ghostButton" onClick={() => void toggleMySelectionMessages(selection.id)}>
+                                  {isMessaging ? 'Hide messages' : 'Message vendor'}
+                                </button>
                               </div>
+                              {isMessaging ? (
+                                <div className="messageStack fullWidthPanel" style={{ marginTop: 16 }}>
+                                  <span className="minorLabel">Messages with {selection.vendorName}</span>
+                                  {vendorSelectionMessages.length === 0 ? (
+                                    <p className="emptyState">No messages yet - say hello!</p>
+                                  ) : (
+                                    vendorSelectionMessages.map((message) => (
+                                      <div key={message.id} className="journeyNotificationRow">
+                                        <strong>{message.senderRole}</strong>
+                                        <span>{message.message}</span>
+                                        <small>{new Date(message.createdAt).toLocaleString()}</small>
+                                      </div>
+                                    ))
+                                  )}
+                                  <form className="authForm" onSubmit={sendMySelectionMessage}>
+                                    <input value={vendorSelectionMessageInput} onChange={(event) => setVendorSelectionMessageInput(event.target.value)} placeholder="Write a message..." />
+                                    <button type="submit" className="secondaryButton">Send</button>
+                                  </form>
+                                </div>
+                              ) : null}
                             </article>
                           );
                         })}
@@ -4484,19 +4673,13 @@ export function App() {
                   <div className="settingsGroup glassPanelNested">
                     <div>
                       <p className="eyebrow compact">Marketplace Policy</p>
-                      <h3>Booking and payment rails</h3>
+                      <h3>Vendor payment commission</h3>
                     </div>
 
                     <label>
                       Default Commission Rate
                       <input type="number" step="0.01" min="0" max="0.5" value={settings.defaultCommissionRate} onChange={(event) => setSettings({ ...settings, defaultCommissionRate: Number(event.target.value) })} />
                     </label>
-
-                    <label className="toggleRow"><input type="checkbox" checked={settings.cashPaymentsEnabled} onChange={(event) => setSettings({ ...settings, cashPaymentsEnabled: event.target.checked })} />Cash payments enabled</label>
-                    <label className="toggleRow"><input type="checkbox" checked={settings.cardPaymentsEnabled} onChange={(event) => setSettings({ ...settings, cardPaymentsEnabled: event.target.checked })} />Card payments enabled</label>
-                    <label className="toggleRow"><input type="checkbox" checked={settings.walletPaymentsEnabled} onChange={(event) => setSettings({ ...settings, walletPaymentsEnabled: event.target.checked })} />Wallet payments enabled</label>
-                    <label className="toggleRow"><input type="checkbox" checked={settings.instantBookingsEnabled} onChange={(event) => setSettings({ ...settings, instantBookingsEnabled: event.target.checked })} />Instant bookings enabled</label>
-                    <label className="toggleRow"><input type="checkbox" checked={settings.scheduledBookingsEnabled} onChange={(event) => setSettings({ ...settings, scheduledBookingsEnabled: event.target.checked })} />Scheduled bookings enabled</label>
                   </div>
 
                   <div className="settingsGroup glassPanelNested">
@@ -4553,7 +4736,7 @@ export function App() {
               <div className="sectionHeader">
                 <div>
                   <p className="eyebrow compact">Marketplace Pulse</p>
-                  <h2>Bookings and payments overview</h2>
+                  <h2>Wedding signups and vendor payments overview</h2>
                 </div>
                 <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading || !token.trim()}>Refresh Metrics</button>
               </div>
@@ -4562,35 +4745,34 @@ export function App() {
                 <div className="metricsStack">
                   <div className="metricsGrid">
                     <article className="miniMetricCard glassPanelNested"><span>Customers</span><strong>{metrics.customerCount}</strong></article>
-                    <article className="miniMetricCard glassPanelNested"><span>Providers</span><strong>{metrics.providerCount}</strong></article>
-                    <article className="miniMetricCard glassPanelNested"><span>Active bookings</span><strong>{metrics.activeBookings}</strong></article>
-                    <article className="miniMetricCard glassPanelNested"><span>Scheduled</span><strong>{metrics.scheduledBookings}</strong></article>
-                    <article className="miniMetricCard glassPanelNested"><span>Completed</span><strong>{metrics.completedBookings}</strong></article>
-                    <article className="miniMetricCard glassPanelNested"><span>Average rating</span><strong>{metrics.averageRating.toFixed(1)}</strong></article>
+                    <article className="miniMetricCard glassPanelNested"><span>Coaches</span><strong>{metrics.coachCount}</strong></article>
+                    <article className="miniMetricCard glassPanelNested"><span>Vendor listings</span><strong>{metrics.vendorListingCount}</strong></article>
+                    <article className="miniMetricCard glassPanelNested"><span>Active weddings</span><strong>{metrics.activeWeddingEvents}</strong></article>
+                    <article className="miniMetricCard glassPanelNested"><span>Total signups</span><strong>{metrics.totalSignups}</strong></article>
+                    <article className="miniMetricCard glassPanelNested"><span>Total paid</span><strong>{formatCurrency(metrics.totalPaidCents)}</strong></article>
                   </div>
 
                   <div>
                     <div className="sectionHeader compactHeader">
                       <div>
                         <p className="eyebrow compact">Payment Feed</p>
-                        <h2>Recent transactions</h2>
+                        <h2>Recent vendor payments</h2>
                       </div>
                     </div>
 
-                    {recentPayments.length === 0 ? (
-                      <p className="emptyState">No payment transactions have been created yet.</p>
+                    {recentVendorPayments.length === 0 ? (
+                      <p className="emptyState">No vendor payments have been made yet.</p>
                     ) : (
                       <div className="paymentFeed">
-                        {recentPayments.map((payment) => (
+                        {recentVendorPayments.map((payment) => (
                           <article className="paymentRow glassPanelNested" key={payment.id}>
                             <div>
-                              <strong>{payment.bookingRef || payment.bookingId}</strong>
-                              <p>{payment.paymentMethod.toUpperCase()} • {payment.status.toUpperCase()} • {new Date(payment.updatedAt).toLocaleString()}</p>
+                              <strong>{payment.vendorName || payment.slot || 'Vendor payment'}</strong>
+                              <p>{payment.status.toUpperCase()} • {new Date(payment.updatedAt).toLocaleString()}</p>
                             </div>
                             <div className="paymentMeta">
                               <strong>{formatCurrency(payment.amountCents)}</strong>
                               <span>Commission {formatCurrency(payment.commissionCents)}</span>
-                              <span>Payout {formatCurrency(payment.providerEarningsCents)}</span>
                               {payment.checkoutUrl ? (
                                 <a href={payment.checkoutUrl} target="_blank" rel="noreferrer" className="documentLink">Open checkout</a>
                               ) : null}
@@ -4600,86 +4782,9 @@ export function App() {
                       </div>
                     )}
                   </div>
-
-                  <div>
-                    <div className="sectionHeader compactHeader">
-                      <div>
-                        <p className="eyebrow compact">Booking Inspector</p>
-                        <h2>Booking journey logic</h2>
-                      </div>
-                    </div>
-
-                    {bookingJourneys.length === 0 ? (
-                      <p className="emptyState">No booking journeys are available yet.</p>
-                    ) : (
-                      <div className="journeyFeed">
-                        {bookingJourneys.map((journey) => (
-                          <article className="journeyCard glassPanelNested" key={journey.id}>
-                            <div className="journeyCardHeader">
-                              <div>
-                                <strong>{journey.bookingRef}</strong>
-                                <p>{journey.service} • {journey.type.toUpperCase()}</p>
-                              </div>
-                              <span className={`statusPill ${journey.paymentStatus === 'paid' ? 'approved' : 'pending'}`}>
-                                {journey.currentStage.replace('_', ' ')}
-                              </span>
-                            </div>
-
-                            <div className="journeyMetaGrid">
-                              <div>
-                                <span>Customer</span>
-                                <strong>{journey.customerName}</strong>
-                              </div>
-                              <div>
-                                <span>Provider</span>
-                                <strong>{journey.providerName}</strong>
-                              </div>
-                              <div>
-                                <span>Payment</span>
-                                <strong>{journey.paymentMethod.toUpperCase()} • {journey.paymentStatus.toUpperCase()}</strong>
-                              </div>
-                              <div>
-                                <span>Settlement</span>
-                                <strong>{formatCurrency(journey.providerEarningsCents)} payout</strong>
-                              </div>
-                            </div>
-
-                            <div className="journeyStageRail" aria-label={`${journey.bookingRef} booking stages`}>
-                              {journey.stages.map((stage) => (
-                                <div key={stage.key} className={`journeyStage ${stage.status === 'active' ? 'is-active' : stage.status === 'done' ? 'is-done' : ''}`}>
-                                  <span className="journeyStageDot" />
-                                  <strong>{stage.label}</strong>
-                                  <small>{stage.timestamp ? new Date(stage.timestamp).toLocaleString() : 'Pending'}</small>
-                                  <p>{stage.note}</p>
-                                </div>
-                              ))}
-                            </div>
-
-                            <div className="journeyFooter">
-                              <div className="journeySettlementSummary">
-                                <span>Total charged {formatCurrency(journey.amountCents)}</span>
-                                <span>Commission {formatCurrency(journey.commissionCents)}</span>
-                                {journey.scheduledAt ? <span>Scheduled {new Date(journey.scheduledAt).toLocaleString()}</span> : <span>Instant dispatch</span>}
-                              </div>
-                              <div className="journeyNotifications">
-                                <span className="minorLabel">Notifications sent</span>
-                                {journey.notifications.map((notification) => (
-                                  <div key={notification.id} className="journeyNotificationRow">
-                                    <strong>{notification.audience}</strong>
-                                    <span>{notification.message}</span>
-                                    <small>{new Date(notification.timestamp).toLocaleString()}</small>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </article>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
               ) : (
-                <p className="emptyState">Sign in as an admin to load booking and payment analytics.</p>
+                <p className="emptyState">Sign in as an admin to load wedding and payment analytics.</p>
               )}
             </article>
 
@@ -4817,65 +4922,80 @@ export function App() {
             <article className="glassPanel reviewPanel">
               <div className="sectionHeader">
                 <div>
-                  <p className="eyebrow compact">Verification Queue</p>
-                  <h2>Provider document review</h2>
+                  <p className="eyebrow compact">Access Control</p>
+                  <h2>Coach and vendor login access</h2>
                 </div>
-                <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading || !token.trim()}>Refresh Queue</button>
+                <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading || !token.trim()}>Refresh</button>
               </div>
 
-              {pendingProviders.length === 0 ? (
-                <p className="emptyState">No providers are currently waiting for verification review.</p>
-              ) : (
-                <div className="providerList">
-                  {pendingProviders.map((provider) => {
-                    const name = [provider.user?.firstName, provider.user?.lastName].filter(Boolean).join(' ') || 'Unnamed provider';
-
-                    return (
-                      <article className="providerCard glassPanelNested" key={provider.userId}>
-                        <div className="providerHeader">
-                          <div>
-                            <h3>{name}</h3>
-                            <p>{provider.user?.phone} {provider.user?.email ? `• ${provider.user.email}` : ''}</p>
-                          </div>
-                          <span className="statusPill pending">Pending</span>
-                        </div>
-
-                        <div className="providerMeta">
-                          <span>{provider.serviceArea || 'Service area not provided'}</span>
-                          <span>{provider.yearsExperience || 0} years experience</span>
-                          <span>{provider.documents.length} uploaded files</span>
-                        </div>
-
-                        <div className="documentList">
-                          {provider.documents.map((document) => (
-                            <div className="documentRow glassPanelNested" key={document.id}>
-                              <div>
-                                <strong>{document.documentType.replace(/_/g, ' ')}</strong>
-                                <p>{document.fileName}</p>
-                              </div>
-                              {document.fileUrl ? (
-                                <a href={document.fileUrl} target="_blank" rel="noreferrer" className="documentLink">View file</a>
-                              ) : (
-                                <span className="documentMissing">Missing file URL</span>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-
-                        <label>
-                          Review note
-                          <textarea rows={3} value={reviewNotes[provider.userId] || ''} onChange={(event) => setReviewNotes((current) => ({ ...current, [provider.userId]: event.target.value }))} placeholder="Add a compliance note for this review" />
-                        </label>
-
-                        <div className="actionRow">
-                          <button type="button" className="secondaryButton" onClick={() => void reviewProvider(provider.userId, 'rejected')}>Reject</button>
-                          <button type="button" className="primaryButton" onClick={() => void reviewProvider(provider.userId, 'approved')}>Approve</button>
-                        </div>
-                      </article>
-                    );
-                  })}
+              <div className="settingsGroupsRow">
+                <div className="settingsGroup glassPanelNested">
+                  <div>
+                    <p className="eyebrow compact">Grant Coach Access</p>
+                    <h3>{coaches.length} coach{coaches.length === 1 ? '' : 'es'} approved</h3>
+                  </div>
+                  <form className="authForm" onSubmit={grantCoachAccess}>
+                    <label>
+                      Phone number
+                      <input type="tel" placeholder="+27 82 123 4567" value={newCoachAccess.phone} onChange={(event) => setNewCoachAccess({ ...newCoachAccess, phone: event.target.value })} />
+                    </label>
+                    <label>
+                      First name
+                      <input type="text" value={newCoachAccess.firstName} onChange={(event) => setNewCoachAccess({ ...newCoachAccess, firstName: event.target.value })} />
+                    </label>
+                    <label>
+                      Last name
+                      <input type="text" value={newCoachAccess.lastName} onChange={(event) => setNewCoachAccess({ ...newCoachAccess, lastName: event.target.value })} />
+                    </label>
+                    <button type="submit" className="primaryButton" disabled={!newCoachAccess.phone.trim()}>Grant coach access</button>
+                  </form>
                 </div>
-              )}
+
+                <div className="settingsGroup glassPanelNested">
+                  <div>
+                    <p className="eyebrow compact">Grant Vendor Access</p>
+                    <h3>{vendorProfiles.length} vendor{vendorProfiles.length === 1 ? '' : 's'} approved</h3>
+                  </div>
+                  <form className="authForm" onSubmit={grantVendorAccess}>
+                    <label>
+                      Phone number
+                      <input type="tel" placeholder="+27 82 123 4567" value={newVendorAccess.phone} onChange={(event) => setNewVendorAccess({ ...newVendorAccess, phone: event.target.value })} />
+                    </label>
+                    <label>
+                      Catalog listing
+                      <select value={newVendorAccess.vendorId} onChange={(event) => setNewVendorAccess({ ...newVendorAccess, vendorId: event.target.value })}>
+                        <option value="">Select a vendor listing</option>
+                        {realVendors.map((vendor) => (
+                          <option key={vendor.id} value={vendor.id}>{vendor.name} ({vendor.slot})</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      First name
+                      <input type="text" value={newVendorAccess.firstName} onChange={(event) => setNewVendorAccess({ ...newVendorAccess, firstName: event.target.value })} />
+                    </label>
+                    <label>
+                      Last name
+                      <input type="text" value={newVendorAccess.lastName} onChange={(event) => setNewVendorAccess({ ...newVendorAccess, lastName: event.target.value })} />
+                    </label>
+                    <button type="submit" className="primaryButton" disabled={!newVendorAccess.phone.trim() || !newVendorAccess.vendorId}>Grant vendor access</button>
+                  </form>
+                </div>
+              </div>
+
+              {vendorProfiles.length > 0 ? (
+                <div className="documentList" style={{ marginTop: 16 }}>
+                  {vendorProfiles.map((profile) => (
+                    <div className="documentRow glassPanelNested" key={profile.id}>
+                      <div>
+                        <strong>{profile.vendorName || 'Vendor'}</strong>
+                        <p>{[profile.user?.firstName, profile.user?.lastName].filter(Boolean).join(' ') || profile.user?.phone}</p>
+                      </div>
+                      <span className="statusBadge status-secured">{profile.slot || 'Vendor'}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
             </article>
           </section>
         </section>

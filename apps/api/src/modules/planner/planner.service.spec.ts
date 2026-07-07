@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PlannerService } from './planner.service';
 import { WeddingVendorStatus } from './entities/wedding-vendor-selection.entity';
 import { WeddingMessageSenderRole } from './entities/wedding-message.entity';
+import { WeddingVendorMessageSenderRole } from './entities/wedding-vendor-message.entity';
 
 function createRepositoryMock() {
   return {
@@ -15,7 +16,7 @@ function createRepositoryMock() {
 }
 
 function createPlannerService() {
-  return new PlannerService(null as never, null as never, null as never, null as never, null as never, null as never);
+  return new PlannerService(null as never, null as never, null as never, null as never, null as never, null as never, null as never, null as never);
 }
 
 describe('PlannerService (demo content)', () => {
@@ -55,6 +56,8 @@ describe('PlannerService (real vendor catalog)', () => {
     const weddingVendorsRepository = createRepositoryMock();
     const inspirationNotesRepository = createRepositoryMock();
     const messagesRepository = createRepositoryMock();
+    const vendorProfilesRepository = createRepositoryMock();
+    const vendorMessagesRepository = createRepositoryMock();
     const service = new PlannerService(
       weddingEventsRepository as never,
       vendorSelectionsRepository as never,
@@ -62,8 +65,10 @@ describe('PlannerService (real vendor catalog)', () => {
       weddingVendorsRepository as never,
       inspirationNotesRepository as never,
       messagesRepository as never,
+      vendorProfilesRepository as never,
+      vendorMessagesRepository as never,
     );
-    return { service, weddingEventsRepository, vendorSelectionsRepository, coachProfilesRepository, weddingVendorsRepository, inspirationNotesRepository, messagesRepository };
+    return { service, weddingEventsRepository, vendorSelectionsRepository, coachProfilesRepository, weddingVendorsRepository, inspirationNotesRepository, messagesRepository, vendorProfilesRepository, vendorMessagesRepository };
   }
 
   it('browses vendors by slot', async () => {
@@ -110,6 +115,8 @@ describe('PlannerService (coach access)', () => {
     const weddingVendorsRepository = createRepositoryMock();
     const inspirationNotesRepository = createRepositoryMock();
     const messagesRepository = createRepositoryMock();
+    const vendorProfilesRepository = createRepositoryMock();
+    const vendorMessagesRepository = createRepositoryMock();
     const service = new PlannerService(
       weddingEventsRepository as never,
       vendorSelectionsRepository as never,
@@ -117,6 +124,8 @@ describe('PlannerService (coach access)', () => {
       weddingVendorsRepository as never,
       inspirationNotesRepository as never,
       messagesRepository as never,
+      vendorProfilesRepository as never,
+      vendorMessagesRepository as never,
     );
     return { service, weddingEventsRepository, vendorSelectionsRepository, messagesRepository };
   }
@@ -151,6 +160,8 @@ describe('PlannerService (vendor selection payments)', () => {
     const weddingVendorsRepository = createRepositoryMock();
     const inspirationNotesRepository = createRepositoryMock();
     const messagesRepository = createRepositoryMock();
+    const vendorProfilesRepository = createRepositoryMock();
+    const vendorMessagesRepository = createRepositoryMock();
     const service = new PlannerService(
       weddingEventsRepository as never,
       vendorSelectionsRepository as never,
@@ -158,6 +169,8 @@ describe('PlannerService (vendor selection payments)', () => {
       weddingVendorsRepository as never,
       inspirationNotesRepository as never,
       messagesRepository as never,
+      vendorProfilesRepository as never,
+      vendorMessagesRepository as never,
     );
     return { service, weddingEventsRepository, vendorSelectionsRepository };
   }
@@ -180,5 +193,86 @@ describe('PlannerService (vendor selection payments)', () => {
     const result = await service.updateVendorSelection('owner-1', 'sel-1', { amountPaidCents: 5000 });
 
     expect(result.paidAt).toBeNull();
+  });
+});
+
+describe('PlannerService (vendor account access)', () => {
+  function build() {
+    const weddingEventsRepository = createRepositoryMock();
+    const vendorSelectionsRepository = createRepositoryMock();
+    const coachProfilesRepository = createRepositoryMock();
+    const weddingVendorsRepository = createRepositoryMock();
+    const inspirationNotesRepository = createRepositoryMock();
+    const messagesRepository = createRepositoryMock();
+    const vendorProfilesRepository = createRepositoryMock();
+    const vendorMessagesRepository = createRepositoryMock();
+    const service = new PlannerService(
+      weddingEventsRepository as never,
+      vendorSelectionsRepository as never,
+      coachProfilesRepository as never,
+      weddingVendorsRepository as never,
+      inspirationNotesRepository as never,
+      messagesRepository as never,
+      vendorProfilesRepository as never,
+      vendorMessagesRepository as never,
+    );
+    return { service, weddingEventsRepository, vendorSelectionsRepository, vendorProfilesRepository, vendorMessagesRepository };
+  }
+
+  it('lists only selections that reference the calling vendor\'s linked catalog listing', async () => {
+    const { service, weddingEventsRepository, vendorSelectionsRepository, vendorProfilesRepository } = build();
+    vendorProfilesRepository.findOne.mockResolvedValue({ id: 'profile-1', userId: 'vendor-user-1', vendorId: 'vendor-catalog-1' });
+    vendorSelectionsRepository.find.mockResolvedValue([{ id: 'sel-1', weddingEventId: 'event-1', vendorId: 'vendor-catalog-1' }]);
+    weddingEventsRepository.find.mockResolvedValue([{ id: 'event-1', ownerUserId: 'owner-1' }]);
+
+    const result = await service.getVendorSelections('vendor-user-1');
+
+    expect(vendorSelectionsRepository.find).toHaveBeenCalledWith({
+      where: { vendorId: 'vendor-catalog-1' },
+      order: { createdAt: 'DESC' },
+    });
+    expect(result[0].event).toEqual({ id: 'event-1', ownerUserId: 'owner-1' });
+  });
+
+  it('rejects a vendor with no linked profile from listing selections', async () => {
+    const { service, vendorProfilesRepository } = build();
+    vendorProfilesRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.getVendorSelections('vendor-user-1')).rejects.toThrow(ForbiddenException);
+  });
+
+  it('rejects a vendor messaging a selection they are not assigned to', async () => {
+    const { service, vendorProfilesRepository, vendorSelectionsRepository } = build();
+    vendorProfilesRepository.findOne.mockResolvedValue({ id: 'profile-1', userId: 'vendor-user-1', vendorId: 'vendor-catalog-1' });
+    vendorSelectionsRepository.findOne.mockResolvedValue({ id: 'sel-1', vendorId: 'some-other-vendor' });
+
+    await expect(
+      service.sendVendorSelectionMessage('vendor-user-1', 'sel-1', { message: 'Hi' }),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('lets the assigned vendor send a message that records the vendor sender role', async () => {
+    const { service, vendorProfilesRepository, vendorSelectionsRepository, vendorMessagesRepository } = build();
+    vendorProfilesRepository.findOne.mockResolvedValue({ id: 'profile-1', userId: 'vendor-user-1', vendorId: 'vendor-catalog-1' });
+    vendorSelectionsRepository.findOne.mockResolvedValue({ id: 'sel-1', vendorId: 'vendor-catalog-1' });
+
+    await service.sendVendorSelectionMessage('vendor-user-1', 'sel-1', { message: 'Looking forward to it!' });
+
+    expect(vendorMessagesRepository.create).toHaveBeenCalledWith({
+      vendorSelectionId: 'sel-1',
+      senderUserId: 'vendor-user-1',
+      senderRole: WeddingVendorMessageSenderRole.VENDOR,
+      message: 'Looking forward to it!',
+    });
+  });
+
+  it('rejects a client messaging a selection on an event they do not own', async () => {
+    const { service, vendorSelectionsRepository, weddingEventsRepository } = build();
+    vendorSelectionsRepository.findOne.mockResolvedValue({ id: 'sel-1', weddingEventId: 'event-1' });
+    weddingEventsRepository.findOne.mockResolvedValue({ id: 'event-1', ownerUserId: 'owner-a' });
+
+    await expect(
+      service.sendMySelectionMessage('owner-b', 'sel-1', { message: 'Hi' }),
+    ).rejects.toThrow(ForbiddenException);
   });
 });

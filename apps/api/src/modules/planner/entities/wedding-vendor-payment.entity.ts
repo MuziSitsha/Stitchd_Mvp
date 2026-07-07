@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { PaymentStatus } from '../../bookings/entities/booking.entity';
+import { PaymentStatus } from '../../payments/payment-status.enum';
 
 @Entity('wedding_vendor_payments')
 @Index(['vendorSelectionId'])

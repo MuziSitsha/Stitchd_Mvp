@@ -6,29 +6,19 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { BookingEntity, BookingStatus, PaymentStatus } from '../bookings/entities/booking.entity';
-import { PaymentTransactionEntity } from '../payments/entities/payment-transaction.entity';
 import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
 import { WeddingEventEntity } from '../planner/entities/wedding-event.entity';
 import { WeddingVendorEntity } from '../planner/entities/wedding-vendor.entity';
 import { WeddingVendorPaymentEntity } from '../planner/entities/wedding-vendor-payment.entity';
+import { WeddingVendorProfileEntity } from '../planner/entities/wedding-vendor-profile.entity';
 import { WeddingVendorSelectionEntity } from '../planner/entities/wedding-vendor-selection.entity';
-import {
-  ProviderDocumentEntity,
-  ProviderDocumentStatus,
-} from '../providers/entities/provider-document.entity';
-import {
-  ProviderProfileEntity,
-  ProviderVerificationStatus,
-} from '../providers/entities/provider-profile.entity';
-import { ReviewEntity } from '../reviews/entities/review.entity';
-import { UserEntity, UserRole, UserStatus } from '../users/entities/user.entity';
+import { UserEntity, UserRole } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { normalizeSaPhone } from '../../common/phone.util';
 import { AssignCoachDto } from './dto/assign-coach.dto';
 import { CreateCoachProfileDto } from './dto/create-coach-profile.dto';
+import { CreateVendorProfileDto } from './dto/create-vendor-profile.dto';
 import { CreateWeddingVendorDto } from './dto/create-wedding-vendor.dto';
-import { ReviewProviderVerificationDto } from './dto/review-provider-verification.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdateWeddingVendorDto } from './dto/update-wedding-vendor.dto';
 import { PlatformSettingsEntity } from './entities/platform-settings.entity';
@@ -40,16 +30,6 @@ export class AdminService {
     private readonly settingsRepository: Repository<PlatformSettingsEntity>,
     @InjectRepository(UserEntity)
     private readonly usersRepository: Repository<UserEntity>,
-    @InjectRepository(ProviderProfileEntity)
-    private readonly providerProfilesRepository: Repository<ProviderProfileEntity>,
-    @InjectRepository(ProviderDocumentEntity)
-    private readonly providerDocumentsRepository: Repository<ProviderDocumentEntity>,
-    @InjectRepository(BookingEntity)
-    private readonly bookingsRepository: Repository<BookingEntity>,
-    @InjectRepository(PaymentTransactionEntity)
-    private readonly paymentsRepository: Repository<PaymentTransactionEntity>,
-    @InjectRepository(ReviewEntity)
-    private readonly reviewsRepository: Repository<ReviewEntity>,
     @InjectRepository(WeddingEventEntity)
     private readonly weddingEventsRepository: Repository<WeddingEventEntity>,
     @InjectRepository(WeddingVendorSelectionEntity)
@@ -60,6 +40,8 @@ export class AdminService {
     private readonly weddingVendorsRepository: Repository<WeddingVendorEntity>,
     @InjectRepository(WeddingVendorPaymentEntity)
     private readonly vendorPaymentsRepository: Repository<WeddingVendorPaymentEntity>,
+    @InjectRepository(WeddingVendorProfileEntity)
+    private readonly vendorProfilesRepository: Repository<WeddingVendorProfileEntity>,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
   ) {}
@@ -80,128 +62,32 @@ export class AdminService {
     return this.settingsRepository.save(settings);
   }
 
-  async listPendingProviderVerifications(actorRole: UserRole) {
-    this.assertAdmin(actorRole);
-
-    const profiles = await this.providerProfilesRepository.find({
-      where: { verificationStatus: ProviderVerificationStatus.PENDING },
-      relations: ['user'],
-      order: { updatedAt: 'ASC' },
-    });
-
-    const userIds = profiles.map((profile) => profile.userId);
-    const documents = userIds.length > 0
-      ? await this.providerDocumentsRepository.find({
-        where: { userId: In(userIds) },
-        order: { createdAt: 'DESC' },
-      })
-      : [];
-
-    return profiles.map((profile) => ({
-      ...profile,
-      documents: documents.filter((document) => document.userId === profile.userId),
-    }));
-  }
-
-  async reviewProviderVerification(
-    actor: { id: string; role: UserRole },
-    providerUserId: string,
-    dto: ReviewProviderVerificationDto,
-  ) {
-    this.assertAdmin(actor.role);
-
-    const user = await this.usersRepository.findOne({ where: { id: providerUserId } });
-    if (!user) throw new NotFoundException('Provider user not found');
-
-    const profile = await this.providerProfilesRepository.findOne({ where: { userId: providerUserId } });
-    if (!profile) throw new NotFoundException('Provider profile not found');
-
-    const targetDocuments = dto.documentIds?.length
-      ? await this.providerDocumentsRepository.find({
-        where: { id: In(dto.documentIds), userId: providerUserId },
-      })
-      : await this.providerDocumentsRepository.find({ where: { userId: providerUserId } });
-
-    const documentStatus = dto.status === ProviderVerificationStatus.APPROVED
-      ? ProviderDocumentStatus.APPROVED
-      : ProviderDocumentStatus.REJECTED;
-
-    for (const document of targetDocuments) {
-      document.status = documentStatus;
-      document.reviewNote = dto.note;
-      document.reviewedAt = new Date();
-      document.reviewedByUserId = actor.id;
-    }
-
-    if (targetDocuments.length > 0) {
-      await this.providerDocumentsRepository.save(targetDocuments);
-    }
-
-    profile.verificationStatus = dto.status;
-    profile.isAvailable = dto.status === ProviderVerificationStatus.APPROVED
-      ? profile.isAvailable
-      : false;
-    await this.providerProfilesRepository.save(profile);
-
-    user.status = dto.status === ProviderVerificationStatus.APPROVED
-      ? UserStatus.ACTIVE
-      : UserStatus.INACTIVE;
-    await this.usersRepository.save(user);
-
-    return {
-      user,
-      profile,
-      documents: await this.providerDocumentsRepository.find({ where: { userId: providerUserId } }),
-    };
-  }
-
   async getDashboardMetrics(actorRole: UserRole) {
     this.assertAdmin(actorRole);
 
     const [
       customerCount,
-      providerCount,
-      pendingVerifications,
-      activeBookings,
-      scheduledBookings,
-      completedBookings,
-      paidTransactions,
-      grossMerchandiseValue,
-      providerPayouts,
-      averageRating,
+      coachCount,
       totalSignups,
       activeWeddingEvents,
       totalPaid,
+      vendorListingCount,
     ] = await Promise.all([
       this.usersRepository.count({ where: { role: UserRole.CUSTOMER } }),
-      this.usersRepository.count({ where: { role: UserRole.PROVIDER } }),
-      this.providerProfilesRepository.count({ where: { verificationStatus: ProviderVerificationStatus.PENDING } }),
-      this.bookingsRepository.count({ where: { status: In([BookingStatus.PENDING, BookingStatus.ACCEPTED, BookingStatus.EN_ROUTE, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS]) } }),
-      this.bookingsRepository.count({ where: { status: BookingStatus.PENDING, type: 'scheduled' as never } }),
-      this.bookingsRepository.count({ where: { status: BookingStatus.COMPLETED } }),
-      this.paymentsRepository.count({ where: { status: PaymentStatus.PAID } }),
-      this.paymentsRepository.createQueryBuilder('payment').select('COALESCE(SUM(payment.amountCents), 0)', 'sum').getRawOne<{ sum: string }>(),
-      this.paymentsRepository.createQueryBuilder('payment').select('COALESCE(SUM(payment.providerEarningsCents), 0)', 'sum').where('payment.status = :status', { status: PaymentStatus.PAID }).getRawOne<{ sum: string }>(),
-      this.reviewsRepository.createQueryBuilder('review').select('COALESCE(AVG(review.rating), 0)', 'avg').getRawOne<{ avg: string }>(),
+      this.usersRepository.count({ where: { role: UserRole.COACH } }),
       this.usersRepository.count(),
       this.weddingEventsRepository.count(),
       this.vendorSelectionsRepository.createQueryBuilder('selection').select('COALESCE(SUM(selection.amountPaidCents), 0)', 'sum').getRawOne<{ sum: string }>(),
+      this.weddingVendorsRepository.count(),
     ]);
 
     return {
       customerCount,
-      providerCount,
-      pendingVerifications,
-      activeBookings,
-      scheduledBookings,
-      completedBookings,
-      paidTransactions,
-      grossMerchandiseValueCents: Number(grossMerchandiseValue?.sum || 0),
-      providerPayoutsCents: Number(providerPayouts?.sum || 0),
-      averageRating: Number(Number(averageRating?.avg || 0).toFixed(2)),
+      coachCount,
       totalSignups,
       activeWeddingEvents,
       totalPaidCents: Number(totalPaid?.sum || 0),
+      vendorListingCount,
     };
   }
 
@@ -396,25 +282,6 @@ export class AdminService {
     return { deleted: true };
   }
 
-  async listRecentPayments(actorRole: UserRole) {
-    this.assertAdmin(actorRole);
-
-    const payments = await this.paymentsRepository.find({
-      order: { updatedAt: 'DESC' },
-      take: 10,
-    });
-
-    const bookings = payments.length === 0
-      ? []
-      : await this.bookingsRepository.find({ where: { id: In(payments.map((payment) => payment.bookingId)) } });
-    const bookingsById = new Map(bookings.map((booking) => [booking.id, booking]));
-
-    return payments.map((payment) => ({
-      ...payment,
-      bookingRef: bookingsById.get(payment.bookingId)?.bookingRef,
-    }));
-  }
-
   async listRecentVendorPayments(actorRole: UserRole) {
     this.assertAdmin(actorRole);
 
@@ -433,6 +300,61 @@ export class AdminService {
       vendorName: selectionsById.get(payment.vendorSelectionId)?.vendorName,
       slot: selectionsById.get(payment.vendorSelectionId)?.slot,
     }));
+  }
+
+  async listVendorProfiles(actorRole: UserRole) {
+    this.assertAdmin(actorRole);
+
+    const profiles = await this.vendorProfilesRepository.find({
+      relations: ['user'],
+      order: { createdAt: 'ASC' },
+    });
+
+    const vendorIds = profiles.map((profile) => profile.vendorId);
+    const listings = vendorIds.length === 0
+      ? []
+      : await this.weddingVendorsRepository.find({ where: { id: In(vendorIds) } });
+    const listingsById = new Map(listings.map((listing) => [listing.id, listing]));
+
+    return profiles.map((profile) => ({
+      ...profile,
+      vendorName: listingsById.get(profile.vendorId)?.name,
+      slot: listingsById.get(profile.vendorId)?.slot,
+    }));
+  }
+
+  async createVendorProfile(actorRole: UserRole, dto: CreateVendorProfileDto) {
+    this.assertAdmin(actorRole);
+
+    const vendor = await this.weddingVendorsRepository.findOne({ where: { id: dto.vendorId } });
+    if (!vendor) throw new NotFoundException('Wedding vendor catalog listing not found');
+
+    const normalizedPhone = normalizeSaPhone(dto.phone);
+    let user = await this.usersRepository.findOne({ where: { phone: normalizedPhone } });
+
+    if (!user) {
+      user = await this.usersService.createFromPhone(normalizedPhone, UserRole.VENDOR);
+    } else if (user.role !== UserRole.VENDOR) {
+      throw new ForbiddenException('This phone number already belongs to a non-vendor account');
+    }
+
+    if (dto.firstName || dto.lastName) {
+      user.firstName = dto.firstName ?? user.firstName;
+      user.lastName = dto.lastName ?? user.lastName;
+      await this.usersRepository.save(user);
+    }
+
+    const existing = await this.vendorProfilesRepository.findOne({ where: { userId: user.id } });
+    if (existing) {
+      existing.vendorId = dto.vendorId;
+      return this.vendorProfilesRepository.save(existing);
+    }
+
+    const created = this.vendorProfilesRepository.create({
+      userId: user.id,
+      vendorId: dto.vendorId,
+    });
+    return this.vendorProfilesRepository.save(created);
   }
 
   private assertAdmin(role: UserRole) {

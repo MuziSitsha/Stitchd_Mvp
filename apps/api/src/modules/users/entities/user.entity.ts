@@ -6,8 +6,12 @@ import { Exclude } from 'class-transformer';
 
 export enum UserRole {
   CUSTOMER = 'customer',
+  // Legacy home-services role. Unused - kept only so the DB enum type
+  // doesn't need a disruptive recreation migration. verifyOtp rejects it
+  // outright; nothing creates or accepts a provider-role user anymore.
   PROVIDER = 'provider',
   COACH = 'coach',
+  VENDOR = 'vendor',
   ADMIN = 'admin',
 }
 

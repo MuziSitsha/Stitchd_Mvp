@@ -9,6 +9,7 @@ import { OtpEntity } from './entities/otp.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
+import { WeddingVendorProfileEntity } from '../planner/entities/wedding-vendor-profile.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
         signOptions: { expiresIn: config.get<string>('app.jwtExpiresIn') },
       }),
     }),
-    TypeOrmModule.forFeature([OtpEntity, CoachProfileEntity]),
+    TypeOrmModule.forFeature([OtpEntity, CoachProfileEntity, WeddingVendorProfileEntity]),
     UsersModule,
   ],
   controllers: [AuthController],

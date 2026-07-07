@@ -7,6 +7,8 @@ import { WeddingEventEntity } from './entities/wedding-event.entity';
 import { WeddingInspirationNoteEntity } from './entities/wedding-inspiration-note.entity';
 import { WeddingMessageEntity } from './entities/wedding-message.entity';
 import { WeddingVendorEntity } from './entities/wedding-vendor.entity';
+import { WeddingVendorMessageEntity } from './entities/wedding-vendor-message.entity';
+import { WeddingVendorProfileEntity } from './entities/wedding-vendor-profile.entity';
 import { WeddingVendorSelectionEntity } from './entities/wedding-vendor-selection.entity';
 import { PlannerController } from './planner.controller';
 import { PlannerService } from './planner.service';
@@ -18,6 +20,8 @@ import { PlannerService } from './planner.service';
       CoachProfileEntity,
       WeddingVendorSelectionEntity,
       WeddingVendorEntity,
+      WeddingVendorProfileEntity,
+      WeddingVendorMessageEntity,
       WeddingInspirationNoteEntity,
       WeddingMessageEntity,
       UserEntity,

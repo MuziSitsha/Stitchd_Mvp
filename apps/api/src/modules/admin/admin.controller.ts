@@ -14,8 +14,8 @@ import { AuthGuard } from '@nestjs/passport';
 import { AdminService } from './admin.service';
 import { AssignCoachDto } from './dto/assign-coach.dto';
 import { CreateCoachProfileDto } from './dto/create-coach-profile.dto';
+import { CreateVendorProfileDto } from './dto/create-vendor-profile.dto';
 import { CreateWeddingVendorDto } from './dto/create-wedding-vendor.dto';
-import { ReviewProviderVerificationDto } from './dto/review-provider-verification.dto';
 import { UpdatePlatformSettingsDto } from './dto/update-platform-settings.dto';
 import { UpdateWeddingVendorDto } from './dto/update-wedding-vendor.dto';
 
@@ -38,38 +38,16 @@ export class AdminController {
     return this.adminService.updateSettings(req.user, dto);
   }
 
-  @Get('providers/pending-verification')
-  @ApiOperation({ summary: 'List providers waiting for verification review' })
-  listPendingProviderVerifications(@Request() req) {
-    return this.adminService.listPendingProviderVerifications(req.user.role);
-  }
-
   @Get('dashboard-metrics')
-  @ApiOperation({ summary: 'Get admin dashboard metrics for marketplace operations' })
+  @ApiOperation({ summary: 'Get admin dashboard metrics for wedding operations' })
   getDashboardMetrics(@Request() req) {
     return this.adminService.getDashboardMetrics(req.user.role);
-  }
-
-  @Get('payments/recent')
-  @ApiOperation({ summary: 'List recent payment transactions for admin review' })
-  listRecentPayments(@Request() req) {
-    return this.adminService.listRecentPayments(req.user.role);
   }
 
   @Get('vendor-payments/recent')
   @ApiOperation({ summary: 'List recent real wedding vendor payments (PayFast) for admin review' })
   listRecentVendorPayments(@Request() req) {
     return this.adminService.listRecentVendorPayments(req.user.role);
-  }
-
-  @Patch('providers/:providerUserId/verification')
-  @ApiOperation({ summary: 'Approve or reject provider verification' })
-  reviewProviderVerification(
-    @Request() req,
-    @Param('providerUserId') providerUserId: string,
-    @Body() dto: ReviewProviderVerificationDto,
-  ) {
-    return this.adminService.reviewProviderVerification(req.user, providerUserId, dto);
   }
 
   @Get('wedding-events')
@@ -100,6 +78,18 @@ export class AdminController {
   @ApiOperation({ summary: 'Create or update a coach profile for an existing coach-role user' })
   createCoachProfile(@Request() req, @Body() dto: CreateCoachProfileDto) {
     return this.adminService.createCoachProfile(req.user.role, dto);
+  }
+
+  @Get('vendor-profiles')
+  @ApiOperation({ summary: 'List vendor login profiles linked to the real wedding vendor catalog' })
+  listVendorProfiles(@Request() req) {
+    return this.adminService.listVendorProfiles(req.user.role);
+  }
+
+  @Post('vendor-profiles')
+  @ApiOperation({ summary: 'Grant an existing catalog vendor a real login, linked by phone number' })
+  createVendorProfile(@Request() req, @Body() dto: CreateVendorProfileDto) {
+    return this.adminService.createVendorProfile(req.user.role, dto);
   }
 
   @Get('analytics/category-breakdown')
