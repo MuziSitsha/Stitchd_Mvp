@@ -1414,6 +1414,113 @@ textarea {
   border-bottom: 1px solid rgba(22, 60, 34, 0.08);
 }
 
+/* Admin ops dashboard: wedding progress analytics (bar charts + weddings list) */
+.analyticsChartsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.analyticsChart {
+  padding: 16px;
+  border-radius: 12px;
+}
+
+.barChartList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.barChartRow {
+  display: grid;
+  grid-template-columns: minmax(90px, 140px) 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.barChartLabel {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barChartTrack {
+  position: relative;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.barChartFill {
+  height: 100%;
+  border-radius: 999px;
+  min-width: 4px;
+}
+
+.barChartValue {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.barChartBadge {
+  grid-column: 3;
+  justify-self: end;
+  font-size: 0.72rem;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.weddingEventList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.weddingEventRow {
+  padding: 0;
+  overflow: hidden;
+}
+
+.weddingEventHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  text-align: left;
+  flex-wrap: wrap;
+}
+
+.weddingEventMeta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.weddingEventDetail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 14px;
+}
+
 .budgetDonut {
   display: grid;
   place-items: center;

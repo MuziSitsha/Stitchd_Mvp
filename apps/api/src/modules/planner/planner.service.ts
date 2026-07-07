@@ -1,4 +1,20 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Not, Repository } from 'typeorm';
+import { CoachProfileEntity } from './entities/coach-profile.entity';
+import { WeddingEventEntity, WeddingEventType } from './entities/wedding-event.entity';
+import { WeddingInspirationNoteEntity } from './entities/wedding-inspiration-note.entity';
+import { WeddingMessageEntity, WeddingMessageSenderRole } from './entities/wedding-message.entity';
+import { WeddingVendorEntity } from './entities/wedding-vendor.entity';
+import {
+  WeddingVendorSelectionEntity,
+  WeddingVendorStatus,
+} from './entities/wedding-vendor-selection.entity';
+import { CreateInspirationNoteDto } from './dto/create-inspiration-note.dto';
+import { CreateVendorSelectionDto } from './dto/create-vendor-selection.dto';
+import { SendMessageDto } from './dto/send-message.dto';
+import { UpdateVendorSelectionDto } from './dto/update-vendor-selection.dto';
+import { UpsertWeddingEventDto } from './dto/upsert-wedding-event.dto';
 
 export type PlannerEventType = 'wedding' | 'lobola' | 'funeral' | 'corporate' | 'birthday';
 export type PlannerPersona = 'client' | 'supplier' | 'coach' | 'admin';
@@ -177,6 +193,244 @@ export type PlannerSurface = {
 
 @Injectable()
 export class PlannerService {
+  constructor(
+    @InjectRepository(WeddingEventEntity)
+    private readonly weddingEventsRepository: Repository<WeddingEventEntity>,
+    @InjectRepository(WeddingVendorSelectionEntity)
+    private readonly vendorSelectionsRepository: Repository<WeddingVendorSelectionEntity>,
+    @InjectRepository(CoachProfileEntity)
+    private readonly coachProfilesRepository: Repository<CoachProfileEntity>,
+    @InjectRepository(WeddingVendorEntity)
+    private readonly weddingVendorsRepository: Repository<WeddingVendorEntity>,
+    @InjectRepository(WeddingInspirationNoteEntity)
+    private readonly inspirationNotesRepository: Repository<WeddingInspirationNoteEntity>,
+    @InjectRepository(WeddingMessageEntity)
+    private readonly messagesRepository: Repository<WeddingMessageEntity>,
+  ) {}
+
+  private async getEventOwnedByCoach(coachUserId: string, eventId: string) {
+    const event = await this.weddingEventsRepository.findOne({
+      where: { id: eventId },
+      relations: ['owner'],
+    });
+    if (!event) throw new NotFoundException('Wedding event not found');
+    if (event.coachUserId !== coachUserId) {
+      throw new ForbiddenException('You are not the assigned coach for this wedding event');
+    }
+    return event;
+  }
+
+  async getCoachEvents(coachUserId: string) {
+    const events = await this.weddingEventsRepository.find({
+      where: { coachUserId },
+      relations: ['owner'],
+      order: { createdAt: 'DESC' },
+    });
+
+    const eventIds = events.map((event) => event.id);
+    const counts = eventIds.length === 0
+      ? []
+      : await this.vendorSelectionsRepository
+        .createQueryBuilder('selection')
+        .select('selection.weddingEventId', 'weddingEventId')
+        .addSelect('COUNT(*)', 'count')
+        .where('selection.weddingEventId IN (:...eventIds)', { eventIds })
+        .groupBy('selection.weddingEventId')
+        .getRawMany<{ weddingEventId: string; count: string }>();
+    const countsByEventId = new Map(counts.map((row) => [row.weddingEventId, Number(row.count)]));
+
+    return events.map((event) => ({ ...event, packagesChosenCount: countsByEventId.get(event.id) || 0 }));
+  }
+
+  async getCoachEventDetail(coachUserId: string, eventId: string) {
+    const event = await this.getEventOwnedByCoach(coachUserId, eventId);
+    const selections = await this.vendorSelectionsRepository.find({
+      where: { weddingEventId: eventId },
+      order: { createdAt: 'ASC' },
+    });
+    return { event, selections };
+  }
+
+  async listMyInspirationNotes(ownerUserId: string) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    return this.inspirationNotesRepository.find({
+      where: { weddingEventId: event.id },
+      order: { createdAt: 'DESC' },
+    });
+  }
+
+  async addInspirationNote(ownerUserId: string, dto: CreateInspirationNoteDto) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    const note = this.inspirationNotesRepository.create({
+      weddingEventId: event.id,
+      title: dto.title,
+      note: dto.note,
+    });
+    return this.inspirationNotesRepository.save(note);
+  }
+
+  async listMyMessages(ownerUserId: string) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    return this.messagesRepository.find({
+      where: { weddingEventId: event.id },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async sendMyMessage(ownerUserId: string, dto: SendMessageDto) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    const message = this.messagesRepository.create({
+      weddingEventId: event.id,
+      senderUserId: ownerUserId,
+      senderRole: WeddingMessageSenderRole.CLIENT,
+      message: dto.message,
+    });
+    return this.messagesRepository.save(message);
+  }
+
+  async listCoachEventMessages(coachUserId: string, eventId: string) {
+    const event = await this.getEventOwnedByCoach(coachUserId, eventId);
+    return this.messagesRepository.find({
+      where: { weddingEventId: event.id },
+      order: { createdAt: 'ASC' },
+    });
+  }
+
+  async sendCoachEventMessage(coachUserId: string, eventId: string, dto: SendMessageDto) {
+    const event = await this.getEventOwnedByCoach(coachUserId, eventId);
+    const message = this.messagesRepository.create({
+      weddingEventId: event.id,
+      senderUserId: coachUserId,
+      senderRole: WeddingMessageSenderRole.COACH,
+      message: dto.message,
+    });
+    return this.messagesRepository.save(message);
+  }
+
+  async browseVendors(slot?: string, eventType: WeddingEventType = WeddingEventType.WEDDING) {
+    return this.weddingVendorsRepository.find({
+      where: slot ? { eventType, slot } : { eventType },
+      order: { rating: 'DESC' },
+    });
+  }
+
+  async getVendorShortlist(slot: string, eventType: WeddingEventType = WeddingEventType.WEDDING, limit = 5) {
+    return this.weddingVendorsRepository.find({
+      where: { eventType, slot },
+      order: { rating: 'DESC', reviewCount: 'DESC' },
+      take: limit,
+    });
+  }
+
+  async getVendorAlternatives(
+    slot: string,
+    excludeId?: string,
+    eventType: WeddingEventType = WeddingEventType.WEDDING,
+  ) {
+    return this.weddingVendorsRepository.find({
+      where: excludeId ? { eventType, slot, id: Not(excludeId) } : { eventType, slot },
+      order: { rating: 'DESC' },
+      take: 5,
+    });
+  }
+
+  async compareVendors(vendorAId: string, vendorBId: string) {
+    const [vendorA, vendorB] = await Promise.all([
+      this.weddingVendorsRepository.findOne({ where: { id: vendorAId } }),
+      this.weddingVendorsRepository.findOne({ where: { id: vendorBId } }),
+    ]);
+
+    if (!vendorA || !vendorB) {
+      throw new NotFoundException('One or both vendors were not found');
+    }
+
+    return {
+      vendorA,
+      vendorB,
+      comparison: [
+        { label: 'Rating', vendorA: vendorA.rating, vendorB: vendorB.rating },
+        { label: 'Reviews', vendorA: vendorA.reviewCount, vendorB: vendorB.reviewCount },
+        { label: 'Price', vendorA: vendorA.priceLabel, vendorB: vendorB.priceLabel },
+      ],
+    };
+  }
+
+  async getOrCreateMyEvent(ownerUserId: string): Promise<WeddingEventEntity> {
+    const existing = await this.weddingEventsRepository.findOne({ where: { ownerUserId } });
+    if (existing) return existing;
+
+    try {
+      const created = this.weddingEventsRepository.create({ ownerUserId });
+      return await this.weddingEventsRepository.save(created);
+    } catch (error) {
+      // Two requests can race to create the first event for a brand-new
+      // user (e.g. the squad-seeding fetch and the inspiration-notes fetch
+      // firing in parallel on login). If we lost the race, the other
+      // request's row already exists - just return it.
+      const alreadyExists = await this.weddingEventsRepository.findOne({ where: { ownerUserId } });
+      if (alreadyExists) return alreadyExists;
+      throw error;
+    }
+  }
+
+  async getMyEventWithSelections(ownerUserId: string) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    const [selections, coachProfile] = await Promise.all([
+      this.vendorSelectionsRepository.find({
+        where: { weddingEventId: event.id },
+        order: { createdAt: 'ASC' },
+      }),
+      event.coachUserId
+        ? this.coachProfilesRepository.findOne({ where: { userId: event.coachUserId }, relations: ['user'] })
+        : Promise.resolve(null),
+    ]);
+
+    return { event, selections, coachProfile };
+  }
+
+  async updateMyEvent(ownerUserId: string, dto: UpsertWeddingEventDto) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    Object.assign(event, dto);
+    return this.weddingEventsRepository.save(event);
+  }
+
+  async addVendorSelection(ownerUserId: string, dto: CreateVendorSelectionDto) {
+    const event = await this.getOrCreateMyEvent(ownerUserId);
+    const selection = this.vendorSelectionsRepository.create({
+      weddingEventId: event.id,
+      slot: dto.slot,
+      subcategory: dto.subcategory,
+      vendorName: dto.vendorName,
+      priceCents: dto.priceCents || 0,
+      status: dto.status || WeddingVendorStatus.SHORTLISTED,
+    });
+    return this.vendorSelectionsRepository.save(selection);
+  }
+
+  async updateVendorSelection(
+    ownerUserId: string,
+    selectionId: string,
+    dto: UpdateVendorSelectionDto,
+  ) {
+    const selection = await this.vendorSelectionsRepository.findOne({ where: { id: selectionId } });
+    if (!selection) throw new NotFoundException('Vendor selection not found');
+
+    const event = await this.weddingEventsRepository.findOne({ where: { id: selection.weddingEventId } });
+    if (!event || event.ownerUserId !== ownerUserId) {
+      throw new ForbiddenException('You do not have access to this wedding event');
+    }
+
+    if (dto.status) selection.status = dto.status;
+    if (dto.amountPaidCents !== undefined) {
+      selection.amountPaidCents = dto.amountPaidCents;
+      selection.paidAt = selection.priceCents > 0 && dto.amountPaidCents >= selection.priceCents
+        ? new Date()
+        : null;
+    }
+
+    return this.vendorSelectionsRepository.save(selection);
+  }
+
   private readonly onboardingSteps = [
     {
       id: 'event_type',

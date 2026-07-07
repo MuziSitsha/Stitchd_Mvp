@@ -10,6 +10,8 @@ import { Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import axios from 'axios';
+import { normalizeSaPhone } from '../../common/phone.util';
+import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
 import { OtpEntity } from './entities/otp.entity';
 import { UsersService } from '../users/users.service';
 import { UserEntity, UserRole } from '../users/entities/user.entity';
@@ -23,6 +25,8 @@ export class AuthService {
   constructor(
     @InjectRepository(OtpEntity)
     private otpRepository: Repository<OtpEntity>,
+    @InjectRepository(CoachProfileEntity)
+    private coachProfilesRepository: Repository<CoachProfileEntity>,
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
@@ -30,7 +34,7 @@ export class AuthService {
 
   // Step 1: Send OTP to SA mobile number
   async sendOtp(phone: string): Promise<{ message: string; expiresIn: number }> {
-    const normalizedPhone = this.normalizePhone(phone);
+    const normalizedPhone = normalizeSaPhone(phone);
     const demoFixedOtp = this.configService.get<string>('DEMO_FIXED_OTP')?.trim();
 
     // Generate 6-digit OTP
@@ -73,7 +77,7 @@ export class AuthService {
     code: string,
     role: UserRole = UserRole.CUSTOMER,
   ): Promise<{ accessToken: string; refreshToken: string; isNewUser: boolean; user: any }> {
-    const normalizedPhone = this.normalizePhone(phone);
+    const normalizedPhone = normalizeSaPhone(phone);
 
     const otp = await this.otpRepository.findOne({
       where: { phone: normalizedPhone, used: false },
@@ -95,11 +99,22 @@ export class AuthService {
     // Mark OTP as used
     await this.otpRepository.update({ id: otp.id }, { used: true });
 
-    // Get or create user
     let user = await this.usersService.findByPhone(normalizedPhone);
     let isNewUser = false;
 
-    if (!user) {
+    if (role === UserRole.COACH) {
+      // Coaches don't self-register: an admin must have already created a
+      // CoachProfileEntity for this phone number's account before it can log
+      // in as a coach.
+      const coachProfile = user
+        ? await this.coachProfilesRepository.findOne({ where: { userId: user.id } })
+        : null;
+      if (!user || user.role !== UserRole.COACH || !coachProfile) {
+        throw new UnauthorizedException(
+          'This number is not an approved coach account yet. Ask an admin to add you as a coach first.',
+        );
+      }
+    } else if (!user) {
       user = await this.usersService.createFromPhone(normalizedPhone, role);
       isNewUser = true;
     }
@@ -165,14 +180,6 @@ export class AuthService {
     return safeUser;
   }
 
-  // Normalize SA phone numbers to +27 format
-  private normalizePhone(phone: string): string {
-    const cleaned = phone.replace(/\s+/g, '').replace(/-/g, '');
-    if (cleaned.startsWith('0')) return `+27${cleaned.slice(1)}`;
-    if (cleaned.startsWith('27')) return `+${cleaned}`;
-    if (cleaned.startsWith('+27')) return cleaned;
-    throw new BadRequestException('Invalid South African phone number');
-  }
 
   private async sendSmsClickatell(phone: string, otp: string): Promise<void> {
     const apiKey = this.configService.get<string>('app.clickatellApiKey');

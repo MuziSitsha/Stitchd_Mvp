@@ -23,11 +23,16 @@ describe('AdminService', () => {
     const bookingsRepository = createRepositoryMock();
     const paymentsRepository = createRepositoryMock();
     const reviewsRepository = createRepositoryMock();
+    const weddingEventsRepository = createRepositoryMock();
+    const vendorSelectionsRepository = createRepositoryMock();
+    const coachProfilesRepository = createRepositoryMock();
+    const weddingVendorsRepository = createRepositoryMock();
     const configService = { get: jest.fn() };
 
     usersRepository.count
       .mockResolvedValueOnce(14)
-      .mockResolvedValueOnce(9);
+      .mockResolvedValueOnce(9)
+      .mockResolvedValueOnce(25);
     providerProfilesRepository.count.mockResolvedValue(3);
     bookingsRepository.count
       .mockResolvedValueOnce(6)
@@ -48,6 +53,11 @@ describe('AdminService', () => {
       select: jest.fn().mockReturnThis(),
       getRawOne: jest.fn().mockResolvedValue({ avg: '4.25' }),
     });
+    weddingEventsRepository.count.mockResolvedValue(5);
+    vendorSelectionsRepository.createQueryBuilder.mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      getRawOne: jest.fn().mockResolvedValue({ sum: '50000' }),
+    });
 
     const service = new AdminService(
       settingsRepository as never,
@@ -57,6 +67,11 @@ describe('AdminService', () => {
       bookingsRepository as never,
       paymentsRepository as never,
       reviewsRepository as never,
+      weddingEventsRepository as never,
+      vendorSelectionsRepository as never,
+      coachProfilesRepository as never,
+      weddingVendorsRepository as never,
+      { createFromPhone: jest.fn() } as never,
       configService as never,
     );
 
@@ -83,6 +98,9 @@ describe('AdminService', () => {
       grossMerchandiseValueCents: 185000,
       providerPayoutsCents: 142500,
       averageRating: 4.25,
+      totalSignups: 25,
+      activeWeddingEvents: 5,
+      totalPaidCents: 50000,
     });
   });
 });

@@ -314,6 +314,105 @@ type DashboardMetrics = {
   grossMerchandiseValueCents: number;
   providerPayoutsCents: number;
   averageRating: number;
+  totalSignups: number;
+  activeWeddingEvents: number;
+  totalPaidCents: number;
+};
+
+type AdminWeddingEventOwner = {
+  id: string;
+  firstName?: string;
+  lastName?: string;
+  phone: string;
+  email?: string;
+};
+
+type AdminWeddingEvent = {
+  id: string;
+  ownerUserId: string;
+  eventType: string;
+  title?: string;
+  eventDate?: string;
+  budgetTotalCents: number;
+  coachUserId?: string;
+  timelineStatus: 'on_track' | 'behind' | 'at_risk';
+  owner?: AdminWeddingEventOwner;
+  coach?: AdminWeddingEventOwner;
+  packagesChosenCount: number;
+};
+
+type AdminCoach = {
+  id: string;
+  userId: string;
+  bio?: string;
+  specialties?: string[];
+  rating: number;
+  eventsCompletedCount: number;
+  user?: AdminWeddingEventOwner;
+  assignedEventsCount: number;
+};
+
+type CategoryBreakdownRow = {
+  slot: string;
+  selectionCount: number;
+  totalCommittedCents: number;
+  totalPaidCents: number;
+};
+
+type CoachBreakdownRow = {
+  coachUserId: string;
+  coachName: string;
+  assignedEventsCount: number;
+  totalPaidCents: number;
+};
+
+type WeddingVendorSelection = {
+  id: string;
+  weddingEventId: string;
+  slot: string;
+  subcategory?: string;
+  vendorName: string;
+  priceCents: number;
+  amountPaidCents: number;
+  paidAt?: string;
+  status: 'secured' | 'booked' | 'optional' | 'recommended' | 'at_risk' | 'shortlisted';
+};
+
+type RealVendor = {
+  id: string;
+  slot: string;
+  subcategory?: string;
+  name: string;
+  priceLabel: string;
+  priceCents: number;
+  rating: number;
+  reviewCount: number;
+  imageKey?: string;
+  isRecommended: boolean;
+};
+
+type RealVendorComparison = {
+  vendorA: RealVendor;
+  vendorB: RealVendor;
+  comparison: Array<{ label: string; vendorA: string | number; vendorB: string | number }>;
+};
+
+type MyWeddingEventResponse = {
+  event: {
+    id: string;
+    ownerUserId: string;
+    eventType: string;
+    title?: string;
+    eventDate?: string;
+    budgetTotalCents: number;
+    coachUserId?: string;
+    timelineStatus: string;
+    locationLabel?: string;
+    venueLat?: number;
+    venueLng?: number;
+  };
+  selections: WeddingVendorSelection[];
+  coachProfile: AdminCoach | null;
 };
 
 type RecentPayment = {
@@ -685,8 +784,10 @@ function mapBrowseSupplierToVendor(supplier: SupplierBrowseItem): VendorCardData
 }
 
 const STAGING_HTTPS_API_BASE_URL = 'https://api-staging.stitchd.co.za/api/v1';
-const LOCAL_API_BASE_URL = 'http://127.0.0.1:3002/api/v1';
-const LOCAL_OPS_API_BASE_URL = 'http://127.0.0.1:3001/api/v1';
+// There is one real local backend (apps/api, run via `yarn dev:api`), which
+// listens on 3001 by default (apps/api/.env.local PORT). Both the client
+// planner flows and the admin ops flows hit this same URL.
+const LOCAL_API_BASE_URL = 'http://127.0.0.1:3001/api/v1';
 
 const plannerTabs: Array<{ id: PlannerTab; label: string; adminOnly?: boolean }> = [
   { id: 'squad', label: 'Dashboard' },
@@ -899,8 +1000,17 @@ function resolveDefaultApiBaseUrl() {
 }
 
 const DEFAULT_API_BASE_URL = resolveDefaultApiBaseUrl();
+// A deployment that sets VITE_API_BASE_URL at build time is stating its
+// backend explicitly - that should always win over whatever a browser
+// happened to cache from a previous, possibly-broken visit. Only local dev
+// (no build-time env var) allows a manual localStorage override.
+const HAS_BUILD_TIME_API_BASE_URL = Boolean(import.meta.env.VITE_API_BASE_URL);
 
 function getInitialApiBaseUrl() {
+  if (HAS_BUILD_TIME_API_BASE_URL) {
+    return DEFAULT_API_BASE_URL;
+  }
+
   const stored = localStorage.getItem('stitchd.admin.apiBaseUrl');
   const onSecurePage = window.location.protocol === 'https:';
   const hostname = window.location.hostname;
@@ -908,30 +1018,13 @@ function getInitialApiBaseUrl() {
 
   if (
     !stored
-    || stored === 'http://localhost:3001/api/v1'
-    || stored === 'http://127.0.0.1:3001/api/v1'
-    || stored === 'http://localhost:3002/api/v1'
-    || stored === LOCAL_API_BASE_URL
     || (onSecurePage && stored.startsWith('http://'))
-    || (!isLocalHost && stored.includes('127.0.0.1'))
-    || (!isLocalHost && stored.includes('localhost'))
+    || (!isLocalHost && (stored.includes('127.0.0.1') || stored.includes('localhost')))
   ) {
     return DEFAULT_API_BASE_URL;
   }
 
   return stored;
-}
-
-function resolveRequestBaseUrl(path: string, currentApiBaseUrl: string) {
-  const hostname = window.location.hostname;
-  const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
-  const isOpsPath = path.startsWith('/admin') || path.startsWith('/auth/admin');
-
-  if (isLocalHost && currentApiBaseUrl === LOCAL_API_BASE_URL && isOpsPath) {
-    return LOCAL_OPS_API_BASE_URL;
-  }
-
-  return currentApiBaseUrl;
 }
 
 function getMetricColor(value: string) {
@@ -1274,6 +1367,24 @@ export function App() {
   const [recentPayments, setRecentPayments] = useState<RecentPayment[]>([]);
   const [bookingJourneys, setBookingJourneys] = useState<BookingJourney[]>([]);
   const [pendingProviders, setPendingProviders] = useState<PendingProvider[]>([]);
+  const [weddingEvents, setWeddingEvents] = useState<AdminWeddingEvent[]>([]);
+  const [coaches, setCoaches] = useState<AdminCoach[]>([]);
+  const [categoryBreakdown, setCategoryBreakdown] = useState<CategoryBreakdownRow[]>([]);
+  const [coachBreakdown, setCoachBreakdown] = useState<CoachBreakdownRow[]>([]);
+  const [expandedWeddingEventId, setExpandedWeddingEventId] = useState<string | null>(null);
+  const [weddingEventDetail, setWeddingEventDetail] = useState<{ event: AdminWeddingEvent; selections: WeddingVendorSelection[] } | null>(null);
+  const [clientAccessToken, setClientAccessToken] = useState(() => localStorage.getItem('stitchd.client.accessToken') || '');
+  const [myWeddingEvent, setMyWeddingEvent] = useState<MyWeddingEventResponse | null>(null);
+  const [realVendors, setRealVendors] = useState<RealVendor[]>([]);
+  const [realComparison, setRealComparison] = useState<RealVendorComparison | null>(null);
+  const [myInspirationNotes, setMyInspirationNotes] = useState<Array<{ id: string; title: string; note: string; createdAt: string }>>([]);
+  const [inspirationTitleInput, setInspirationTitleInput] = useState('');
+  const [inspirationNoteInput, setInspirationNoteInput] = useState('');
+  const [coachEvents, setCoachEvents] = useState<AdminWeddingEvent[]>([]);
+  const [selectedCoachEventId, setSelectedCoachEventId] = useState<string | null>(null);
+  const [coachEventDetail, setCoachEventDetail] = useState<{ event: AdminWeddingEvent; selections: WeddingVendorSelection[] } | null>(null);
+  const [coachMessages, setCoachMessages] = useState<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>([]);
+  const [coachMessageInput, setCoachMessageInput] = useState('');
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
@@ -1377,6 +1488,21 @@ export function App() {
         value: settings ? `${Math.round(settings.defaultCommissionRate * 100)}%` : '--',
         detail: 'Applied to newly created bookings',
       },
+      {
+        label: 'Total Signups',
+        value: metrics ? String(metrics.totalSignups).padStart(2, '0') : '--',
+        detail: 'All registered accounts, every role',
+      },
+      {
+        label: 'Active Weddings',
+        value: metrics ? String(metrics.activeWeddingEvents).padStart(2, '0') : '--',
+        detail: 'Real couples with a wedding plan in progress',
+      },
+      {
+        label: 'Total Paid',
+        value: metrics ? formatCurrency(metrics.totalPaidCents) : '--',
+        detail: 'Collected across all wedding packages',
+      },
     ];
   }, [metrics, pendingProviders, settings]);
 
@@ -1412,7 +1538,10 @@ export function App() {
         alert: liveWeather?.alertMessage || plannerSurface?.weather.alert?.recommendation || buildWeatherAlert(selectedEventType, 'rainChancePct' in eventForecast ? eventForecast.rainChancePct : eventForecast.rainChance, liveWeather?.current.label || ('condition' in eventForecast ? eventForecast.condition : fallbackWeather.label)),
       }
     : fallbackWeather;
-  const selectedSchedule = plannerScheduleByEvent[selectedEventType];
+  const baseSchedule = plannerScheduleByEvent[selectedEventType];
+  const selectedSchedule = myWeddingEvent?.event.eventDate
+    ? { ...baseSchedule, eventDate: myWeddingEvent.event.eventDate }
+    : baseSchedule;
   const resolvedBoard = plannerExperience
     ? {
         core: plannerExperience.squad.core.map(mapPlannerVendor),
@@ -1452,7 +1581,19 @@ export function App() {
   const messageThreads = plannerSurface?.messages.threads || [];
   const activeThread = activeThreadId ? messageThreads.find((thread) => thread.id === activeThreadId) || null : null;
   const activeClash = plannerSurface?.clashCandidates.find((item) => item.currentVendorId === clashVendorId) || null;
-  const swapChoices = swapVendorId ? plannerSurface?.swapOptions[swapVendorId] || [] : [];
+  const swapTargetVendor = swapVendorId
+    ? selectedBoard.core.concat(selectedBoard.support).find((vendor) => vendor.id === swapVendorId)
+    : undefined;
+  const realSwapChoices = swapTargetVendor && realVendors.length > 0
+    ? realVendors
+      .filter((vendor) => vendor.slot === swapTargetVendor.slot && vendor.name !== swapTargetVendor.name)
+      .map(mapRealVendorToBrowseItem)
+    : [];
+  const swapChoices = realSwapChoices.length > 0
+    ? realSwapChoices
+    : swapVendorId
+      ? plannerSurface?.swapOptions[swapVendorId] || []
+      : [];
   const compareLeadVendor = compareVendorId
     ? selectedBoard.core.concat(selectedBoard.support).find((vendor) => vendor.id === compareVendorId) || null
     : null;
@@ -1724,12 +1865,13 @@ export function App() {
     { label: 'Launch-ready presentation', value: 'The entry flow now matches the product tone expected in client review sessions.' },
   ];
   const browseSuppliers = useMemo(() => {
-    if (!browseCategory || !plannerSurface) return [] as SupplierBrowseItem[];
+    if (!browseCategory) return [] as SupplierBrowseItem[];
 
-    const baseItems = [
-      ...plannerSurface.suppliers.shortlist,
-      ...Object.values(plannerSurface.swapOptions).flat(),
-    ];
+    const baseItems = realVendors.length > 0
+      ? realVendors.map(mapRealVendorToBrowseItem)
+      : plannerSurface
+        ? [...plannerSurface.suppliers.shortlist, ...Object.values(plannerSurface.swapOptions).flat()]
+        : [];
 
     const deduped = baseItems.filter((item, index, array) => array.findIndex((candidate) => candidate.id === item.id) === index);
     if (browseCategory === 'all') return deduped;
@@ -1746,7 +1888,7 @@ export function App() {
     }
 
     return filtered;
-  }, [browseCategory, plannerSurface]);
+  }, [browseCategory, plannerSurface, realVendors]);
 
   useEffect(() => {
     if (!plannerToast) return undefined;
@@ -1770,6 +1912,14 @@ export function App() {
   useEffect(() => {
     localStorage.setItem('stitchd.admin.identity', adminIdentity);
   }, [adminIdentity]);
+
+  useEffect(() => {
+    if (clientAccessToken) {
+      localStorage.setItem('stitchd.client.accessToken', clientAccessToken);
+    } else {
+      localStorage.removeItem('stitchd.client.accessToken');
+    }
+  }, [clientAccessToken]);
 
   useEffect(() => {
     if (mockSession) {
@@ -1842,6 +1992,55 @@ export function App() {
   }, [apiBaseUrl, mockSession, selectedEventType, surfaceMode]);
 
   useEffect(() => {
+    if (surfaceMode !== 'planner' || mockSession?.role !== 'client' || !clientAccessToken || !plannerExperience) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function loadOrSeedMyWeddingEvent() {
+      try {
+        const initial = await request<MyWeddingEventResponse>('/planner/events/mine', undefined, clientAccessToken);
+        if (cancelled) return;
+
+        if (initial.selections.length === 0 && plannerExperience) {
+          // First real login for this account - carry the demo squad over as
+          // this couple's real starting packages so there's something for the
+          // admin dashboard to show right away.
+          await Promise.all(
+            plannerExperience.squad.core.map((vendor) =>
+              request('/planner/events/mine/vendors', {
+                method: 'POST',
+                body: JSON.stringify({
+                  slot: vendor.slot,
+                  subcategory: vendor.subcategory,
+                  vendorName: vendor.name,
+                  priceCents: Math.round((Number(vendor.priceLabel.replace(/[^0-9]/g, '')) || 0) * 100),
+                  status: vendor.status,
+                }),
+              }, clientAccessToken).catch(() => undefined),
+            ),
+          );
+
+          const seeded = await request<MyWeddingEventResponse>('/planner/events/mine', undefined, clientAccessToken);
+          if (!cancelled) setMyWeddingEvent(seeded);
+          return;
+        }
+
+        setMyWeddingEvent(initial);
+      } catch {
+        if (!cancelled) setMyWeddingEvent(null);
+      }
+    }
+
+    void loadOrSeedMyWeddingEvent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientAccessToken, mockSession, surfaceMode, plannerExperience]);
+
+  useEffect(() => {
     if (surfaceMode !== 'planner') return;
 
     const withinWindow = daysToEvent <= 10;
@@ -1865,7 +2064,14 @@ export function App() {
     }
 
     const controller = new AbortController();
-    const location = weatherCoordinatesByEvent[selectedEventType];
+    const fallbackLocation = weatherCoordinatesByEvent[selectedEventType];
+    const location = (myWeddingEvent?.event.venueLat != null && myWeddingEvent?.event.venueLng != null)
+      ? {
+          latitude: myWeddingEvent.event.venueLat,
+          longitude: myWeddingEvent.event.venueLng,
+          locationLabel: myWeddingEvent.event.locationLabel || fallbackLocation.locationLabel,
+        }
+      : fallbackLocation;
 
     async function loadLiveWeather() {
       try {
@@ -1927,11 +2133,164 @@ export function App() {
     return () => {
       controller.abort();
     };
-  }, [daysToEvent, plannerSurface?.locationLabel, selectedEventType, selectedSchedule.eventDate, surfaceMode]);
+  }, [daysToEvent, plannerSurface?.locationLabel, selectedEventType, selectedSchedule.eventDate, surfaceMode, myWeddingEvent]);
+
+  useEffect(() => {
+    if (surfaceMode !== 'planner' || selectedEventType !== 'wedding') return undefined;
+
+    let cancelled = false;
+    fetch(`${apiBaseUrl}/planner/vendors`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Failed to load vendor catalog'))))
+      .then((vendors: RealVendor[]) => {
+        if (!cancelled) setRealVendors(vendors);
+      })
+      .catch(() => {
+        if (!cancelled) setRealVendors([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBaseUrl, surfaceMode, selectedEventType]);
+
+  useEffect(() => {
+    if (!clientAccessToken || mockSession?.role !== 'client') return undefined;
+
+    let cancelled = false;
+    request<Array<{ id: string; title: string; note: string; createdAt: string }>>('/planner/events/mine/inspiration', undefined, clientAccessToken)
+      .then((notes) => {
+        if (!cancelled) setMyInspirationNotes(notes);
+      })
+      .catch(() => {
+        if (!cancelled) setMyInspirationNotes([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientAccessToken, mockSession]);
+
+  async function submitInspirationNote(event: FormEvent) {
+    event.preventDefault();
+    if (!inspirationTitleInput.trim() || !inspirationNoteInput.trim() || !clientAccessToken) return;
+
+    try {
+      await request('/planner/events/mine/inspiration', {
+        method: 'POST',
+        body: JSON.stringify({ title: inspirationTitleInput.trim(), note: inspirationNoteInput.trim() }),
+      }, clientAccessToken);
+      const notes = await request<Array<{ id: string; title: string; note: string; createdAt: string }>>(
+        '/planner/events/mine/inspiration',
+        undefined,
+        clientAccessToken,
+      );
+      setMyInspirationNotes(notes);
+      setInspirationTitleInput('');
+      setInspirationNoteInput('');
+      setPlannerToast('Inspiration note saved.');
+    } catch {
+      setPlannerToast('Could not save that note. Try again.');
+    }
+  }
+
+  useEffect(() => {
+    if (!clientAccessToken || mockSession?.role !== 'coach') return undefined;
+
+    let cancelled = false;
+    request<AdminWeddingEvent[]>('/planner/coach/events', undefined, clientAccessToken)
+      .then((events) => {
+        if (!cancelled) setCoachEvents(events);
+      })
+      .catch(() => {
+        if (!cancelled) setCoachEvents([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientAccessToken, mockSession]);
+
+  async function selectCoachEvent(eventId: string) {
+    if (selectedCoachEventId === eventId) {
+      setSelectedCoachEventId(null);
+      setCoachEventDetail(null);
+      setCoachMessages([]);
+      return;
+    }
+
+    setSelectedCoachEventId(eventId);
+    try {
+      const [detail, messages] = await Promise.all([
+        request<{ event: AdminWeddingEvent; selections: WeddingVendorSelection[] }>(`/planner/coach/events/${eventId}`, undefined, clientAccessToken),
+        request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(`/planner/coach/events/${eventId}/messages`, undefined, clientAccessToken),
+      ]);
+      setCoachEventDetail(detail);
+      setCoachMessages(messages);
+    } catch {
+      setPlannerToast('Could not load that couple\'s details.');
+    }
+  }
+
+  async function sendCoachChatMessage(event: FormEvent) {
+    event.preventDefault();
+    if (!coachMessageInput.trim() || !selectedCoachEventId) return;
+
+    try {
+      await request(`/planner/coach/events/${selectedCoachEventId}/messages`, {
+        method: 'POST',
+        body: JSON.stringify({ message: coachMessageInput.trim() }),
+      }, clientAccessToken);
+      const messages = await request<Array<{ id: string; senderRole: string; message: string; createdAt: string }>>(
+        `/planner/coach/events/${selectedCoachEventId}/messages`,
+        undefined,
+        clientAccessToken,
+      );
+      setCoachMessages(messages);
+      setCoachMessageInput('');
+    } catch {
+      setPlannerToast('Could not send that message.');
+    }
+  }
+
+  function mapRealVendorToBrowseItem(vendor: RealVendor): SupplierBrowseItem {
+    return {
+      id: vendor.id,
+      slot: vendor.slot,
+      name: vendor.name,
+      subcategory: vendor.subcategory || vendor.slot,
+      priceLabel: vendor.priceLabel,
+      rating: Number(vendor.rating),
+      reviewCount: vendor.reviewCount,
+      score: Math.round(Number(vendor.rating) * 20),
+      status: vendor.isRecommended ? 'recommended' : 'optional',
+      imageKey: vendor.imageKey || 'maid-service',
+      compatibilityNote: `${vendor.reviewCount} verified reviews from the real STITCHD vendor catalog.`,
+    };
+  }
+
+  async function persistRealVendorSelection(vendor: RealVendor, status: 'secured' | 'booked' = 'booked') {
+    if (!clientAccessToken) return;
+    try {
+      await request('/planner/events/mine/vendors', {
+        method: 'POST',
+        body: JSON.stringify({
+          slot: vendor.slot,
+          subcategory: vendor.subcategory,
+          vendorName: vendor.name,
+          priceCents: vendor.priceCents,
+          status,
+        }),
+      }, clientAccessToken);
+      const refreshed = await request<MyWeddingEventResponse>('/planner/events/mine', undefined, clientAccessToken);
+      setMyWeddingEvent(refreshed);
+    } catch {
+      // Non-fatal - the local squad preview still updates even if the real
+      // save fails (e.g. offline); the user can retry from Budget tab later.
+    }
+  }
 
   async function request<T>(path: string, init?: RequestInit, accessToken = token) {
-    const requestBaseUrl = resolveRequestBaseUrl(path, apiBaseUrl);
-    const response = await fetch(`${requestBaseUrl}${path}`, {
+    const response = await fetch(`${apiBaseUrl}${path}`, {
       ...init,
       headers: {
         'Content-Type': 'application/json',
@@ -1989,12 +2348,28 @@ export function App() {
     setStatusMessage('');
 
     try {
-      const [settingsResponse, pendingResponse, metricsResponse, recentPaymentsResponse, bookingJourneysResponse] = await Promise.all([
+      const [
+        settingsResponse,
+        pendingResponse,
+        metricsResponse,
+        recentPaymentsResponse,
+        bookingJourneysResponse,
+        weddingEventsResponse,
+        coachesResponse,
+        categoryBreakdownResponse,
+        coachBreakdownResponse,
+      ] = await Promise.all([
         request<PlatformSettings>('/admin/settings', undefined, accessToken),
         request<PendingProvider[]>('/admin/providers/pending-verification', undefined, accessToken),
         request<DashboardMetrics>('/admin/dashboard-metrics', undefined, accessToken),
         request<RecentPayment[]>('/admin/payments/recent', undefined, accessToken),
-        request<BookingJourney[]>('/admin/bookings/journey', undefined, accessToken),
+        // Legacy marketplace endpoint - not part of the current backend, so it
+        // shouldn't block the rest of the dashboard from loading.
+        request<BookingJourney[]>('/admin/bookings/journey', undefined, accessToken).catch(() => []),
+        request<AdminWeddingEvent[]>('/admin/wedding-events', undefined, accessToken).catch(() => []),
+        request<AdminCoach[]>('/admin/coaches', undefined, accessToken).catch(() => []),
+        request<CategoryBreakdownRow[]>('/admin/analytics/category-breakdown', undefined, accessToken).catch(() => []),
+        request<CoachBreakdownRow[]>('/admin/analytics/coach-breakdown', undefined, accessToken).catch(() => []),
       ]);
 
       setSettings(settingsResponse);
@@ -2002,6 +2377,10 @@ export function App() {
       setMetrics(metricsResponse);
       setRecentPayments(recentPaymentsResponse);
       setBookingJourneys(bookingJourneysResponse);
+      setWeddingEvents(weddingEventsResponse);
+      setCoaches(coachesResponse);
+      setCategoryBreakdown(categoryBreakdownResponse);
+      setCoachBreakdown(coachBreakdownResponse);
       setStatusMessage(adminIdentity ? `Ops console connected as ${adminIdentity}.` : 'Ops console connected.');
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : 'Failed to load admin dashboard.');
@@ -2019,12 +2398,39 @@ export function App() {
     setRecentPayments([]);
     setBookingJourneys([]);
     setPendingProviders([]);
+    setWeddingEvents([]);
+    setCoaches([]);
+    setCategoryBreakdown([]);
+    setCoachBreakdown([]);
+    setExpandedWeddingEventId(null);
+    setWeddingEventDetail(null);
     setErrorMessage('');
+  }
+
+  async function toggleWeddingEventDetail(eventId: string) {
+    if (expandedWeddingEventId === eventId) {
+      setExpandedWeddingEventId(null);
+      setWeddingEventDetail(null);
+      return;
+    }
+
+    setExpandedWeddingEventId(eventId);
+    setWeddingEventDetail(null);
+    try {
+      const detail = await request<{ event: AdminWeddingEvent; selections: WeddingVendorSelection[] }>(
+        `/admin/wedding-events/${eventId}`,
+      );
+      setWeddingEventDetail(detail);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to load wedding event detail.');
+    }
   }
 
   function signOutApp() {
     clearAdminSession();
     setMockSession(null);
+    setClientAccessToken('');
+    setMyWeddingEvent(null);
     setSurfaceMode('planner');
     setActiveTab('squad');
     setAuthStep('landing');
@@ -2041,7 +2447,7 @@ export function App() {
     setStatusMessage('Signed out.');
   }
 
-  function requestMockOtp(event: FormEvent) {
+  async function requestMockOtp(event: FormEvent) {
     event.preventDefault();
     setAuthError('');
 
@@ -2050,11 +2456,24 @@ export function App() {
       return;
     }
 
+    // Client and coach are backed by real OTP accounts - supplier/admin (in
+    // this demo landing flow) stay as a local-only preview.
+    if (authRole === 'client' || authRole === 'coach') {
+      try {
+        await request('/auth/send-otp', { method: 'POST', body: JSON.stringify({ phone: authIdentifier.trim() }) }, '');
+        setAuthStep('verify');
+        setAuthNotice(`Verification code sent to ${authIdentifier.trim()}. Enter the 6-digit code to continue.`);
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Could not send a verification code to that number.');
+      }
+      return;
+    }
+
     setAuthStep('verify');
     setAuthNotice(`Verification code sent to ${authIdentifier.trim()}. Enter the 6-digit code to continue.`);
   }
 
-  function completeMockSignIn(event: FormEvent) {
+  async function completeMockSignIn(event: FormEvent) {
     event.preventDefault();
     setAuthError('');
 
@@ -2065,13 +2484,41 @@ export function App() {
 
     const config = authRoleConfig[authRole];
     const trimmedIdentifier = authIdentifier.trim();
+
+    if (authRole === 'client' || authRole === 'coach') {
+      try {
+        const auth = await request<{ accessToken: string; user: { firstName?: string; lastName?: string; phone: string } }>(
+          '/auth/verify-otp',
+          {
+            method: 'POST',
+            // The backend's UserRole enum has no 'client' value - client maps
+            // to the default (customer) by omitting role; coach is passed
+            // through as-is.
+            body: JSON.stringify(authRole === 'coach'
+              ? { phone: trimmedIdentifier, code: authOtp.trim(), role: 'coach' }
+              : { phone: trimmedIdentifier, code: authOtp.trim() }),
+          },
+          '',
+        );
+        const identity = [auth.user.firstName, auth.user.lastName].filter(Boolean).join(' ') || (authRole === 'coach' ? 'Coach Workspace' : 'Client Planner');
+        setClientAccessToken(auth.accessToken);
+        setMockSession({ role: authRole, identity, contact: auth.user.phone });
+        setSurfaceMode('planner');
+        setActiveTab('squad');
+        setAuthStep('identify');
+        setAuthOtp('');
+        setAuthNotice(`${config.label} signed in successfully.`);
+      } catch (error) {
+        setAuthError(error instanceof Error ? error.message : 'Invalid or expired verification code.');
+      }
+      return;
+    }
+
     const baseIdentity = authRole === 'admin'
       ? 'STITCHD Admin'
       : authRole === 'supplier'
         ? 'Supplier Workspace'
-        : authRole === 'coach'
-          ? 'Coach Workspace'
-          : 'Client Planner';
+        : 'Coach Workspace';
 
     setMockSession({
       role: authRole,
@@ -2092,6 +2539,21 @@ export function App() {
     setAuthStep('identify');
     setAuthNotice('');
     setAuthError('');
+  }
+
+  async function markSelectionPaid(selectionId: string, priceCents: number) {
+    if (!clientAccessToken) return;
+    try {
+      await request(`/planner/events/mine/vendors/${selectionId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ amountPaidCents: priceCents }),
+      }, clientAccessToken);
+      const refreshed = await request<MyWeddingEventResponse>('/planner/events/mine', undefined, clientAccessToken);
+      setMyWeddingEvent(refreshed);
+      setPlannerToast('Marked as paid.');
+    } catch (error) {
+      setPlannerToast(error instanceof Error ? error.message : 'Could not update payment status.');
+    }
   }
 
   function handlePlannerTabChange(tabId: PlannerTab) {
@@ -2202,6 +2664,9 @@ export function App() {
     });
     setSwapVendorId(null);
     setPlannerToast(`${nextVendor.name} has replaced the current supplier.`);
+
+    const realVendor = realVendors.find((vendor) => vendor.id === nextVendor.id);
+    if (realVendor) void persistRealVendorSelection(realVendor, 'secured');
   }
 
   function addSupportSupplier(nextVendor: SupplierBrowseItem) {
@@ -2220,6 +2685,9 @@ export function App() {
 
     setPlannerBoardOverride({ core: [...selectedBoard.core], support: nextSupport });
     setBrowseCategory(null);
+
+    const realVendor = realVendors.find((vendor) => vendor.id === nextVendor.id);
+    if (realVendor) void persistRealVendorSelection(realVendor, 'booked');
     setPlannerToast(`${nextVendor.name} has been added to the support squad.`);
   }
 
@@ -2257,6 +2725,20 @@ export function App() {
         return;
       }
 
+      const realVendorA = realVendors.find((item) => item.id === compareLeadVendor.id);
+      const realVendorB = realVendors.find((item) => item.id === vendor.id);
+      setCompareVendorId(null);
+
+      if (realVendorA && realVendorB) {
+        void request<RealVendorComparison>(`/planner/vendors/compare?vendorAId=${realVendorA.id}&vendorBId=${realVendorB.id}`)
+          .then((result) => {
+            setRealComparison(result);
+            setClashVendorId(result.vendorA.id);
+          })
+          .catch(() => setPlannerToast('Could not load a real comparison for these suppliers.'));
+        return;
+      }
+
       const clashCandidate = plannerSurface?.clashCandidates.find((candidate) => {
         const involved = [compareLeadVendor.id, vendor.id];
         if (!involved.includes(candidate.currentVendorId) && !involved.includes(candidate.winnerVendorId)) {
@@ -2266,7 +2748,6 @@ export function App() {
         return candidate.comparison.some((row) => row.current === compareLeadVendor.name || row.challenger === vendor.name || row.current === vendor.name || row.challenger === compareLeadVendor.name);
       });
 
-      setCompareVendorId(null);
       if (clashCandidate) {
         setClashVendorId(clashCandidate.currentVendorId);
         return;
@@ -2372,6 +2853,125 @@ export function App() {
               </div>
             </form>
           )}
+        </section>
+      </main>
+    );
+  }
+
+  if (mockSession.role === 'coach') {
+    return (
+      <main className="stitchdShell">
+        <div className="pageGlow pageGlowLeft" />
+        <div className="pageGlow pageGlowRight" />
+        <section className="topRail">
+          <section className="modeRail">
+            <div className="modeRailRow">
+              <button type="button" className="modePill modePillBrand is-active">
+                <StitchdWordmark variant="topbar" />
+              </button>
+            </div>
+            <button type="button" className="themeToggle" onClick={() => setIsDark((d) => !d)} aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+              {isDark ? <LightModeIcon className="plannerIcon" /> : <DarkModeIcon className="plannerIcon" />}
+              <span>{isDark ? 'Light mode' : 'Dark mode'}</span>
+            </button>
+          </section>
+          <section className="sessionRail glassPanelNested">
+            <div>
+              <span className="sessionStatus">Signed in as coach</span>
+              <p>{mockSession.contact}</p>
+            </div>
+            <button type="button" className="ghostButton" onClick={signOutApp}>Sign out</button>
+          </section>
+        </section>
+
+        <section className="opsSurface">
+          <header className="opsHero glassPanel">
+            <div>
+              <span className="minorLabel">Coach Workspace</span>
+              <h1>Your assigned couples, their real progress, and messages.</h1>
+              <p>Every couple below is a real signed-up account, assigned to you by an admin.</p>
+            </div>
+          </header>
+
+          <article className="glassPanel weddingsPanel">
+            <div className="sectionHeader">
+              <div>
+                <p className="eyebrow compact">My Couples</p>
+                <h2>{coachEvents.length} assigned couple{coachEvents.length === 1 ? '' : 's'}</h2>
+              </div>
+            </div>
+
+            {coachEvents.length === 0 ? (
+              <p className="emptyState">No couples have been assigned to you yet. Ask an admin to assign you to a wedding.</p>
+            ) : (
+              <div className="weddingEventList">
+                {coachEvents.map((weddingEvent) => {
+                  const ownerName = [weddingEvent.owner?.firstName, weddingEvent.owner?.lastName].filter(Boolean).join(' ') || weddingEvent.owner?.phone || 'Unnamed couple';
+                  const isSelected = selectedCoachEventId === weddingEvent.id;
+
+                  return (
+                    <article className="weddingEventRow glassPanelNested" key={weddingEvent.id}>
+                      <button type="button" className="weddingEventHeader" onClick={() => void selectCoachEvent(weddingEvent.id)}>
+                        <div>
+                          <strong>{ownerName}</strong>
+                          <p>{weddingEvent.title || 'Wedding'} • {weddingEvent.eventDate || 'Date not set'}</p>
+                        </div>
+                        <div className="weddingEventMeta">
+                          <span className={`statusBadge status-${weddingEvent.timelineStatus === 'on_track' ? 'secured' : weddingEvent.timelineStatus === 'behind' ? 'optional' : 'at_risk'}`}>
+                            {weddingEvent.timelineStatus.replace('_', ' ')}
+                          </span>
+                          <span>{weddingEvent.packagesChosenCount} packages chosen</span>
+                        </div>
+                      </button>
+
+                      {isSelected ? (
+                        <div className="weddingEventDetail">
+                          {!coachEventDetail ? (
+                            <p className="emptyState">Loading...</p>
+                          ) : (
+                            <>
+                              {coachEventDetail.selections.length === 0 ? (
+                                <p className="emptyState">No packages chosen yet.</p>
+                              ) : (
+                                coachEventDetail.selections.map((selection) => (
+                                  <div className="documentRow glassPanelNested" key={selection.id}>
+                                    <div>
+                                      <strong>{selection.slot}</strong>
+                                      <p>{selection.vendorName} • {formatCurrency(selection.priceCents)}</p>
+                                    </div>
+                                    <span className={`statusBadge status-${selection.status}`}>{selection.status}</span>
+                                  </div>
+                                ))
+                              )}
+
+                              <div className="messageStack" style={{ marginTop: 16 }}>
+                                <span className="minorLabel">Messages with {ownerName}</span>
+                                {coachMessages.length === 0 ? (
+                                  <p className="emptyState">No messages yet - say hello!</p>
+                                ) : (
+                                  coachMessages.map((message) => (
+                                    <div key={message.id} className="journeyNotificationRow">
+                                      <strong>{message.senderRole}</strong>
+                                      <span>{message.message}</span>
+                                      <small>{new Date(message.createdAt).toLocaleString()}</small>
+                                    </div>
+                                  ))
+                                )}
+                                <form className="authForm" onSubmit={sendCoachChatMessage}>
+                                  <input value={coachMessageInput} onChange={(event) => setCoachMessageInput(event.target.value)} placeholder="Write a message..." />
+                                  <button type="submit" className="secondaryButton">Send</button>
+                                </form>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </article>
         </section>
       </main>
     );
@@ -2736,6 +3336,79 @@ export function App() {
                       })}
                     </div>
                   </article>
+
+                  {myWeddingEvent ? (
+                    <article className="budgetPanel glassPanelNested fullWidthPanel">
+                      <div className="budgetHeader">
+                        <div>
+                          <span className="minorLabel">Your Real Packages</span>
+                          <strong>{myWeddingEvent.selections.length} package{myWeddingEvent.selections.length === 1 ? '' : 's'} on your real account</strong>
+                          <p>These are saved to your account and visible to your coach and STITCHD admin.</p>
+                        </div>
+                      </div>
+                      <div className="budgetLineList">
+                        {myWeddingEvent.selections.map((selection) => {
+                          const isPaid = selection.amountPaidCents >= selection.priceCents && selection.priceCents > 0;
+                          return (
+                            <article key={selection.id} className="budgetLineItem">
+                              <div>
+                                <strong>{selection.slot}</strong>
+                                <p>{selection.vendorName}</p>
+                              </div>
+                              <div className="budgetLineMeta">
+                                <span className={`statusBadge status-${selection.status}`}>{selection.status}</span>
+                                <strong>{formatCurrencyFromRands(selection.priceCents / 100)}</strong>
+                                {isPaid ? (
+                                  <p className="statusOk">Paid</p>
+                                ) : (
+                                  <button type="button" className="secondaryButton" onClick={() => void markSelectionPaid(selection.id, selection.priceCents)}>
+                                    Mark as Paid
+                                  </button>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    </article>
+                  ) : null}
+
+                  {myWeddingEvent ? (
+                    <article className="budgetPanel glassPanelNested fullWidthPanel">
+                      <div className="budgetHeader">
+                        <div>
+                          <span className="minorLabel">Your Inspiration Notes</span>
+                          <strong>Real notes saved to your account</strong>
+                          <p>Save the ideas you want your coach and suppliers to see.</p>
+                        </div>
+                      </div>
+                      <form className="authForm" onSubmit={submitInspirationNote} style={{ marginBottom: 16 }}>
+                        <label>
+                          Title
+                          <input value={inspirationTitleInput} onChange={(event) => setInspirationTitleInput(event.target.value)} placeholder="Soft gold ceremony" />
+                        </label>
+                        <label>
+                          Note
+                          <input value={inspirationNoteInput} onChange={(event) => setInspirationNoteInput(event.target.value)} placeholder="Candlelight, low florals, creamy textures." />
+                        </label>
+                        <button type="submit" className="secondaryButton">Save note</button>
+                      </form>
+                      <div className="budgetLineList">
+                        {myInspirationNotes.length === 0 ? (
+                          <p className="emptyState">No inspiration notes saved yet.</p>
+                        ) : (
+                          myInspirationNotes.map((note) => (
+                            <article key={note.id} className="budgetLineItem">
+                              <div>
+                                <strong>{note.title}</strong>
+                                <p>{note.note}</p>
+                              </div>
+                            </article>
+                          ))
+                        )}
+                      </div>
+                    </article>
+                  ) : null}
 
                   <article className="budgetPanel glassPanelNested fullWidthPanel">
                     <div className="budgetHeader">
@@ -3622,7 +4295,28 @@ export function App() {
             </div>
           ) : null}
 
-          {activeClash ? (
+          {realComparison ? (
+            <div className="overlayShell" role="dialog" aria-modal="true">
+              <div className="overlayPanel glassPanel">
+                <div className="overlayHeader">
+                  <div>
+                    <span className="minorLabel">Vendor comparison</span>
+                    <strong>{realComparison.vendorA.name} vs {realComparison.vendorB.name}</strong>
+                  </div>
+                  <button type="button" className="ghostButton" onClick={() => { setClashVendorId(null); setRealComparison(null); }}>Close</button>
+                </div>
+                <div className="comparisonGrid">
+                  {realComparison.comparison.map((row) => (
+                    <div key={row.label} className="comparisonRow">
+                      <span>{row.vendorA}</span>
+                      <strong>{row.label}</strong>
+                      <span>{row.vendorB}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : activeClash ? (
             <div className="overlayShell" role="dialog" aria-modal="true">
               <div className="overlayPanel glassPanel">
                 <div className="overlayHeader">
@@ -3968,6 +4662,137 @@ export function App() {
                 </div>
               ) : (
                 <p className="emptyState">Sign in as an admin to load booking and payment analytics.</p>
+              )}
+            </article>
+
+            <article className="glassPanel weddingsPanel">
+              <div className="sectionHeader">
+                <div>
+                  <p className="eyebrow compact">Wedding Progress</p>
+                  <h2>Real signups, coach caseload, and packages chosen</h2>
+                </div>
+                <button type="button" className="secondaryButton" onClick={() => void loadDashboard()} disabled={loading || !token.trim()}>Refresh</button>
+              </div>
+
+              <div className="analyticsChartsRow">
+                <div className="analyticsChart glassPanelNested">
+                  <p className="minorLabel">Packages chosen by category</p>
+                  {categoryBreakdown.length === 0 ? (
+                    <p className="emptyState">No packages have been chosen yet.</p>
+                  ) : (
+                    (() => {
+                      const maxPaid = Math.max(...categoryBreakdown.map((row) => row.totalPaidCents), 1);
+                      return (
+                        <div className="barChartList">
+                          {categoryBreakdown.map((row, index) => (
+                            <div className="barChartRow" key={row.slot}>
+                              <span className="barChartLabel">{row.slot}</span>
+                              <div className="barChartTrack">
+                                <div
+                                  className="barChartFill"
+                                  style={{
+                                    width: `${Math.max((row.totalPaidCents / maxPaid) * 100, 3)}%`,
+                                    background: CHART_COLORS[index % CHART_COLORS.length],
+                                  }}
+                                />
+                              </div>
+                              <span className="barChartValue">{formatCurrency(row.totalPaidCents)}</span>
+                              <span className="barChartBadge">{row.selectionCount} chosen</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+
+                <div className="analyticsChart glassPanelNested">
+                  <p className="minorLabel">Coach caseload</p>
+                  {coachBreakdown.length === 0 ? (
+                    <p className="emptyState">No coaches are assigned to a couple yet.</p>
+                  ) : (
+                    (() => {
+                      const maxCaseload = Math.max(...coachBreakdown.map((row) => row.assignedEventsCount), 1);
+                      return (
+                        <div className="barChartList">
+                          {coachBreakdown.map((row, index) => (
+                            <div className="barChartRow" key={row.coachUserId}>
+                              <span className="barChartLabel">{row.coachName}</span>
+                              <div className="barChartTrack">
+                                <div
+                                  className="barChartFill"
+                                  style={{
+                                    width: `${Math.max((row.assignedEventsCount / maxCaseload) * 100, 3)}%`,
+                                    background: CHART_COLORS[index % CHART_COLORS.length],
+                                  }}
+                                />
+                              </div>
+                              <span className="barChartValue">{row.assignedEventsCount} couple{row.assignedEventsCount === 1 ? '' : 's'}</span>
+                              <span className="barChartBadge">{formatCurrency(row.totalPaidCents)} paid</span>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()
+                  )}
+                </div>
+              </div>
+
+              <div className="sectionHeader compactHeader">
+                <div>
+                  <p className="eyebrow compact">Weddings</p>
+                  <h2>Every signed-up couple</h2>
+                </div>
+              </div>
+
+              {weddingEvents.length === 0 ? (
+                <p className="emptyState">No couples have signed up yet.</p>
+              ) : (
+                <div className="weddingEventList">
+                  {weddingEvents.map((weddingEvent) => {
+                    const ownerName = [weddingEvent.owner?.firstName, weddingEvent.owner?.lastName].filter(Boolean).join(' ') || weddingEvent.owner?.phone || 'Unnamed couple';
+                    const coachName = [weddingEvent.coach?.firstName, weddingEvent.coach?.lastName].filter(Boolean).join(' ') || (weddingEvent.coach ? weddingEvent.coach.phone : 'Unassigned');
+                    const isExpanded = expandedWeddingEventId === weddingEvent.id;
+
+                    return (
+                      <article className="weddingEventRow glassPanelNested" key={weddingEvent.id}>
+                        <button type="button" className="weddingEventHeader" onClick={() => void toggleWeddingEventDetail(weddingEvent.id)}>
+                          <div>
+                            <strong>{ownerName}</strong>
+                            <p>{weddingEvent.title || 'Wedding'} • {weddingEvent.eventDate || 'Date not set'}</p>
+                          </div>
+                          <div className="weddingEventMeta">
+                            <span className={`statusBadge status-${weddingEvent.timelineStatus === 'on_track' ? 'secured' : weddingEvent.timelineStatus === 'behind' ? 'optional' : 'at_risk'}`}>
+                              {weddingEvent.timelineStatus.replace('_', ' ')}
+                            </span>
+                            <span>Coach: {coachName}</span>
+                            <span>{weddingEvent.packagesChosenCount} packages chosen</span>
+                          </div>
+                        </button>
+
+                        {isExpanded ? (
+                          <div className="weddingEventDetail">
+                            {!weddingEventDetail ? (
+                              <p className="emptyState">Loading packages...</p>
+                            ) : weddingEventDetail.selections.length === 0 ? (
+                              <p className="emptyState">No packages chosen yet.</p>
+                            ) : (
+                              weddingEventDetail.selections.map((selection) => (
+                                <div className="documentRow glassPanelNested" key={selection.id}>
+                                  <div>
+                                    <strong>{selection.slot}</strong>
+                                    <p>{selection.vendorName} • {formatCurrency(selection.priceCents)}</p>
+                                  </div>
+                                  <span className={`statusBadge status-${selection.status}`}>{selection.status}</span>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        ) : null}
+                      </article>
+                    );
+                  })}
+                </div>
               )}
             </article>
 

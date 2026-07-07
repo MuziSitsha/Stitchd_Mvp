@@ -8,6 +8,7 @@ import { AuthService } from './auth.service';
 import { OtpEntity } from './entities/otp.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { CoachProfileEntity } from '../planner/entities/coach-profile.entity';
 
 @Module({
   imports: [
@@ -19,7 +20,7 @@ import { UsersModule } from '../users/users.module';
         signOptions: { expiresIn: config.get<string>('app.jwtExpiresIn') },
       }),
     }),
-    TypeOrmModule.forFeature([OtpEntity]),
+    TypeOrmModule.forFeature([OtpEntity, CoachProfileEntity]),
     UsersModule,
   ],
   controllers: [AuthController],

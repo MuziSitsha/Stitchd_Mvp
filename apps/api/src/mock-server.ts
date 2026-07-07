@@ -253,7 +253,7 @@ type MockMobileUser = {
   walletBalanceCents: number;
 };
 
-const plannerService = new PlannerService();
+const plannerService = new PlannerService(null as never, null as never, null as never, null as never, null as never, null as never);
 const host = '127.0.0.1';
 const port = Number(process.env.PORT || 3001);
 const mockAccessToken = 'mock-admin-access-token';
