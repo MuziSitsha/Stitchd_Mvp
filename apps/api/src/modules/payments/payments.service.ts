@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import crypto from 'crypto';
+import * as crypto from 'crypto';
 import { Repository } from 'typeorm';
 import {
   BookingEntity,
@@ -320,9 +320,12 @@ export class PaymentsService {
   }
 
   private createPayfastSignature(payload: Record<string, string>) {
+    // PayFast requires the signature to be computed over the fields in the
+    // same order they're actually submitted (not sorted alphabetically) -
+    // this must match createPayfastQueryString's ordering exactly, since
+    // PayFast recomputes the hash over the query string as received.
     const filtered = Object.entries(payload)
-      .filter(([, value]) => value.trim().length > 0)
-      .sort(([left], [right]) => left.localeCompare(right));
+      .filter(([, value]) => value.trim().length > 0);
     const phrase = this.configService.get<string>('app.payfastPassphrase')?.trim();
     const serialized = filtered
       .map(([key, value]) => `${key}=${encodeURIComponent(value.trim()).replace(/%20/g, '+')}`)
