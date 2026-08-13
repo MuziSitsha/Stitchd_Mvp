@@ -72,6 +72,17 @@
   box-sizing: border-box;
 }
 
+/* iOS Safari auto-zooms the whole page on focusing any input/select/textarea
+   under 16px, then leaves it zoomed until the user manually pinches back out
+   — mobile-only override so desktop's smaller form text is untouched. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 body {
   margin: 0;
 }
