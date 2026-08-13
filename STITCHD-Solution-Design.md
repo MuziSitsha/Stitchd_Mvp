@@ -1,3 +1,8 @@
+> **Superseded.** This document's content is fully incorporated as Part B of
+> `STITCHD-SRS-SDS.md`, which is the authoritative combined spec (SRS + SDS +
+> traceability matrix). Kept here for history only — edit the combined doc, not
+> this one.
+
 # STITCHD — Solution Design Specification
 ### Events, stitched together — Marketplace + Planning + Coordination platform
 **For:** Muzy (Lead Developer) · **Prepared by:** Solution Design · **Status:** Build-ready (pitch build, Q3 2026)

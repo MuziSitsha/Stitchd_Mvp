@@ -1,5 +1,12 @@
 # STITCHD Google Maps Integration Plan
 
+> **Stale.** Written against the pre-wedding-pivot booking model; the
+> `apps/api/src/modules/bookings/*` files referenced below were removed by the
+> "Remove legacy home-services app" commit, and the API itself is now frozen
+> pending the Supabase rewrite (see `docs/decisions.md`). Kept for historical
+> reference only — any real Maps/PostGIS work should target the new
+> `supabase/` schema instead.
+
 This plan maps Google Maps integration onto the current STITCHD codebase. The goal is to improve address entry, geocoding, ETA accuracy, and live tracking UX without replacing the existing booking model.
 
 ## Recommendation

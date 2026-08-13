@@ -1,0 +1,594 @@
+@import "tailwindcss";
+
+/* Design tokens — exact values from STITCHD-SRS-SDS.md §B16 (dark mode +
+   the "Midnight Violet" palette, the prototype's default). */
+:root {
+  --font-brand: "Archivo Black", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-ui: "Manrope", system-ui, sans-serif;
+
+  --bg: #0a0a0e;
+  --panel: #131319;
+  --panel2: #1a1a23;
+  --ink: #f2f0ec;
+  --sub: #9c99ab;
+  --faint: #5e5b6e;
+  --good: #3dd68c;
+  --warn: #e9b84c;
+  --bad: #f0644c;
+  --info: #5fa8f5;
+
+  --accent: #8b7af5;
+  --accent-deep: #4b3f8f;
+  --gold: #d4a94e;
+
+  --radius-card: 16px;
+  --radius-chip: 999px;
+  --press: 0.12s ease;
+  --rise: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+  color-scheme: dark;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --press: 0s;
+    --rise: 0s;
+  }
+}
+
+/* Ported exactly from stitchd-v9.jsx lines 1572-1578 — used by Stitch It's
+   printable quote/checklist modal (.print-area / .no-print). */
+@media print {
+  body {
+    background: #fff !important;
+  }
+  body * {
+    visibility: hidden !important;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible !important;
+  }
+  .print-area {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    padding: 0 !important;
+    color: #111 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Everything below styles plain semantic HTML (button, input, section, h1…)
+   for the Supplier Portal pages (login/claim/portal/request-supplier),
+   scoped under .portal-page — each of those pages' <main> carries that
+   class alongside its own. The ported prototype pages style every element
+   explicitly via Tailwind + inline styles and must never inherit these
+   defaults, e.g. a bare `button { background: var(--accent) }` turning a
+   deliberately-transparent, dashed-border prototype button into a solid
+   violet pill. */
+
+/* ---------- Header / wordmark ---------- */
+
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.app-header-logo {
+  text-decoration: none;
+  color: inherit;
+}
+
+.app-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--sub);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  margin-left: -10px;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.back-link:hover {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1;
+}
+
+.logo-word {
+  font-family: var(--font-brand);
+  letter-spacing: 0.01em;
+  color: var(--ink);
+}
+
+.logo-dash {
+  color: var(--gold);
+}
+
+.logo-tag {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sub);
+}
+
+/* ---------- Layout ---------- */
+
+main.portal-page {
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 40px 20px 100px;
+  flex: 1;
+}
+
+.portal-page h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 32px;
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.portal-page h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  margin: 0 0 14px;
+  color: var(--ink);
+}
+
+.portal-page p {
+  color: var(--sub);
+  margin: 0 0 4px;
+}
+
+.portal-page a {
+  color: var(--accent);
+}
+
+.home-hero {
+  padding-top: 12vh;
+  text-align: left;
+}
+
+.portal-hero h1 {
+  color: var(--ink);
+}
+
+.portal-hero p {
+  font-size: 15px;
+}
+
+.home-nav {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.home-nav a {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-decoration: none;
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-chip);
+  padding: 12px 22px;
+  transition: border-color var(--press), transform var(--press);
+}
+
+.home-nav a:hover {
+  border-color: var(--accent);
+}
+
+.home-nav a:active {
+  transform: scale(0.97);
+}
+
+/* ---------- Forms ---------- */
+
+.portal-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 0;
+}
+
+.portal-page label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--sub);
+}
+
+.portal-page input,
+.portal-page select,
+.portal-page textarea {
+  width: 100%;
+  background: var(--panel2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 11px 14px;
+  color: var(--ink);
+  font: inherit;
+  font-family: var(--font-ui);
+  transition: border-color var(--press);
+}
+
+.portal-page input:focus,
+.portal-page select:focus,
+.portal-page textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.portal-page textarea {
+  min-height: 76px;
+  resize: vertical;
+}
+
+.portal-page button {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-chip);
+  padding: 11px 20px;
+  font: inherit;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform var(--press), opacity var(--press), background var(--press);
+}
+
+.portal-page button:hover {
+  background: var(--accent-deep);
+}
+
+.portal-page button:active {
+  transform: scale(0.97);
+}
+
+.portal-page button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* .portal-page-prefixed so this reliably beats .portal-page button's higher
+   specificity (1 class + 1 element vs. this rule's 1 class alone) — without
+   it, every link-button in the Supplier Portal silently renders as a solid
+   accent pill instead of a plain text link, regardless of source order. */
+.portal-page .link-button {
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 8px 0;
+  border-radius: 0;
+}
+
+.portal-page .link-button:hover {
+  background: none;
+  color: var(--gold);
+}
+
+.error {
+  color: var(--bad);
+  font-weight: 600;
+}
+
+.confirmation {
+  color: var(--good);
+  font-weight: 600;
+}
+
+/* ---------- Cards / sections ---------- */
+
+.portal-page section {
+  background: var(--panel);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-card);
+  padding: 22px;
+  margin-top: 20px;
+}
+
+/* ---------- Badges / pills ---------- */
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-chip);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.badge.verified {
+  background: rgba(61, 214, 140, 0.14);
+  color: var(--good);
+}
+
+.badge.featured {
+  background: rgba(212, 169, 78, 0.16);
+  color: var(--gold);
+}
+
+.badge.rating {
+  background: var(--panel2);
+  color: var(--sub);
+}
+
+.rank-preview {
+  font-size: 14px;
+  color: var(--sub);
+}
+
+.rank-preview strong {
+  color: var(--gold);
+  font-family: var(--font-display);
+}
+
+/* ---------- Lists (leads, suppliers, claim) ---------- */
+
+.claim-list,
+.lead-list,
+.supplier-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.claim-list li,
+.lead-list li,
+.supplier-list li {
+  background: var(--panel2);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-card);
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  transition: border-color var(--press);
+}
+
+.claim-list li:hover,
+.supplier-list li:hover {
+  border-color: rgba(139, 122, 245, 0.4);
+}
+
+.lead-list li strong,
+.claim-list li strong,
+.supplier-list li strong {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.lead-list li form,
+.supplier-list li form {
+  width: 100%;
+}
+
+.ref {
+  display: block;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+  color: var(--faint);
+  margin-top: 6px;
+  letter-spacing: 0.02em;
+}
+
+.status {
+  border-radius: var(--radius-chip);
+  padding: 5px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-accepted {
+  background: rgba(61, 214, 140, 0.14);
+  color: var(--good);
+}
+
+.status-declined {
+  background: rgba(240, 100, 76, 0.14);
+  color: var(--bad);
+}
+
+.status-paid {
+  background: rgba(61, 214, 140, 0.14);
+  color: var(--good);
+}
+
+.status-pending_payment {
+  background: rgba(233, 184, 76, 0.16);
+  color: var(--warn);
+}
+
+.status-failed {
+  background: rgba(240, 100, 76, 0.14);
+  color: var(--bad);
+}
+
+.status-draft {
+  background: var(--panel2);
+  color: var(--sub);
+}
+
+.lead-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.lead-new {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(139, 122, 245, 0.25);
+}
+
+/* ---------- Supplier dashboard: stats, progress, add-ons ---------- */
+
+.flex-row-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 4px 0 0;
+}
+
+@media (min-width: 480px) {
+  .stat-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.stat {
+  background: var(--panel2);
+  border-radius: 12px;
+  padding: 12px 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 19px;
+  color: var(--ink);
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--sub);
+  margin-top: 2px;
+}
+
+.progress-track {
+  height: 8px;
+  border-radius: var(--radius-chip);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-chip);
+}
+
+.addon-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.addon-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel2);
+  border-radius: var(--radius-chip);
+  padding: 6px 8px 6px 14px;
+  font-size: 13px;
+}
+
+.addon-chip button {
+  background: none;
+  border: none;
+  color: var(--sub);
+  cursor: pointer;
+  padding: 2px 4px;
+  font: inherit;
+  line-height: 1;
+  border-radius: 0;
+}
+
+.addon-chip button:hover {
+  color: var(--bad);
+}
+
+.addon-form {
+  flex-direction: row !important;
+  flex-wrap: wrap;
+  margin: 0 !important;
+}
+
+.addon-form input {
+  width: auto !important;
+  flex: 1;
+  min-width: 140px;
+}

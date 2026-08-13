@@ -13,7 +13,6 @@
     "dev:admin": "yarn workspace @stitchd/admin dev",
     "build:api": "yarn workspace @stitchd/api build",
     "build:admin": "yarn workspace @stitchd/admin build",
-    "preview:mobile:web": "py -3 apps/mobile/tool/preview_web_build.py",
     "lint": "yarn workspaces run lint",
     "test": "yarn workspaces run test",
     "db:migrate": "yarn workspace @stitchd/api migration:run",

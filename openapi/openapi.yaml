@@ -1,0 +1,129 @@
+openapi: 3.1.0
+info:
+  title: STITCHD API
+  version: "0.1.0"
+  description: >
+    The custom /api/v1 write/read-with-logic layer, implemented as Supabase
+    Edge Functions per docs/decisions.md. Grows phase by phase alongside
+    STITCHD-SRS-SDS.md §13.3 — only endpoints that actually exist are listed
+    here; nothing aspirational.
+servers:
+  - url: "{supabaseUrl}/functions/v1"
+    variables:
+      supabaseUrl:
+        default: "http://127.0.0.1:54321"
+        description: Local dev default; set to the project URL for staging/prod.
+security:
+  - bearerAuth: []
+paths:
+  /tickets-trace/{ref}:
+    get:
+      operationId: getTicketTrace
+      summary: Full audit trail for any ticket ref
+      description: >
+        RLS-scoped to the caller's own JWT — returns only activity_log rows
+        the caller is permitted to see (STITCHD-SRS-SDS.md §B3.5).
+      parameters:
+        - name: ref
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^ST-[A-Z]+-[0-9]+$"
+          example: ST-TEST-00001
+      responses:
+        "200":
+          description: Trace found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ref:
+                    type: string
+                  trace:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActivityLogEntry"
+        "400":
+          description: Invalid ref format
+        "404":
+          description: Not found, or not visible to this caller
+  /auth-test-token:
+    post:
+      operationId: mintSandboxTestToken
+      summary: Mint a scoped JWT for a given role (sandbox only)
+      description: >
+        Disabled unless the SANDBOX_TEST_TOKENS secret is "on". Lazily
+        creates one fixed demo user per role and keeps its role assignment in
+        sync, so repeated calls are idempotent.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [client, supplier, coach, ops, admin, super]
+      responses:
+        "200":
+          description: Token minted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  role:
+                    type: string
+                  user_id:
+                    type: string
+                    format: uuid
+                  access_token:
+                    type: string
+                  expires_in:
+                    type: integer
+        "400":
+          description: Missing or invalid role
+        "403":
+          description: Sandbox test tokens are disabled
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ActivityLogEntry:
+      type: object
+      properties:
+        ref:
+          type: string
+        entity_type:
+          type: string
+        entity_id:
+          type: string
+          format: uuid
+        actor_id:
+          type: string
+          format: uuid
+          nullable: true
+        actor_role:
+          type: string
+          nullable: true
+        from_state:
+          type: string
+          nullable: true
+        to_state:
+          type: string
+          nullable: true
+        event:
+          type: string
+        payload:
+          type: object
+        at:
+          type: string
+          format: date-time

@@ -1,10 +1,20 @@
 # STITCHD Handover
 
-## Delivered State
+> **Status:** the platform is being rebuilt to `STITCHD-SRS-SDS.md` on a new
+> stack (Supabase + Paystack + a web PWA at `apps/web`) — see
+> `docs/decisions.md`. The state below describes the frozen legacy codebase
+> (still named `apps/api`/`apps/admin` — a planned rename to `-legacy` is
+> pending, blocked by a local file lock; see `docs/decisions.md`), kept
+> deployable as a fallback/demo during the rewrite. The Flutter app described
+> below has been retired (see `docs/decisions.md`); it implemented the
+> pre-pivot home-services model and shared no code with the wedding features
+> this document otherwise describes.
 
-STITCHD is handing over as a working MVP codebase for three surfaces:
+## Delivered State (legacy, frozen)
 
-- Flutter customer and provider app in [apps/mobile](../apps/mobile)
+STITCHD handed over as a working MVP codebase for two active surfaces (a third,
+Flutter, has since been retired):
+
 - NestJS API in [apps/api](../apps/api)
 - React admin console in [apps/admin](../apps/admin)
 

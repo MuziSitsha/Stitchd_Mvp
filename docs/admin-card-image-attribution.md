@@ -1,6 +1,6 @@
 # Admin Card Image Attribution
 
-These vendor-card image URLs in `apps/admin/src/App.tsx` were sourced from Wikimedia Commons.
+These vendor-card image URLs in `apps/admin/src/App.tsx` (frozen — see `docs/decisions.md`) were sourced from Wikimedia Commons.
 
 - `plannerImage`: `Wedding_planner.jpg` — Francisco Osorio — CC BY 2.0
 - `venueImage`: `Cape_Town_Wedding_South_Africa_1.jpg` — Lendyll — CC BY-SA 4.0

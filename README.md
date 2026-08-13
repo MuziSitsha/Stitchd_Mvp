@@ -2,7 +2,14 @@ STITCHD
 
 South Africa's premium wedding planning and coordination platform — Johannesburg-first MVP
 
-Built on Flutter, NestJS, PostgreSQL, and AWS. Designed for brides, grooms, coaches, suppliers, and administrators to plan, coordinate, and track weddings with clarity and confidence.
+> **Status:** being rebuilt end-to-end against `STITCHD-SRS-SDS.md` on a new
+> stack (Supabase + Paystack + WhatsApp + a web PWA at `apps/web`). See
+> `docs/decisions.md` for what changed and why. The sections below describe
+> the frozen legacy codebase (still at `apps/api`/`apps/admin` — a rename to
+> `-legacy` is planned but currently blocked by a local file lock, see
+> `docs/decisions.md`), kept deployable as a fallback during the rewrite.
+
+Built on NestJS, PostgreSQL, and AWS (legacy) / Supabase, Paystack, and a React PWA (in progress). Designed for brides, grooms, coaches, suppliers, and administrators to plan, coordinate, and track weddings with clarity and confidence.
 
 What STITCHD Is
 STITCHD is a wedding management platform — not a generic services app. It gives every couple a live view of their wedding health through the Wedding Pulse™ readiness engine, connects them to vetted suppliers via a curated marketplace, pairs them with a dedicated coach, and keeps budget and timeline in one place.
@@ -18,16 +25,17 @@ Which suppliers are recommended
 Repo Structure
 stitchd/
 ├── apps/
-│   ├── api/          # NestJS backend API
-│   ├── admin/        # React Event Command Centre (coordinator/admin view)
-│   └── mobile/       # Flutter client app (bride/groom, supplier, coach)
+│   ├── web/       # React PWA — new client (client lenses, supplier portal, admin, super-admin)
+│   ├── api/       # NestJS backend API (frozen — reference only; rename to api-legacy pending)
+│   └── admin/     # React admin console (frozen — reference only; rename to admin-legacy pending)
+├── supabase/           # Postgres schema/RLS migrations + Deno Edge Functions (the new backend)
 ├── .github/
 │   └── workflows/    # CI and deployment workflows
 ├── docs/             # Architecture, handover, and go-live docs
 ├── packages/
-│   └── ui-tokens/    # Springbok design tokens (green, gold, ivory, charcoal)
+│   └── ui-tokens/    # Design tokens (evolving to the spec's 9-palette theme engine)
 ├── infra/
-│   └── aws/          # AWS ECS + RDS + CloudFront deployment templates
+│   └── aws/          # AWS ECS + RDS + CloudFront deployment templates (legacy — being retired)
 └── package.json      # Monorepo root
 
 User Roles
@@ -121,13 +129,20 @@ Live weather API — widget is built; API key activates after budget confirmatio
 Final AWS staging and production rollout — deployment templates are complete; pending client infrastructure access
 
 
-Quick Start
+Quick Start — new stack (apps/web + supabase)
+See `supabase/README.md` for the local Supabase dev loop (`npx supabase start`,
+`npx supabase functions serve`). `apps/web` is a fresh Vite + React + PWA
+skeleton — routing, auth, and the real lenses land through the rewrite phases
+in `docs/decisions.md`.
+
+bashcd apps/web && npm install && npm run dev
+
+Quick Start — legacy (apps/api + apps/admin, frozen fallback)
 Prerequisites
 
 Node.js 20+
 Yarn 1.22+
 Docker (optional, for local Postgres + Redis)
-Flutter 3.x (for mobile)
 
 1. Clone and install
 bashgit clone https://github.com/MuziSitsha/Stitchd_Mvp.git
@@ -145,11 +160,6 @@ yarn dev:api
 
 # Admin dashboard (port 5173)
 yarn dev:admin
-
-# Flutter mobile app
-cd apps/mobile
-flutter pub get
-flutter run
 
 # Swagger API docs: http://127.0.0.1:3002/docs
 
