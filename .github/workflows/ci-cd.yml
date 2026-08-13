@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   test-and-build:
-    name: Validate API and Admin
+    name: Validate Web
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -25,28 +25,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Detect ESLint config
-        id: eslint-config
-        shell: bash
-        run: |
-          if compgen -G "apps/api/.eslintrc*" > /dev/null || compgen -G ".eslintrc*" > /dev/null || compgen -G "eslint.config.*" > /dev/null; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-          fi
+      - name: Lint Web
+        run: yarn workspace @stitchd/web lint
 
-      - name: Lint API
-        if: steps.eslint-config.outputs.present == 'true'
-        run: yarn workspace @stitchd/api lint
-
-      - name: Test API
-        run: yarn workspace @stitchd/api test --passWithNoTests
-        env:
-          NODE_ENV: test
-          DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
-
-      - name: Build API
-        run: yarn workspace @stitchd/api build
-
-      - name: Build Admin
-        run: yarn workspace @stitchd/admin build
+      - name: Build Web
+        run: yarn workspace @stitchd/web build

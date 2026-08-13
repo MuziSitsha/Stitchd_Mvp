@@ -8,15 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "yarn workspace @stitchd/api dev",
-    "dev:api:mock": "yarn workspace @stitchd/api dev:mock",
-    "dev:admin": "yarn workspace @stitchd/admin dev",
-    "build:api": "yarn workspace @stitchd/api build",
-    "build:admin": "yarn workspace @stitchd/admin build",
+    "dev:web": "yarn workspace @stitchd/web dev",
+    "build:web": "yarn workspace @stitchd/web build",
     "lint": "yarn workspaces run lint",
-    "test": "yarn workspaces run test",
-    "db:migrate": "yarn workspace @stitchd/api migration:run",
-    "db:seed": "yarn workspace @stitchd/api seed:run"
+    "test": "yarn workspaces run test"
   },
   "devDependencies": {
     "prettier": "^3.2.5",

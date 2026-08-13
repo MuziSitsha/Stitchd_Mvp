@@ -10,19 +10,15 @@ Flutter app implemented the old pre-pivot home-services model — none of the
 current wedding/vendor/coach/payment features were ever built there. Retiring it
 cost nothing.
 
-`apps/api` and `apps/admin` are frozen (no new feature work) and kept
-deployable as a fallback/demo during the rewrite; both are deleted at final
-cutover. The planned rename to `apps/api-legacy`/`apps/admin-legacy` is **not
-yet done**: both directories are this session's active working directories
-(primary + "additional working directories"), and Windows won't allow
-renaming a directory that a running process has open — confirmed via
-`git mv`/`Move-Item` failing with "Permission denied"/"item is in use" even
-after restarting the VS Code TypeScript server. Do the rename later from a
-plain terminal with no editor/session holding these paths open (two commands:
-`git mv apps/api apps/api-legacy`, `git mv apps/admin apps/admin-legacy`,
-then update the handful of path references listed in the commit that added
-this note), or ask Claude to retry it from a future session that isn't
-rooted inside these directories.
+`apps/api` and `apps/admin` were frozen (no new feature work), kept
+deployable as a fallback/demo during the rewrite, and deleted at final
+cutover once `apps/web` was live in production on the hosted Supabase
+project. Their Vercel deployments (`stitchd-mvp-api`, `api`) were already
+non-functional by the time of cutover — `stitchd-mvp-api.vercel.app` returned
+a 500 (`FUNCTION_INVOCATION_FAILED`), and the `api.gubudo.com` custom domain
+had no DNS record pointing at it — so nothing live depended on them. Both
+Vercel projects were removed; the `gubudo.com` domain registration itself was
+left untouched.
 
 `apps/mobile` was deleted immediately (tag: `archive/mobile-flutter-final`).
 

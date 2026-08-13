@@ -2,12 +2,11 @@ STITCHD
 
 South Africa's premium wedding planning and coordination platform — Johannesburg-first MVP
 
-> **Status:** being rebuilt end-to-end against `STITCHD-SRS-SDS.md` on a new
-> stack (Supabase + Paystack + WhatsApp + a web PWA at `apps/web`). See
-> `docs/decisions.md` for what changed and why. The sections below describe
-> the frozen legacy codebase (still at `apps/api`/`apps/admin` — a rename to
-> `-legacy` is planned but currently blocked by a local file lock, see
-> `docs/decisions.md`), kept deployable as a fallback during the rewrite.
+> **Status:** rebuilt end-to-end against `STITCHD-SRS-SDS.md` on Supabase +
+> Paystack + WhatsApp + a web PWA at `apps/web`, live in production. See
+> `docs/decisions.md` for what changed and why. The legacy `apps/api`/
+> `apps/admin` (NestJS) codebase described in parts of this README below has
+> been retired and removed — kept only in git history for reference.
 
 Built on NestJS, PostgreSQL, and AWS (legacy) / Supabase, Paystack, and a React PWA (in progress). Designed for brides, grooms, coaches, suppliers, and administrators to plan, coordinate, and track weddings with clarity and confidence.
 
@@ -25,9 +24,7 @@ Which suppliers are recommended
 Repo Structure
 stitchd/
 ├── apps/
-│   ├── web/       # React PWA — new client (client lenses, supplier portal, admin, super-admin)
-│   ├── api/       # NestJS backend API (frozen — reference only; rename to api-legacy pending)
-│   └── admin/     # React admin console (frozen — reference only; rename to admin-legacy pending)
+│   └── web/       # React PWA — client (client lenses, supplier portal, admin, super-admin)
 ├── supabase/           # Postgres schema/RLS migrations + Deno Edge Functions (the new backend)
 ├── .github/
 │   └── workflows/    # CI and deployment workflows
@@ -137,78 +134,6 @@ in `docs/decisions.md`.
 
 bashcd apps/web && npm install && npm run dev
 
-Quick Start — legacy (apps/api + apps/admin, frozen fallback)
-Prerequisites
-
-Node.js 20+
-Yarn 1.22+
-Docker (optional, for local Postgres + Redis)
-
-1. Clone and install
-bashgit clone https://github.com/MuziSitsha/Stitchd_Mvp.git
-cd Stitchd_Mvp
-yarn install
-2. Environment setup
-bashcp apps/api/.env.example apps/api/.env.local
-# Fill in your PostgreSQL DATABASE_URL and other keys
-3. Local database
-bashdocker-compose up -d
-# Starts Postgres on :5432 and Redis on :6379
-4. Start development
-bash# Backend API (port 3002)
-yarn dev:api
-
-# Admin dashboard (port 5173)
-yarn dev:admin
-
-# Swagger API docs: http://127.0.0.1:3002/docs
-
-AWS Deployment
-Production target is AWS af-south-1, fronted by CloudFront and an ALB.
-Cost estimate (monthly)
-ServiceProviderCost/moPurposeAPI computeAWS ECS Fargate~R1,200–3,000NestJS APIDatabaseAWS RDS PostgreSQL~R1,000–2,500Primary data storeCacheAWS ElastiCache Redis~R700–1,500Jobs and throttlingFile storageAWS S3~R100–400Uploads and assetsAdmin hostingAWS Amplify / S3+CloudFront~R100–500Admin dashboardCDNAWS CloudFront~R150–800Static deliveryPushFirebase FCMFreeMobile notificationsSMS OTPClickatell~R200SA phone verification
-Expected range: R3,450–R8,900 per month depending on traffic and task count.
-Required GitHub Secrets for CI/CD
-AWS_ACCESS_KEY_ID
-AWS_SECRET_ACCESS_KEY
-AWS_REGION
-AWS_ECR_REPOSITORY
-AWS_ECS_CLUSTER
-AWS_ECS_SERVICE
-AWS_ECS_TASK_FAMILY
-AWS_ECS_EXECUTION_ROLE_ARN
-AWS_ECS_TASK_ROLE_ARN
-AWS_LOG_GROUP
-PUBLIC_API_URL
-DATABASE_URL
-JWT_SECRET
-JWT_EXPIRES_IN
-JWT_REFRESH_EXPIRES_IN
-ADMIN_EMAIL
-ADMIN_PASSWORD
-ADMIN_PHONE
-REDIS_ENABLED
-REDIS_HOST
-REDIS_PORT
-REDIS_PASSWORD
-CLICKATELL_API_KEY
-FIREBASE_PROJECT_ID
-FIREBASE_CLIENT_EMAIL
-FIREBASE_PRIVATE_KEY
-PAYFAST_MERCHANT_ID
-PAYFAST_MERCHANT_KEY
-PAYFAST_PASSPHRASE
-PAYFAST_MODE
-TWILIO_ACCOUNT_SID
-TWILIO_AUTH_TOKEN
-TWILIO_PHONE_NUMBER
-AWS_S3_BUCKET_NAME
-ALLOWED_ORIGINS
-DEFAULT_COMMISSION_RATE
-TEST_DATABASE_URL
-VITE_API_BASE_URL
-AWS_ADMIN_S3_BUCKET
-AWS_ADMIN_CLOUDFRONT_DISTRIBUTION_ID
 Branch strategy
 
 main → production release
