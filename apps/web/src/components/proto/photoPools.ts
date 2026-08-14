@@ -71,6 +71,10 @@ export const FACE_POS: Record<string, string> = {
   "/photos/ef-m-7.jpg": "35% 30%", // Kagiso — side-profile, face left-of-centre
   "/photos/ef-f-8.jpg": "50% 15%", // Palesa — raised arms push the face up top
   "/photos/ef-f-7.jpg": "35% 25%", // Naledi — singing into a mic, head turned left
+  "/photos/ef-m-1.jpg": "50% 28%", // low-angle shot, lots of sky above the face
+  "/photos/ef-m-4.jpg": "50% 35%", // landscape crop, table edge fills the bottom
+  "/photos/ef-m-5.jpg": "22% 42%", // side profile, face sits in the left third
+  "/photos/ef-f-4.jpg": "50% 42%", // tall beaded headdress pushes the face down
 };
 
 export const ES_POOL = ES_POOL_FILES.map((f) => `/photos/${f}`);
