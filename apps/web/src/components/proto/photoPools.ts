@@ -71,10 +71,22 @@ export const FACE_POS: Record<string, string> = {
   "/photos/ef-m-7.jpg": "35% 30%", // Kagiso — side-profile, face left-of-centre
   "/photos/ef-f-8.jpg": "50% 15%", // Palesa — raised arms push the face up top
   "/photos/ef-f-7.jpg": "35% 25%", // Naledi — singing into a mic, head turned left
-  "/photos/ef-m-1.jpg": "50% 28%", // low-angle shot, lots of sky above the face
   "/photos/ef-m-4.jpg": "50% 35%", // landscape crop, table edge fills the bottom
-  "/photos/ef-m-5.jpg": "22% 42%", // side profile, face sits in the left third
   "/photos/ef-f-4.jpg": "50% 42%", // tall beaded headdress pushes the face down
+};
+
+// `object-position` alone can't recenter a crop on both axes at once: for a
+// portrait-oriented source in a square avatar box, `object-fit: cover` always
+// shows the FULL width (only the vertical position is adjustable), and vice
+// versa for a landscape source — so a face sitting off to one side of a tall
+// photo (ef-m-1, ef-m-5) stays pinned there no matter what object-position
+// says, rendered small against a wall of empty background. `transform-origin`
+// + `scale` fixes both axes together: scaling zooms in *around* the origin
+// point, so anchoring the origin on the face and scaling up crops the empty
+// space away on every side at once, not just one.
+export const FACE_ZOOM: Record<string, { origin: string; scale: number }> = {
+  "/photos/ef-m-1.jpg": { origin: "50% 20%", scale: 1.9 }, // face sits near the top of a wide low-angle shot
+  "/photos/ef-m-5.jpg": { origin: "28% 40%", scale: 2.2 }, // side-profile face sits in the left third
 };
 
 export const ES_POOL = ES_POOL_FILES.map((f) => `/photos/${f}`);

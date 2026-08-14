@@ -3,7 +3,7 @@ import { rgba } from "../../theme/theme";
 import type { Theme } from "../../theme/theme";
 import { hash } from "./imagery";
 import { Bust } from "./Bust";
-import { EF_M, EF_F, EF_GROOM, EF_BRIDE, EF_COACH, GUEST_FACE, FACE_POS } from "./photoPools";
+import { EF_M, EF_F, EF_GROOM, EF_BRIDE, EF_COACH, GUEST_FACE, FACE_POS, FACE_ZOOM } from "./photoPools";
 
 // Ported exactly from stitchd-v9.jsx lines 657-676.
 export function Face({
@@ -55,7 +55,16 @@ export function Face({
         src={embed}
         alt={name || ""}
         className="photo-grade"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: FACE_POS[embed] || "center" }}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: FACE_POS[embed] || "center",
+          transformOrigin: FACE_ZOOM[embed]?.origin,
+          transform: FACE_ZOOM[embed] ? `scale(${FACE_ZOOM[embed].scale})` : undefined,
+        }}
       />
     </span>
   );
