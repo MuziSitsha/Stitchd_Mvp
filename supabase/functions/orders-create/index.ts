@@ -6,10 +6,13 @@
 // Money is always recomputed here from supplier_id/qty via the same
 // pricing module baskets-price uses for its preview — never trusted from
 // the client, so a tampered total in the request body has no effect.
-import { adminClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { priceBasket } from "../_shared/pricing.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

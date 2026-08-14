@@ -2,9 +2,12 @@
 // Requires the calling supplier's own JWT — runs through their session (not
 // the service role), so RLS's leads_update_own_supplier policy is the actual
 // enforcement: an unrelated supplier's update just matches zero rows.
-import { callerClient, jsonResponse } from "../_shared/clients.ts";
+import { callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

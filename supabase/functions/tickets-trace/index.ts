@@ -5,9 +5,12 @@
 // permission matrix (§B3.5). Chain-expansion across related refs (booking ->
 // leads -> payments) lands once those entities exist from Phase 3 onward —
 // for now a ref's own activity_log rows are the whole trace.
-import { callerClient, jsonResponse } from "../_shared/clients.ts";
+import { callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
   const ref = decodeURIComponent(parts[parts.length - 1] ?? "");

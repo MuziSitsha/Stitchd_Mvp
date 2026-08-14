@@ -1,9 +1,12 @@
 // POST /functions/v1/verifications-toggle  { supplier_id, decision: "verified"|"rejected" }
 // Admin/super only (FR-ADMIN-02). Deliberately a manual toggle this week,
 // not a document-upload/review workflow (docs/decisions.md).
-import { adminClient, callerClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

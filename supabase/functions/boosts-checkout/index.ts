@@ -2,12 +2,15 @@
 // Requires the calling supplier's own JWT. Flat weekly Boost price per
 // STITCHD-SRS-SDS.md's Boost = R350/wk. Real Paystack test-mode transaction —
 // not simulated (docs/decisions.md: Boost must be genuinely real this week).
-import { adminClient, callerClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { initializeTransaction } from "../_shared/paystack.ts";
 
 const BOOST_PRICE_CENTS = 35000; // R350.00
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

@@ -2,9 +2,12 @@
 // Ops/admin/super only (STITCHD-SRS-SDS.md §5.5: Ops gets "reroute", not
 // direct accept/decline — a distinct action from leads-respond). Reassigns
 // an unclaimed lead to a different supplier; the original supplier loses it.
-import { adminClient, callerClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

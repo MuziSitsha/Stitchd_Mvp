@@ -5,10 +5,13 @@
 // Public, matching orders-create — no Supabase session in this flow.
 // NOTE: like Boost, the actual Paystack call fails until PAYSTACK_SECRET_KEY
 // is configured (deferred to go-live by design, not a bug in this function).
-import { adminClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { initializeTransaction } from "../_shared/paystack.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

@@ -4,10 +4,13 @@
 // Not the full Quoting/Order pipeline (STITCHD-SRS-SDS.md's FR-BOOK-02 spawns
 // leads from a paid order); this is the deliberately narrow Supplier Pilot
 // Week path (docs/decisions.md) — a lead a supplier can act on today.
-import { adminClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { sendSms } from "../_shared/clickatell.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

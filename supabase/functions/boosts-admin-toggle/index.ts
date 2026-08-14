@@ -8,9 +8,12 @@
 // Toggle semantics: expire an active boost if one exists, else comp a new
 // 7-day one — same shape webhooks-paystack's activateBoost() produces for a
 // real paid boost, so downstream ranking logic can't tell the difference.
-import { adminClient, callerClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

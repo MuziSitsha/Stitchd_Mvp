@@ -4,10 +4,13 @@
 // pure, idempotent, no writes, no auth. A live quote preview only; the
 // actual charge in orders-create recomputes this itself rather than
 // trusting whatever the client last saw.
-import { jsonResponse } from "../_shared/clients.ts";
+import { handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { priceBasket } from "../_shared/pricing.ts";
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }

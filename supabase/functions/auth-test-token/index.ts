@@ -4,12 +4,15 @@
 // SANDBOX_TEST_TOKENS secret; must be unset/"off" outside sandbox use.
 // Lazily creates one fixed demo user per role (test-<role>@stitchd.sandbox)
 // and keeps its role_assignment in sync, so repeated calls are idempotent.
-import { adminClient, callerClient, jsonResponse } from "../_shared/clients.ts";
+import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 
 const VALID_ROLES = ["client", "supplier", "coach", "ops", "admin", "super"] as const;
 type Role = (typeof VALID_ROLES)[number];
 
 Deno.serve(async (req) => {
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
   }
