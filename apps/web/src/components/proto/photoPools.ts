@@ -86,7 +86,8 @@ export const FACE_POS: Record<string, string> = {
 // space away on every side at once, not just one.
 export const FACE_ZOOM: Record<string, { origin: string; scale: number }> = {
   "/photos/ef-m-1.jpg": { origin: "50% 20%", scale: 1.9 }, // face sits near the top of a wide low-angle shot
-  "/photos/ef-m-5.jpg": { origin: "28% 40%", scale: 2.2 }, // side-profile face sits in the left third
+  "/photos/ef-m-5.jpg": { origin: "16% 50%", scale: 2.0 }, // side-profile face sits in the left third
+  "/photos/ef-m-4.jpg": { origin: "48% 28%", scale: 1.6 }, // landscape crop, table edge fills the bottom third
 };
 
 export const ES_POOL = ES_POOL_FILES.map((f) => `/photos/${f}`);
