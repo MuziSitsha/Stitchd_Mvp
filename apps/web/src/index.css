@@ -87,6 +87,17 @@ body {
   margin: 0;
 }
 
+/* Every card/avatar photo across the app is sourced from a different original
+   shoot (different photographers, different lighting, different color temps)
+   — without this, the pool reads as a mismatched stock-photo collage even
+   when each individual photo is fine on its own. One shared, subtle grade
+   (slightly desaturated, a touch more contrast, a warm cast) makes every
+   photo read as one deliberate brand aesthetic instead. Applied to every
+   `<img>` inside Shot.tsx/Face.tsx via this class. */
+.photo-grade {
+  filter: saturate(0.9) contrast(1.06) brightness(1.03) sepia(0.06);
+}
+
 #root {
   min-height: 100vh;
   display: flex;

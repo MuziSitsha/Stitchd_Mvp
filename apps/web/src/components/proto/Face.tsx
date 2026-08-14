@@ -54,6 +54,7 @@ export function Face({
       <img
         src={embed}
         alt={name || ""}
+        className="photo-grade"
         style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: FACE_POS[embed] || "center" }}
       />
     </span>
