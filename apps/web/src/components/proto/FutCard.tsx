@@ -1,4 +1,4 @@
-import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap, Award } from "lucide-react";
+import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap } from "lucide-react";
 import { rgba } from "../../theme/theme";
 import type { Theme } from "../../theme/theme";
 import { PALETTES } from "../../theme/palettes";
@@ -107,6 +107,22 @@ export function FutCard({
               style={{ background: sc, boxShadow: `0 0 0 2px ${rgba("#000", 0.4)}` }}
               title={s.status}
             />
+            {perf >= 90 && (
+              <div
+                className="absolute -right-9 top-4 w-32 rotate-45 text-center"
+                style={{
+                  background: "linear-gradient(135deg, #F5D77A, #B9852B)",
+                  color: "#2A1E05",
+                  fontSize: 8,
+                  fontWeight: 800,
+                  letterSpacing: 0.8,
+                  padding: "2.5px 0",
+                  boxShadow: "0 2px 5px rgba(0,0,0,0.45)",
+                }}
+              >
+                TOP RATED
+              </div>
+            )}
             {priority && (
               <span
                 className="absolute right-0 top-9 rounded-l px-1.5 py-0.5"
@@ -123,7 +139,7 @@ export function FutCard({
                 IN PACKAGE
               </span>
             )}
-            {(live?.featured || live?.verified || perf >= 90) && (
+            {(live?.featured || live?.verified) && (
               <div className="absolute bottom-9 right-2 flex flex-col items-end gap-1">
                 {live?.featured && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.accent, color: T.onAccent, fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
@@ -133,11 +149,6 @@ export function FutCard({
                 {live?.verified && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.info, color: "#fff", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
                     <ShieldCheck size={8} />VERIFIED
-                  </span>
-                )}
-                {perf >= 90 && (
-                  <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: "linear-gradient(135deg, #F5D77A, #B9852B)", color: "#2A1E05", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
-                    <Award size={8} />90+
                   </span>
                 )}
               </div>
