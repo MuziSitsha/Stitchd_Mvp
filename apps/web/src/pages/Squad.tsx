@@ -130,6 +130,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
         </div>
       </div>
 
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-4">
       <div className="min-w-0 flex-1 space-y-3">
         <div className="relative overflow-hidden rounded-2xl border" style={{ borderColor: T.border, boxShadow: T.shadow }}>
           <div className="absolute inset-0" style={{ background: `linear-gradient(110deg, ${PALETTES[pal].cols[2]}, ${PALETTES[pal].cols[0]} 55%, ${PALETTES[pal].cols[1]})` }} />
@@ -315,7 +316,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
         </Card>
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2.5 xl:sticky xl:top-24 xl:w-72 xl:shrink-0">
         <Card T={T} className="flex items-center gap-3">
           <Face seed="coach" T={T} size={46} name="Lungi Dlodlo" />
           <div className="min-w-0 flex-1">
@@ -385,6 +386,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
           </div>
           <button onClick={() => { const t = sup.find((x) => x.role === "Tent & Weather"); if (t) setSelSup(t.id); }} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold" style={btnA}><Tent size={12} />Add tent backup</button>
         </Card>
+      </div>
       </div>
     </div>
   );

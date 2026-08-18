@@ -90,7 +90,13 @@ export function FutCard({
               className="absolute inset-0"
               style={{ background: `linear-gradient(180deg, ${rgba(tier.b, 0.5)} 0%, transparent 38%, rgba(6,6,12,.86) 100%)` }}
             />
-            <div className="absolute left-2 top-1.5 rounded-lg px-1.5 py-1 text-center" style={{ background: rgba("#0A0A0E", 0.55) }}>
+            <div
+              className="absolute left-2 top-1.5 rounded-lg px-1.5 py-1 text-center"
+              style={{
+                background: rgba("#0A0A0E", 0.55),
+                ...(perf >= 90 ? { boxShadow: "0 0 0 1.5px #F5D77A, 0 0 10px rgba(245,215,122,0.55)" } : {}),
+              }}
+            >
               <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 26, lineHeight: 0.94, color: tier.a, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{perf}</div>
               <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.2, marginTop: 1, color: tier.a }}>{POS[s.role] || "SUP"}</div>
               <div className="mx-auto my-1" style={{ width: 20, height: 1.5, background: rgba(tier.a, 0.5) }} />
