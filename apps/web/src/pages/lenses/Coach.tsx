@@ -51,7 +51,7 @@ export function Coach({ setLens }: { setLens: (l: LensKey) => void }) {
         return (
           <Card key={w.id} T={T} style={{ borderColor: w.risk === "high" ? rgba(T.bad, 0.5) : live ? rgba(T.accent, 0.5) : T.border }}>
             <div className="flex items-center gap-3">
-              <Face seed={w.id} T={T} name={w.c} />
+              <Face seed={live ? "junior" : w.id} T={T} name={w.c} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="truncate text-sm font-bold">{w.c}</span>

@@ -241,7 +241,7 @@ export function Seating() {
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {tables.map((t) => {
               const at = gList.filter((g) => g.table === t.id);
               const seats = tableSeats(t.id);

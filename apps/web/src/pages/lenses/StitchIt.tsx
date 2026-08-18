@@ -170,8 +170,8 @@ export function StitchIt() {
   const activeOccasion = occasion ? OCCASIONS.find((x) => x.k === occasion) : null;
 
   return (
-    <div className="rise flex flex-col gap-4">
-      <div className="min-w-0 flex-1 space-y-4">
+    <div className="rise flex flex-col gap-3">
+      <div className="min-w-0 flex-1 space-y-3">
         <div className="relative overflow-hidden rounded-2xl border" style={{ borderColor: rgba(T.gold, 0.4), background: `linear-gradient(120deg, ${rgba(T.accent, 0.18)}, ${rgba(T.gold, 0.12)})` }}>
           <div className="p-4 sm:p-5">
             <div className="flex items-center gap-1.5"><ShoppingBag size={14} style={{ color: T.gold }} /><span style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 11, letterSpacing: 1, color: T.gold }}>STITCH IT · ON-DEMAND</span></div>
@@ -227,7 +227,7 @@ export function StitchIt() {
           <input value={hireQ} onChange={(e) => setHireQ(e.target.value)} placeholder="Search: marquee, DJ, braai, jumping castle…" className="min-w-0 flex-1 bg-transparent text-sm outline-none" style={{ color: T.ink }} />
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {items.map((h) => {
             const cm = catMeta(h.cat);
             const inBasket = !!basket[h.id];

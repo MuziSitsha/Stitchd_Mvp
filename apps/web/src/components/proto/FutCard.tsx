@@ -1,4 +1,4 @@
-import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap, Award } from "lucide-react";
 import { rgba } from "../../theme/theme";
 import type { Theme } from "../../theme/theme";
 import { PALETTES } from "../../theme/palettes";
@@ -90,11 +90,11 @@ export function FutCard({
               className="absolute inset-0"
               style={{ background: `linear-gradient(180deg, ${rgba(tier.b, 0.5)} 0%, transparent 38%, rgba(6,6,12,.86) 100%)` }}
             />
-            <div className="absolute left-2 top-1.5 text-center" style={{ color: tier.ink, textShadow: `0 1px 0 ${rgba(tier.a, 0.7)}` }}>
-              <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 26, lineHeight: 0.94 }}>{perf}</div>
-              <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.2, marginTop: 1 }}>{POS[s.role] || "SUP"}</div>
-              <div className="mx-auto my-1" style={{ width: 20, height: 1.5, background: rgba(tier.ink, 0.45) }} />
-              <Icon size={12} style={{ color: tier.ink, opacity: 0.85 }} />
+            <div className="absolute left-2 top-1.5 rounded-lg px-1.5 py-1 text-center" style={{ background: rgba("#0A0A0E", 0.55) }}>
+              <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 26, lineHeight: 0.94, color: tier.a, textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{perf}</div>
+              <div style={{ fontSize: 9, fontWeight: 800, letterSpacing: 1.2, marginTop: 1, color: tier.a }}>{POS[s.role] || "SUP"}</div>
+              <div className="mx-auto my-1" style={{ width: 20, height: 1.5, background: rgba(tier.a, 0.5) }} />
+              <Icon size={12} style={{ color: tier.a, opacity: 0.9 }} />
             </div>
             <span
               className="absolute right-2 top-2 h-3 w-3 rounded-full"
@@ -117,7 +117,7 @@ export function FutCard({
                 IN PACKAGE
               </span>
             )}
-            {(live?.featured || live?.verified) && (
+            {(live?.featured || live?.verified || perf > 90) && (
               <div className="absolute bottom-9 right-2 flex flex-col items-end gap-1">
                 {live?.featured && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.accent, color: T.onAccent, fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
@@ -127,6 +127,11 @@ export function FutCard({
                 {live?.verified && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.info, color: "#fff", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
                     <ShieldCheck size={8} />VERIFIED
+                  </span>
+                )}
+                {perf > 90 && (
+                  <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: "linear-gradient(135deg, #F5D77A, #B9852B)", color: "#2A1E05", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
+                    <Award size={8} />90+
                   </span>
                 )}
               </div>
@@ -184,7 +189,7 @@ export function FutCard({
             fontWeight: 800,
             letterSpacing: 0.3,
             ...(s.status === "confirmed"
-              ? { background: rgba(T.good, 0.16), color: T.good }
+              ? { background: T.good, color: "#fff" }
               : s.status === "issue"
                 ? { background: T.bad, color: "#fff" }
                 : { background: T.accent, color: T.onAccent }),

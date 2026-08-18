@@ -18,7 +18,7 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`rounded-2xl border p-3 ${onClick ? "lift press" : ""} ${className}`}
+      className={`rounded-2xl border p-2.5 ${onClick ? "lift press" : ""} ${className}`}
       style={{ background: T.panel, borderColor: T.border, boxShadow: T.shadow, ...style }}
     >
       {children}

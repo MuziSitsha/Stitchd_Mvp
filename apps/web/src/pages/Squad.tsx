@@ -95,11 +95,11 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
 
     return {
       chemistry: { v: chemistry, label: "Chemistry", insight: chemInsight, act: sup.some((s) => s.status === "issue") ? "Resolve supplier clash" : "Lock palette suppliers", go: () => setLens("suppliers"), I: Sparkles },
-      budgetReady: { v: budgetReady, label: "Budget Readiness", insight: budgetRisk, act: "Open budget", go: () => setLens("budget"), I: Wallet },
-      supplier: { v: supPct, label: "Supplier Progress", insight: `${conf} of ${sup.length} suppliers confirmed`, act: "Open squad", go: () => setLens("squad"), I: Users },
-      guest: { v: R.rsvpPct, label: "Guest Readiness", insight: `${yesSeats} seats confirmed · ${rsvp.pend} households pending`, act: "Chase RSVPs", go: () => setLens("rsvp"), I: Mail },
-      planning: { v: taskPct, label: "Planning Completion", insight: `${tasks.filter((t) => t.st !== "done").length} tasks still open`, act: "Open tasks", go: () => setLens("tasks"), I: CheckCircle2 },
-      payments: { v: paySoon.length, isCount: true, label: "Upcoming Payments", insight: paySoon.length ? `Next: ${paySoon[0].title.replace(/\(.*\)/, "").trim()}` : "No payments due", act: "Open tasks", go: () => setLens("tasks"), I: Clock },
+      budgetReady: { v: budgetReady, label: "Budget", insight: budgetRisk, act: "Open budget", go: () => setLens("budget"), I: Wallet },
+      supplier: { v: supPct, label: "Suppliers", insight: `${conf} of ${sup.length} suppliers confirmed`, act: "Open squad", go: () => setLens("squad"), I: Users },
+      guest: { v: R.rsvpPct, label: "Guests", insight: `${yesSeats} seats confirmed · ${rsvp.pend} households pending`, act: "Chase RSVPs", go: () => setLens("rsvp"), I: Mail },
+      planning: { v: taskPct, label: "Planning", insight: `${tasks.filter((t) => t.st !== "done").length} tasks still open`, act: "Open tasks", go: () => setLens("tasks"), I: CheckCircle2 },
+      payments: { v: paySoon.length, isCount: true, label: "Payments", insight: paySoon.length ? `Next: ${paySoon[0].title.replace(/\(.*\)/, "").trim()}` : "No payments due", act: "Open tasks", go: () => setLens("tasks"), I: Clock },
     };
   }, [sup, gList, tasks, budget, R.rsvpPct, rsvp.pend, BUDGET_ITEMS, setLens]);
 
@@ -120,7 +120,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
   const bigNum = { fontFamily: "'Archivo Black',sans-serif", lineHeight: 1, fontVariantNumeric: "tabular-nums" as const };
 
   return (
-    <div className="rise flex flex-col gap-4">
+    <div className="rise flex flex-col gap-3">
       <div className="-mx-3 mb-1 flex gap-2 overflow-x-auto px-3 pb-1">
         {["chemistry", "budgetReady", "supplier", "guest", "planning", "payments"].map((key) => (
           <div key={key} className="w-40 shrink-0"><KpiTile k={KPIS[key]} T={T} compact /></div>
@@ -243,9 +243,9 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
               <rect x="357" y="32" width="42" height="56" fill="none" stroke={T.ink} strokeWidth="1" />
             </svg>
             <div className="relative px-3 pb-3 pt-2.5">
-              <div className="mb-2 flex items-center gap-2">
+              <div className="mb-1.5 flex items-center gap-2">
                 <Star size={13} style={{ color: T.gold }} fill="currentColor" />
-                <span style={{ ...bigNum, fontSize: 12, letterSpacing: 1.4 }}>STARTING XI</span>
+                <span style={{ ...bigNum, fontSize: 12, letterSpacing: 1.4 }}>CORE TEAM</span>
                 <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 800, background: rgba(coreList.length > coreN ? T.bad : T.ink, 0.1), color: coreList.length > coreN ? T.bad : T.sub }}>
                   {coreList.length}/{coreN}
                 </span>
@@ -278,9 +278,9 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
             className="border-t px-3 pb-3 pt-2.5"
             style={{ borderColor: T.border, background: hoverZone === "bench" ? rgba(T.accent, 0.06) : "transparent" }}
           >
-            <div className="mb-2 flex items-center gap-2">
+            <div className="mb-1.5 flex items-center gap-2">
               <UsersRound size={13} style={{ color: T.accent }} />
-              <span style={{ ...bigNum, fontSize: 12, letterSpacing: 1.4 }}>SUBS BENCH</span>
+              <span style={{ ...bigNum, fontSize: 12, letterSpacing: 1.4 }}>BENCH</span>
               <span className="rounded-full px-1.5 py-0.5" style={{ fontSize: 9, fontWeight: 800, background: rgba(T.ink, 0.08), color: T.sub }}>{benchList.length}</span>
               {pRoles.size > 0 && <span className="ml-auto truncate" style={{ fontSize: 9.5, color: T.gold }}>priority roles ranked first</span>}
             </div>
