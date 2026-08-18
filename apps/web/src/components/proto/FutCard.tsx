@@ -117,7 +117,7 @@ export function FutCard({
                 IN PACKAGE
               </span>
             )}
-            {(live?.featured || live?.verified || perf > 90) && (
+            {(live?.featured || live?.verified || perf >= 90) && (
               <div className="absolute bottom-9 right-2 flex flex-col items-end gap-1">
                 {live?.featured && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.accent, color: T.onAccent, fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
@@ -129,7 +129,7 @@ export function FutCard({
                     <ShieldCheck size={8} />VERIFIED
                   </span>
                 )}
-                {perf > 90 && (
+                {perf >= 90 && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: "linear-gradient(135deg, #F5D77A, #B9852B)", color: "#2A1E05", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
                     <Award size={8} />90+
                   </span>
