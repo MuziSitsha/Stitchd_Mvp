@@ -121,10 +121,13 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
 
   return (
     <div className="rise flex flex-col gap-3">
-      <div className="-mx-3 mb-1 flex gap-2 overflow-x-auto px-3 pb-1">
-        {["chemistry", "budgetReady", "supplier", "guest", "planning", "payments"].map((key) => (
-          <div key={key} className="w-40 shrink-0"><KpiTile k={KPIS[key]} T={T} compact /></div>
-        ))}
+      <div className="relative -mx-3 mb-1">
+        <div className="pointer-events-none absolute bottom-1 right-0 top-0 w-8" style={{ background: `linear-gradient(90deg, transparent, ${T.bg})` }} />
+        <div className="flex gap-2 overflow-x-auto px-3 pb-1">
+          {["chemistry", "budgetReady", "supplier", "guest", "planning", "payments"].map((key) => (
+            <div key={key} className="w-40 shrink-0"><KpiTile k={KPIS[key]} T={T} compact /></div>
+          ))}
+        </div>
       </div>
 
       <div className="min-w-0 flex-1 space-y-3">

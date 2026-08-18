@@ -82,7 +82,7 @@ export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
 
   return (
     <div className="rise">
-      <Card T={T} className="flex flex-col" style={{ height: "62vh", minHeight: 420 }}>
+      <Card T={T} className="flex flex-col" style={{ height: "62dvh", minHeight: 420 }}>
         <div className="mb-2 flex items-center gap-2 border-b pb-2" style={{ borderColor: T.border }}>
           <Face seed="coach" T={T} name="Lungi Dlodlo" />
           <div className="min-w-0 flex-1">
@@ -111,10 +111,10 @@ export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
           )}
           <div ref={chatEnd} />
         </div>
-        <div className="mt-2 flex gap-2 border-t pt-2" style={{ borderColor: T.border }}>
-          <input value={draft} onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => e.key === "Enter" && sendMsg()} placeholder="Ask about budget, RSVPs, palette, risk…" className="min-w-0 flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={inputS} />
-          <button onClick={() => sendMsg()} aria-label="Send" className="rounded-xl px-3 py-2" style={btnA}><Send size={15} /></button>
-        </div>
+        <form onSubmit={(e) => { e.preventDefault(); sendMsg(); }} className="mt-2 flex gap-2 border-t pt-2" style={{ borderColor: T.border }}>
+          <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about budget, RSVPs, palette, risk…" className="min-w-0 flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={inputS} />
+          <button type="submit" aria-label="Send" className="rounded-xl px-3 py-2" style={btnA}><Send size={15} /></button>
+        </form>
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {["What's our rain plan?", "Where's the budget at?", "What's still at risk?", "Talk me through the palette", "How ready are we?"].map((x) => (
             <button key={x} onClick={() => sendMsg(x)} className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs" style={btnG}>{x}</button>

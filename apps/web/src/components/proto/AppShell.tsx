@@ -99,7 +99,12 @@ export function AppShell({
             </button>
           </div>
         </div>
-        <div className="mx-auto max-w-[1400px] overflow-x-auto px-4 pb-2">
+        <div className="relative mx-auto max-w-[1400px]">
+          <div
+            className="pointer-events-none absolute bottom-2 right-0 top-0 w-8"
+            style={{ background: `linear-gradient(90deg, transparent, ${mode === "dark" ? "#0A0A0E" : "#F3F1ED"})` }}
+          />
+          <div className="overflow-x-auto px-4 pb-2">
           <div className="flex gap-1.5">
             {visibleLenses.map(({ k, l, I, glow }) => (
               <button
@@ -118,6 +123,7 @@ export function AppShell({
                 )}
               </button>
             ))}
+          </div>
           </div>
         </div>
       </div>
