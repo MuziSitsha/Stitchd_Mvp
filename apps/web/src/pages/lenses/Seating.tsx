@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { UsersRound, Plus, Zap, ArrowLeftRight, Check, AlertTriangle, Info, Bell, ShieldCheck, X } from "lucide-react";
+import { UsersRound, Plus, Zap, ArrowLeftRight, Check, AlertTriangle, Info, Bell, ShieldCheck, X, Utensils } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
+import type { Theme } from "../../theme/theme";
 import { Card } from "../../components/proto/Card";
 import { Chip } from "../../components/proto/Chip";
 import { Face } from "../../components/proto/Face";
-import { REL_GROUPS, REL_SHORT, SEAT_CAP, randR } from "../../components/proto/data";
+import { REL_GROUPS, REL_SHORT, DIET_OPTIONS, SEAT_CAP, randR } from "../../components/proto/data";
 import { useProtoState, type Guest } from "../../state/ProtoState";
 
 const bigNum = { fontFamily: "'Archivo Black',sans-serif", lineHeight: 1, fontVariantNumeric: "tabular-nums" as const };
@@ -15,16 +16,40 @@ const relMetaFor = (T: { warn: string; info: string }) => (g: Guest) => ({
   col: g.rel.startsWith("Bride") ? "#D98A9A" : g.rel.startsWith("Groom") ? "#6C93CC" : g.child ? T.warn : T.info,
 });
 
+// Click-to-toggle dietary picklist for one guest — used both in the
+// Unassigned list and the seated-guest rows, so suppliers get a consistent,
+// scannable set of values instead of free text.
+function DietPicker({ g, T, toggle }: { g: Guest; T: Theme; toggle: (id: string, need: string) => void }) {
+  return (
+    <div className="mt-1 flex flex-wrap gap-1" onClick={(e) => e.stopPropagation()}>
+      {DIET_OPTIONS.map((opt) => {
+        const active = g.needs.some(([k]) => k === opt);
+        return (
+          <button
+            key={opt}
+            onClick={() => toggle(g.id, opt)}
+            className="press rounded-full px-1.5 py-0.5 font-bold"
+            style={{ fontSize: 9.5, ...(active ? { background: T.warn, color: "#fff" } : { background: T.panel2, color: T.sub, border: `1px solid ${T.border}` }) }}
+          >
+            {opt}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // Ported exactly from stitchd-v9.jsx lines 2008-2165.
 export function Seating() {
   const { T } = useTheme();
   const {
     gList, setGList, tables, setTables, toast,
-    changeReqs, headcountBase, raiseChangeReqs, resolveChange,
+    changeReqs, headcountBase, raiseChangeReqs, resolveChange, toggleGuestNeed,
   } = useProtoState();
   const [seatSel, setSeatSel] = useState("T1");
   const [seatQ, setSeatQ] = useState("");
   const [seatRel, setSeatRel] = useState("all");
+  const [dietEditId, setDietEditId] = useState<string | null>(null);
   const [dragG, setDragG] = useState<string | null>(null);
   const [dropTbl, setDropTbl] = useState<string | null>(null);
   const [seatHist, setSeatHist] = useState<{ id: string; table: string | null }[][]>([]);
@@ -222,16 +247,27 @@ export function Seating() {
               {unseated.map((g) => {
                 const m = relMeta(g);
                 return (
-                  <div key={g.id} draggable onDragStart={() => setDragG(g.id)} onDragEnd={() => setDragG(null)} className="press flex cursor-grab items-center gap-2 rounded-lg border p-1.5" style={{ borderColor: T.border, background: T.panel2 }}>
-                    <Face seed={g.id} T={T} size={28} name={g.name} tone={m.col} ring={rgba(m.col, 0.6)} />
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-xs font-semibold">{g.name}</div>
-                      <div className="truncate" style={{ fontSize: 9.5, color: m.col }}>{m.label}{g.party > 1 ? ` · ${g.party}` : ""}{g.child ? " · child" : ""}</div>
+                  <div key={g.id} draggable onDragStart={() => setDragG(g.id)} onDragEnd={() => setDragG(null)} className="press cursor-grab rounded-lg border p-1.5" style={{ borderColor: T.border, background: T.panel2 }}>
+                    <div className="flex items-center gap-2">
+                      <Face seed={g.id} T={T} size={28} name={g.name} tone={m.col} ring={rgba(m.col, 0.6)} />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-semibold">{g.name}</div>
+                        <div className="truncate" style={{ fontSize: 9.5, color: m.col }}>{m.label}{g.party > 1 ? ` · ${g.party}` : ""}{g.child ? " · child" : ""}</div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDietEditId(dietEditId === g.id ? null : g.id); }}
+                        aria-label={`Edit dietary requirements for ${g.name}`}
+                        className="flex items-center gap-0.5 rounded px-1 py-1"
+                        style={{ color: g.needs.length ? T.warn : T.faint, fontSize: 9.5, fontWeight: 700 }}
+                      >
+                        <Utensils size={12} />{g.needs.length || ""}
+                      </button>
+                      <select value="" onChange={(e) => e.target.value && seatGuest(g.id, e.target.value)} className="rounded px-1 py-1 text-xs" style={{ ...inputS, fontSize: 10 }} aria-label={`Seat ${g.name}`}>
+                        <option value="">Seat…</option>
+                        {tables.filter((t) => !t.locked).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                      </select>
                     </div>
-                    <select value="" onChange={(e) => e.target.value && seatGuest(g.id, e.target.value)} className="rounded px-1 py-1 text-xs" style={{ ...inputS, fontSize: 10 }} aria-label={`Seat ${g.name}`}>
-                      <option value="">Seat…</option>
-                      {tables.filter((t) => !t.locked).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
+                    {dietEditId === g.id && <DietPicker g={g} T={T} toggle={toggleGuestNeed} />}
                   </div>
                 );
               })}
@@ -311,10 +347,21 @@ export function Seating() {
                       {at.map((g) => {
                         const m = relMeta(g);
                         return (
-                          <div key={g.id} className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: T.panel2 }}>
-                            <Face seed={g.id} T={T} size={24} name={g.name} tone={m.col} />
-                            <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold">{g.name}</div><div className="truncate" style={{ fontSize: 9, color: m.col }}>{m.label}</div></div>
-                            <button onClick={() => unseat(g.id)} aria-label={`Remove ${g.name}`} className="rounded p-0.5" style={{ color: T.faint }}><X size={12} /></button>
+                          <div key={g.id} className="rounded-lg p-1" style={{ background: T.panel2 }}>
+                            <div className="flex items-center gap-1.5">
+                              <Face seed={g.id} T={T} size={24} name={g.name} tone={m.col} />
+                              <div className="min-w-0 flex-1"><div className="truncate text-xs font-semibold">{g.name}</div><div className="truncate" style={{ fontSize: 9, color: m.col }}>{m.label}</div></div>
+                              <button
+                                onClick={() => setDietEditId(dietEditId === g.id ? null : g.id)}
+                                aria-label={`Edit dietary requirements for ${g.name}`}
+                                className="flex items-center gap-0.5 rounded p-0.5"
+                                style={{ color: g.needs.length ? T.warn : T.faint }}
+                              >
+                                <Utensils size={11} />
+                              </button>
+                              <button onClick={() => unseat(g.id)} aria-label={`Remove ${g.name}`} className="rounded p-0.5" style={{ color: T.faint }}><X size={12} /></button>
+                            </div>
+                            {dietEditId === g.id && <DietPicker g={g} T={T} toggle={toggleGuestNeed} />}
                           </div>
                         );
                       })}

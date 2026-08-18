@@ -116,6 +116,7 @@ export const REL_GROUPS = [
   "Bride's immediate family", "Groom's immediate family", "Bride's extended family", "Groom's extended family",
   "Wedding party", "Mutual friends", "Bride's friends", "Groom's friends", "Colleagues", "Family friends", "Children", "Other",
 ];
+export const DIET_OPTIONS = ["Halal", "Vegetarian", "Vegan", "Gluten-free", "Nut allergy", "Kosher", "Other"];
 export const REL_SHORT: Record<string, string> = {
   "Bride's immediate family": "Bride · immediate", "Groom's immediate family": "Groom · immediate",
   "Bride's extended family": "Bride · extended", "Groom's extended family": "Groom · extended",

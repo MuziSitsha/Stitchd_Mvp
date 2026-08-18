@@ -37,6 +37,7 @@ interface ProtoStateValue {
   moveZone: (id: string) => void;
   applyBundle: () => void;
   setRsvp: (id: string, val: RsvpVal) => void;
+  toggleGuestNeed: (id: string, need: string) => void;
   markReminded: (id: string) => void;
   chaseRsvp: () => void;
   channelLink: (g: Guest) => string;
@@ -151,6 +152,16 @@ export function ProtoStateProvider({
     setGList((gs) => gs.map((x) => (x.id === id ? { ...x, rsvp: val } : x)));
   }
 
+  function toggleGuestNeed(id: string, need: string) {
+    setGList((gs) =>
+      gs.map((x) => {
+        if (x.id !== id) return x;
+        const has = x.needs.some(([k]) => k === need);
+        return { ...x, needs: has ? x.needs.filter(([k]) => k !== need) : [...x.needs, [need, 1] as [string, number]] };
+      }),
+    );
+  }
+
   function rsvpMsg(g: Guest) {
     return `Hi ${g.name.split(" ")[0]}, it's Lungi from VIP Hosting. Junior & Nadine are getting married on Saturday 14 November 2026 at Oakfield Farm, Muldersdrift. We have you down for ${g.party} seat${g.party > 1 ? "s" : ""}. Could you confirm by ${WEDDING.rsvpDeadline}? Let me know any dietary needs and I'll pass them to the caterer.`;
   }
@@ -254,7 +265,7 @@ export function ProtoStateProvider({
     sup, setSup, gList, setGList, tables, setTables, tasks, setTasks,
     budgetCap, setBudgetCap, pinned, setPinned, bundleApplied,
     msgs, setMsgs, chased, toasts, toast,
-    secure, moveZone, applyBundle, setRsvp, markReminded, chaseRsvp, channelLink,
+    secure, moveZone, applyBundle, setRsvp, toggleGuestNeed, markReminded, chaseRsvp, channelLink,
     changeReqs, headcountBase, raiseChangeReqs, resolveChange,
     guests, setGuests, profile, showOnb, setShowOnb, finishOnboarding,
     basket, setBasket,
