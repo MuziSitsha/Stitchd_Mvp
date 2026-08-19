@@ -20,13 +20,13 @@ export function KpiTile({ k, T, compact }: { k: KpiDef; T: Theme; compact?: bool
   const status = isCount ? (v > 0 ? "due soon" : "clear") : v >= 75 ? "on track" : v >= 50 ? "needs work" : "at risk";
 
   return (
-    <button onClick={k.go} className="lift press w-full rounded-xl border p-2.5 text-left" style={{ background: T.panel, borderColor: T.border }}>
-      <div className="flex items-center gap-2">
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: rgba(col, 0.14), color: col }}>
-          <k.I size={14} />
+    <button onClick={k.go} className={`lift press w-full rounded-xl border text-left ${compact ? "p-2" : "p-2.5"}`} style={{ background: T.panel, borderColor: T.border }}>
+      <div className={`flex items-center ${compact ? "gap-1.5" : "gap-2"}`}>
+        <span className={`flex shrink-0 items-center justify-center rounded-lg ${compact ? "h-6 w-6" : "h-7 w-7"}`} style={{ background: rgba(col, 0.14), color: col }}>
+          <k.I size={compact ? 12 : 14} />
         </span>
-        <span className="min-w-0 flex-1 truncate text-xs font-bold" style={{ color: T.ink }}>{k.label}</span>
-        <span className="tnum shrink-0" style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 17, color: col, lineHeight: 1 }}>
+        <span className="min-w-0 flex-1 truncate font-bold" style={{ color: T.ink, fontSize: compact ? 11 : 12 }}>{k.label}</span>
+        <span className="tnum shrink-0" style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: compact ? 15 : 17, color: col, lineHeight: 1 }}>
           {v}
           {!isCount && <span style={{ fontSize: 9, color: T.faint }}>%</span>}
         </span>

@@ -125,12 +125,12 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
         <div className="pointer-events-none absolute bottom-1 right-0 top-0 w-8" style={{ background: `linear-gradient(90deg, transparent, ${T.bg})` }} />
         <div className="flex gap-2 overflow-x-auto px-3 pb-1">
           {["chemistry", "budgetReady", "supplier", "guest", "planning", "payments"].map((key) => (
-            <div key={key} className="w-40 shrink-0"><KpiTile k={KPIS[key]} T={T} compact /></div>
+            <div key={key} className="w-36 shrink-0"><KpiTile k={KPIS[key]} T={T} compact /></div>
           ))}
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:gap-4">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-4">
       <div className="min-w-0 flex-1 space-y-3">
         <div className="relative overflow-hidden rounded-2xl border" style={{ borderColor: T.border, boxShadow: T.shadow }}>
           <div className="absolute inset-0" style={{ background: `linear-gradient(110deg, ${PALETTES[pal].cols[2]}, ${PALETTES[pal].cols[0]} 55%, ${PALETTES[pal].cols[1]})` }} />
@@ -316,7 +316,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
         </Card>
       </div>
 
-      <div className="space-y-2.5 xl:sticky xl:top-24 xl:w-72 xl:shrink-0">
+      <div className="space-y-2.5 lg:sticky lg:top-24 lg:w-72 lg:shrink-0">
         <Card T={T} className="flex items-center gap-3">
           <Face seed="coach" T={T} size={46} name="Lungi Dlodlo" />
           <div className="min-w-0 flex-1">
