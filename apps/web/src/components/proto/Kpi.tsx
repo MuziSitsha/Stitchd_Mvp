@@ -31,11 +31,9 @@ export function KpiTile({ k, T, compact }: { k: KpiDef; T: Theme; compact?: bool
           {!isCount && <span style={{ fontSize: 9, color: T.faint }}>%</span>}
         </span>
       </div>
-      {!isCount && (
-        <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: rgba(T.ink, 0.08) }}>
-          <div className="h-full rounded-full" style={{ width: `${Math.min(100, v)}%`, background: col, transition: "width .6s cubic-bezier(.16,1,.3,1)" }} />
-        </div>
-      )}
+      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full" style={{ background: rgba(T.ink, 0.08) }}>
+        {!isCount && <div className="h-full rounded-full" style={{ width: `${Math.min(100, v)}%`, background: col, transition: "width .6s cubic-bezier(.16,1,.3,1)" }} />}
+      </div>
       <div className="mt-1.5 flex items-center gap-1.5">
         <span className="rounded px-1 py-0.5" style={{ fontSize: 8.5, fontWeight: 800, letterSpacing: 0.4, background: rgba(col, 0.12), color: col }}>
           {status.toUpperCase()}

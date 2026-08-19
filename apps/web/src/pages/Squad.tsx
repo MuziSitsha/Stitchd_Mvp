@@ -190,8 +190,8 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
 
         <button onClick={() => setLens("stitchit")} className="press lift group relative w-full overflow-hidden rounded-2xl border p-0 text-left" style={{ borderColor: rgba(T.gold, 0.45) }}>
           <div className="absolute inset-0" style={{ background: `linear-gradient(120deg, ${rgba(T.accent, 0.2)}, ${rgba(T.gold, 0.14)})` }} />
-          <div className="relative flex items-center gap-3 p-3.5">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.gold, 0.18) }}><ShoppingBag size={20} style={{ color: T.gold }} /></div>
+          <div className="relative flex items-center gap-2.5 p-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.gold, 0.18) }}><ShoppingBag size={17} style={{ color: T.gold }} /></div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold">Need something this weekend?</span>
@@ -208,20 +208,20 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
           if (!venue || !venue.bundle) return null;
           return !bundleApplied ? (
             <Card T={T} style={{ borderColor: rgba(T.gold, 0.5), background: `linear-gradient(120deg, ${rgba(T.gold, 0.1)}, transparent)` }}>
-              <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.gold, 0.15) }}><Gift size={19} style={{ color: T.gold }} /></div>
+              <div className="flex items-start gap-2.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.gold, 0.15) }}><Gift size={16} style={{ color: T.gold }} /></div>
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className="text-sm font-bold">{venue.name} — multi-service supplier</span>
                     <Chip c={T.gold} T={T}>Package includes {venue.bundle.length}</Chip>
                     <Chip c={T.good} T={T}>Save {fmtR(venue.bundleSaving!)}</Chip>
                   </div>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
+                  <div className="mt-1 flex flex-wrap gap-1">
                     {venue.bundle.map(([svc, cost]) => (
                       <span key={svc} className="flex items-center gap-1 rounded-md px-1.5 py-0.5 tnum" style={{ fontSize: 10.5, background: T.panel2, color: T.sub }}>{svc} <b style={{ color: T.ink }}>{fmtR(cost)}</b></span>
                     ))}
                   </div>
-                  <div className="mt-1.5 text-xs tnum" style={{ color: T.sub }}>
+                  <div className="mt-1 text-xs tnum" style={{ color: T.sub }}>
                     À la carte <b style={{ color: T.ink }}>{fmtR(venue.bundleList!)}</b> → package <b style={{ color: T.good }}>{fmtR(venue.price)}</b>. One contract, one deposit, one point of contact.
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export function Squad({ setLens }: { setLens: (l: LensKey) => void }) {
         </Card>
       </div>
 
-      <div className="space-y-2.5 lg:sticky lg:top-24 lg:w-72 lg:shrink-0">
+      <div className="space-y-2.5 lg:w-72 lg:shrink-0">
         <Card T={T} className="flex items-center gap-3">
           <Face seed="coach" T={T} size={46} name="Lungi Dlodlo" />
           <div className="min-w-0 flex-1">
