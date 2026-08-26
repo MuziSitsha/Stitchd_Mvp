@@ -14,11 +14,11 @@ export type BudgetItem = (typeof BUDGET_SEED)[number] & { boosted?: true };
 // useReadiness's copy ignored both) — pulling the calculation back into one
 // hook is what keeps them from re-diverging.
 export function useBudget() {
-  const { budgetCap, pinned, bundleApplied, profile } = useProtoState();
+  const { budgetCap, pinned, extraBudgetItems, bundleApplied, profile } = useProtoState();
   const pCats = useMemo(() => catsFor(profile.prior), [profile.prior]);
   const BUDGET_ITEMS: BudgetItem[] = useMemo(
-    () => BUDGET_SEED.map((b) => (pCats.has(b.cat) ? { ...b, need: Math.min(10, b.need + 2), boosted: true as const } : b)),
-    [pCats],
+    () => [...BUDGET_SEED, ...extraBudgetItems].map((b) => (pCats.has(b.cat) ? { ...b, need: Math.min(10, b.need + 2), boosted: true as const } : b)),
+    [pCats, extraBudgetItems],
   );
 
   const budget = useMemo(() => {

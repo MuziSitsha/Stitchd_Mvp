@@ -1,18 +1,26 @@
 import { useMemo, useState } from "react";
-import { AlertTriangle, Bell, Check, Utensils, MapPin, Phone, Mail, MessageSquare } from "lucide-react";
+import { AlertTriangle, Bell, Check, Utensils, MapPin, Phone, Mail, MessageSquare, ChevronDown } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
 import { Card } from "../../components/proto/Card";
 import { Chip } from "../../components/proto/Chip";
 import { Ring } from "../../components/proto/Ring";
 import { Face } from "../../components/proto/Face";
-import { WEDDING, RSVP_DAYS, RSVP_BASE, REL_GROUPS, REL_SHORT } from "../../components/proto/data";
-import { useProtoState, type RsvpVal } from "../../state/ProtoState";
+import { WEDDING, RSVP_DAYS, RSVP_BASE, REL_GROUPS, REL_SHORT, GUEST_QUOTES } from "../../components/proto/data";
+import { useProtoState, type RsvpVal, type Guest } from "../../state/ProtoState";
+import type { LensKey } from "../../components/proto/AppShell";
 
 const RSVP_C: Record<RsvpVal, string> = { yes: "#3FB27F", no: "#F0644C", pending: "#E9B84C" };
 
-// Ported exactly from stitchd-v9.jsx lines 1902-2005.
-export function Rsvp() {
+function nudgeMsg(g: Guest) {
+  return `Hi ${g.name.split(" ")[0]}, it's Lungi from VIP Hosting. Junior & Nadine are getting married on Saturday 14 November 2026 at Oakfield Farm, Muldersdrift. We have you down for ${g.party} seat${g.party > 1 ? "s" : ""}. Could you confirm by ${WEDDING.rsvpDeadline}? Let me know any dietary needs and I'll pass them to the caterer.`;
+}
+
+// Ported (and extended) from stitchd-v9.jsx lines 1902-2005 — the funnel/
+// feed/nudge section above is new real content (built from the same gList
+// this file already owned), the individual-editing table below is the
+// original, unchanged and still the only place an RSVP actually gets set.
+export function Rsvp({ setLens }: { setLens: (l: LensKey) => void }) {
   const { T } = useTheme();
   const { gList, tables, setRsvp, markReminded, chaseRsvp, channelLink, chased, guests, profile, toast } = useProtoState();
   const [rsvpFilter, setRsvpFilter] = useState("pending");
@@ -20,6 +28,9 @@ export function Rsvp() {
   const [guestQ, setGuestQ] = useState("");
   const [guestSel, setGuestSel] = useState<Set<string>>(new Set());
   const bigNum = { fontFamily: "'Archivo Black',sans-serif", lineHeight: 1, fontVariantNumeric: "tabular-nums" as const };
+
+  const quoted = useMemo(() => gList.filter((g) => GUEST_QUOTES[g.id]), [gList]);
+  const pendingSample = useMemo(() => gList.find((g) => g.rsvp === "pending"), [gList]);
 
   const rsvp = useMemo(() => {
     const seats = gList.reduce((a, g) => a + g.party, 0);
@@ -52,26 +63,28 @@ export function Rsvp() {
   return (
     <div className="space-y-3 rise">
       <Card T={T} style={{ borderColor: rsvp.pend > 0 ? rgba(T.bad, 0.5) : rgba(T.good, 0.4) }}>
-        <div className="flex flex-wrap items-center gap-4">
-          <Ring score={rsvp.pct} T={T} size={84} label="in" />
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span style={{ ...bigNum, fontSize: 18 }}>RSVP tracker</span>
-              {rsvp.pend > 0 && <Chip c={T.bad} T={T}><AlertTriangle size={11} />Critical</Chip>}
-            </div>
-            <div className="text-xs" style={{ color: T.sub }}>
-              Deadline {WEDDING.rsvpDeadline} · <b style={{ color: RSVP_DAYS < 90 ? T.bad : T.sub }}>{RSVP_DAYS} days left</b> · <b style={{ color: T.ink }}>{rsvp.pendSeats} seats</b> still unanswered on this list.
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <button
-                onClick={chaseRsvp}
-                disabled={rsvp.pend === 0}
-                className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold"
-                style={rsvp.pend === 0 ? { background: "transparent", color: T.sub, border: `1px solid ${T.border}`, opacity: 0.6 } : { background: T.accent, color: T.onAccent }}
-              >
-                <Bell size={13} />Queue {profile.comm} round · {rsvp.pend}
-              </button>
-              {chased && <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: T.good }}><Check size={13} />Reminder logged against each household</span>}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex flex-1 items-center gap-4">
+            <Ring score={rsvp.pct} T={T} size={84} label="in" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span style={{ ...bigNum, fontSize: 18 }}>RSVP tracker</span>
+                {rsvp.pend > 0 && <Chip c={T.bad} T={T}><AlertTriangle size={11} />Critical</Chip>}
+              </div>
+              <div className="text-xs" style={{ color: T.sub }}>
+                Deadline {WEDDING.rsvpDeadline} · <b style={{ color: RSVP_DAYS < 90 ? T.bad : T.sub }}>{RSVP_DAYS} days left</b> · <b style={{ color: T.ink }}>{rsvp.pendSeats} seats</b> still unanswered on this list.
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={chaseRsvp}
+                  disabled={rsvp.pend === 0}
+                  className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold"
+                  style={rsvp.pend === 0 ? { background: "transparent", color: T.sub, border: `1px solid ${T.border}`, opacity: 0.6 } : { background: T.accent, color: T.onAccent }}
+                >
+                  <Bell size={13} />Queue {profile.comm} round · {rsvp.pend}
+                </button>
+                {chased && <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: T.good }}><Check size={13} />Reminder logged against each household</span>}
+              </div>
             </div>
           </div>
           <div className="flex gap-2">
@@ -84,6 +97,61 @@ export function Rsvp() {
           </div>
         </div>
       </Card>
+
+      <div className="grid gap-3 lg:grid-cols-[1fr_320px] lg:items-start">
+        <Card T={T}>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold">What people are saying</span>
+            <button onClick={() => setLens("guestlist")} className="text-xs font-bold" style={{ color: T.accent }}>Full guest list →</button>
+          </div>
+          <div className="space-y-2">
+            {quoted.map((g) => (
+              <div key={g.id} className="flex items-start gap-2.5 rounded-xl border p-2.5" style={{ borderColor: T.border }}>
+                <Face seed={g.id} T={T} size={32} name={g.name} ring={rgba(RSVP_C[g.rsvp], 0.7)} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="truncate text-xs font-bold">{g.house}</span>
+                    <span className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ background: rgba(RSVP_C[g.rsvp], 0.14), color: RSVP_C[g.rsvp] }}>{g.rsvp === "yes" ? "Coming" : g.rsvp === "no" ? "Can't come" : "Pending"}</span>
+                  </div>
+                  <div className="mt-0.5 text-xs leading-snug" style={{ color: T.sub }}>"{GUEST_QUOTES[g.id]}"</div>
+                </div>
+              </div>
+            ))}
+            {quoted.length === 0 && <div className="py-4 text-center text-xs" style={{ color: T.faint }}>No replies with notes yet.</div>}
+          </div>
+        </Card>
+
+        <Card T={T} style={{ background: "#1A1726", borderColor: "#1A1726" }}>
+          <div className="text-xs font-bold" style={{ color: "#F2C14E", letterSpacing: 1 }}>NUDGE THE QUIET ONES</div>
+          <div className="mt-1.5 text-sm font-extrabold leading-snug" style={{ color: "#fff" }}>{rsvp.pend} household{rsvp.pend === 1 ? "" : "s"} never replied. Send it again in your own words.</div>
+          {pendingSample && (
+            <div className="mt-2.5 rounded-xl p-2.5 text-xs leading-relaxed" style={{ background: rgba("#fff", 0.08), color: rgba("#fff", 0.85) }}>
+              "{nudgeMsg(pendingSample)}"
+            </div>
+          )}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {pendingSample && (
+              <a href={`https://wa.me/${pendingSample.ph}?text=${encodeURIComponent(nudgeMsg(pendingSample))}`} target="_blank" rel="noreferrer" onClick={() => markReminded(pendingSample.id)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: "#25D366", color: "#fff" }}>
+                <MessageSquare size={12} />WhatsApp
+              </a>
+            )}
+            {pendingSample && (
+              <a href={`mailto:${pendingSample.em}?subject=${encodeURIComponent("RSVP — Junior & Nadine, 14 Nov 2026")}&body=${encodeURIComponent(nudgeMsg(pendingSample))}`} onClick={() => markReminded(pendingSample.id)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: rgba("#fff", 0.12), color: "#fff" }}>
+                <Mail size={12} />Email
+              </a>
+            )}
+          </div>
+          <button
+            onClick={chaseRsvp}
+            disabled={rsvp.pend === 0}
+            className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
+            style={{ background: "#F2C14E", color: "#3A2A05" }}
+          >
+            <Bell size={13} />Send to {rsvp.pend} household{rsvp.pend === 1 ? "" : "s"}
+          </button>
+          {chased && <div className="mt-2 flex items-center gap-1 text-xs font-semibold" style={{ color: "#3FD68C" }}><Check size={13} />Reminder logged against each household</div>}
+        </Card>
+      </div>
 
       <Card T={T}>
         <div className="flex items-center gap-2">
@@ -110,6 +178,12 @@ export function Rsvp() {
         </div>
       </Card>
 
+      <details className="group">
+        <summary className="flex cursor-pointer list-none items-center gap-1.5 px-0.5 text-sm font-bold" style={{ color: T.ink }}>
+          <ChevronDown size={14} className="transition-transform group-open:rotate-180" style={{ color: T.faint }} />
+          Manage individual RSVPs
+        </summary>
+        <div className="mt-2 space-y-3">
       <div className="flex flex-wrap items-center gap-1.5">
         {([["pending", `Pending ${rsvp.pend}`], ["yes", `Confirmed ${rsvp.yes}`], ["no", `Declined ${rsvp.no}`], ["all", `All ${gList.length}`]] as [string, string][]).map(([k, l]) => (
           <button
@@ -229,6 +303,8 @@ export function Rsvp() {
         </div>
       </Card>
       <div className="text-xs" style={{ color: T.faint }}>Tick rows for bulk confirm / decline / remind · message button opens {profile.comm} pre-written · seat guests in the Seating tab. Demo contacts.</div>
+        </div>
+      </details>
     </div>
   );
 }

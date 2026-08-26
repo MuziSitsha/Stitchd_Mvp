@@ -76,11 +76,14 @@ export function Seating() {
     const tbl = tables.find((t) => t.id === tid);
     if (tbl?.locked) { toast(`${tbl.name} is locked — unlock to change it`, "warn"); return; }
     if (g.table === tid) return;
+    const prevTable = g.table;
     seatSnapshot();
     setGList((gs) => gs.map((x) => (x.id === gid ? { ...x, table: tid } : x)));
+    const revertSeat = () => setGList((gs) => gs.map((x) => (x.id === gid ? { ...x, table: prevTable } : x)));
     if (tid && tbl) {
       const after = tableSeats(tid) + (g.table === tid ? 0 : g.party);
-      if (after > tbl.cap) toast(`${tbl.name} now over capacity (${after}/${tbl.cap})`, "warn");
+      if (after > tbl.cap) toast(`${tbl.name} now over capacity (${after}/${tbl.cap})`, "warn", revertSeat);
+      else toast(`${g.name} seated at ${tbl.name.replace(/^Table \d+\s*—\s*/, "")}`, "good", revertSeat);
     }
   }
   function unseat(gid: string) {
@@ -298,15 +301,39 @@ export function Seating() {
                     <span className="min-w-0 flex-1 truncate text-sm font-bold">{t.name}</span>
                     <span className="tnum rounded-full px-1.5 py-0.5" style={{ fontSize: 10, fontWeight: 800, background: rgba(over ? T.bad : seats === t.cap ? T.good : T.ink, 0.12), color: over ? T.bad : seats === t.cap ? T.good : T.sub }}>{seats}/{t.cap}</span>
                   </div>
-                  <div className="grid grid-cols-5 gap-1.5">
+                  {/* Round-table diagram: seats placed on a circle of radius 41%
+                      around a center disc, angle = -90 + 360*i/cap (12 o'clock
+                      start, clockwise) — matches the redesign handoff's spec. */}
+                  <div className="relative mx-auto" style={{ width: 184, height: 184 }}>
+                    <div className="absolute rounded-full" style={{ inset: "24%", background: T.panel2, border: `1px solid ${T.border}` }}>
+                      <div className="flex h-full flex-col items-center justify-center text-center">
+                        <div className="truncate px-2 text-xs font-bold">{t.name.replace(/^Table \d+\s*—\s*/, "")}</div>
+                        <div className="text-xs" style={{ color: t.cap - seats > 0 ? T.faint : T.good }}>{Math.max(0, t.cap - seats)} free</div>
+                      </div>
+                    </div>
                     {Array.from({ length: t.cap }).map((_, i) => {
                       const occupant = at[i];
-                      return occupant ? (
-                        <div key={i} title={occupant.name} className="relative aspect-square overflow-hidden rounded-full" style={{ border: `1.5px solid ${rgba(relMeta(occupant).col, 0.7)}` }}>
-                          <Face seed={occupant.id} T={T} size={40} name={occupant.name} tone={relMeta(occupant).col} />
+                      const angle = (-90 + (360 * i) / t.cap) * (Math.PI / 180);
+                      const left = 50 + 41 * Math.cos(angle);
+                      const top = 50 + 41 * Math.sin(angle);
+                      const col = occupant ? relMeta(occupant).col : T.faint;
+                      return (
+                        <div
+                          key={i}
+                          title={occupant?.name}
+                          draggable={!!occupant}
+                          onDragStart={() => occupant && setDragG(occupant.id)}
+                          onDragEnd={() => setDragG(null)}
+                          className="absolute overflow-hidden rounded-full transition-transform hover:z-10 hover:scale-125"
+                          style={{
+                            width: 34, height: 34, left: `${left}%`, top: `${top}%`, transform: "translate(-50%,-50%)",
+                            border: occupant ? `2px solid ${rgba(col, 0.85)}` : `1.5px dashed ${rgba(T.faint, 0.5)}`,
+                            boxShadow: occupant ? `0 0 0 2px ${T.panel}` : "none",
+                            cursor: occupant ? "grab" : "default",
+                          }}
+                        >
+                          {occupant && <Face seed={occupant.id} T={T} size={34} name={occupant.name} tone={col} />}
                         </div>
-                      ) : (
-                        <div key={i} className="flex aspect-square items-center justify-center rounded-full border border-dashed" style={{ borderColor: rgba(T.faint, 0.5) }}><Plus size={11} style={{ color: T.faint }} /></div>
                       );
                     })}
                   </div>

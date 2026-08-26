@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { Heart, Store, ShieldCheck } from "lucide-react";
+import { Heart, Store, ShieldCheck, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
@@ -106,64 +106,69 @@ export function ClientAuth({
   return (
     <div className="flex min-h-screen items-center justify-center p-4" style={{ background: T.bg }}>
       <div className="w-full max-w-sm">
-        <div className="mb-5 flex justify-center">
-          <Logo size={22} T={T} />
+        <div className="mb-6 flex justify-center">
+          <Logo size={22} T={T} dashColor={T.accent} />
         </div>
-        <Card T={T}>
-          <div className="mb-1 text-sm font-bold" style={{ color: T.ink }}>
-            {mode === "signup" ? "Create your account" : "Sign in"}
-          </div>
-          <div className="mb-3 text-xs" style={{ color: T.sub }}>
-            {mode === "signup" ? "Plan a wedding, or list your business — pick below." : "Who's signing in?"}
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-2.5">
-            <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${visibleRoles.length}, minmax(0, 1fr))` }}>
-              {visibleRoles.map(({ key, label, I }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setRole(key)}
-                  className="flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold press"
-                  style={
-                    role === key
-                      ? { borderColor: T.accent, borderWidth: 2, background: rgba(T.accent, 0.08), color: T.ink }
-                      : { borderColor: T.border, color: T.sub }
-                  }
-                >
-                  <I size={16} style={{ color: role === key ? T.accent : T.faint }} />
-                  <span className="text-center leading-tight">{label}</span>
-                </button>
-              ))}
+        <Card T={T} className="!p-6" style={{ borderRadius: 24 }}>
+            <div className="mb-1 text-lg font-extrabold" style={{ color: T.ink, fontFamily: "'Archivo Black',sans-serif" }}>
+              {mode === "signup" ? "Create your account" : "Welcome back"}
             </div>
-            <input
-              type="email"
-              placeholder="Email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 text-sm"
-              style={inputS}
-            />
-            <input
-              type="password"
-              placeholder="Password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg px-3 py-2 text-sm"
-              style={inputS}
-            />
-            {error && <div className="text-xs" style={{ color: T.bad }}>{error}</div>}
-            <button type="submit" disabled={busy} className="w-full rounded-lg py-2.5 text-sm font-bold press" style={btnA}>
-              {busy ? "Please wait…" : mode === "signup" ? "Create account" : "Sign in"}
-            </button>
-          </form>
+            <div className="mb-4 text-xs" style={{ color: T.sub }}>
+              {mode === "signup" ? "Plan a wedding, or list your business — pick below." : "Who's signing in?"}
+            </div>
 
-          <button onClick={toggleMode} className="mt-3 w-full text-center text-xs font-semibold" style={{ color: T.sub }}>
-            {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
-          </button>
+            <form onSubmit={handleSubmit} className="space-y-2.5">
+              <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${visibleRoles.length}, minmax(0, 1fr))` }}>
+                {visibleRoles.map(({ key, label, I }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setRole(key)}
+                    className="press flex flex-col items-center gap-1.5 rounded-xl border p-2.5 text-xs font-bold"
+                    style={
+                      role === key
+                        ? { borderColor: T.accent, borderWidth: 2, background: rgba(T.accent, 0.1), color: T.ink }
+                        : { borderColor: T.border, color: T.sub, background: T.panel2 }
+                    }
+                  >
+                    <I size={16} style={{ color: role === key ? T.accent : T.faint }} />
+                    <span className="text-center leading-tight">{label}</span>
+                  </button>
+                ))}
+              </div>
+              <input
+                type="email"
+                placeholder="Email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none"
+                style={inputS}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none"
+                style={inputS}
+              />
+              {error && <div className="rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>}
+              <button type="submit" disabled={busy} className="press flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-bold" style={btnA}>
+                {busy ? "Please wait…" : (
+                  <>
+                    {mode === "signup" ? "Create account" : "Sign in"}
+                    <ArrowRight size={15} />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <button onClick={toggleMode} className="mt-4 w-full text-center text-xs font-bold" style={{ color: T.accent }}>
+              {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
+            </button>
         </Card>
       </div>
     </div>

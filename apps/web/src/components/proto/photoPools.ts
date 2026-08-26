@@ -60,6 +60,22 @@ export const GUEST_FACE: Record<string, string> = {
   g10b: `/photos/${EF_M_FILES[5]}`, // Thabo Dube
   g11: `/photos/${EF_F_FILES[8]}`, // Palesa Ndlovu
   g12: `/photos/${EF_M_FILES[6]}`, // Vusi Mokoena
+  // g13 (a baby) stays on the hash fallback deliberately, per the note
+  // above. g14a-g19 were added in a later round and initially left off
+  // this map too — confirmed live that hit real bugs (Nomvula Mahlangu, a
+  // female name, was landing in the male photo pool; Nomvula Mahlangu and
+  // Mpho Radebe were hashing to the identical photo). Every EF_M/EF_F slot
+  // is already spoken for above, so these necessarily reuse a photo an
+  // earlier guest also uses — an acceptable residual trade-off on a
+  // 20+-guest roster — but each is at least the *correct* gender and
+  // distinct from the other six added in this same batch.
+  g14a: `/photos/${EF_F_FILES[4]}`, // Nomvula Mahlangu
+  g14b: `/photos/${EF_M_FILES[4]}`, // Sibusiso Mahlangu
+  g15: `/photos/${EF_M_FILES[7]}`, // Andile Khumalo
+  g16: `/photos/${EF_F_FILES[3]}`, // Boitumelo Sithole
+  g17: `/photos/${EF_M_FILES[1]}`, // Karabo Ngwenya
+  g18: `/photos/${EF_F_FILES[5]}`, // Lindiwe Cele
+  g19: `/photos/${EF_M_FILES[3]}`, // Mpho Radebe
 };
 
 // A handful of the source photos above are editorial shots (rule-of-thirds

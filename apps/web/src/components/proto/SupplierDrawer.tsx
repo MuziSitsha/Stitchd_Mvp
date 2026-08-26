@@ -1,4 +1,5 @@
-import { X, Star, BadgeCheck, AlertTriangle, Gift, Zap, CheckCircle2, Palette, Check, ArrowLeftRight, Phone, Sparkles } from "lucide-react";
+import { useState } from "react";
+import { X, Star, BadgeCheck, AlertTriangle, Gift, Zap, CheckCircle2, Palette, Check, ArrowLeftRight, Phone, Sparkles, Ticket, Clock } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
 import { PALETTES, PALETTE_ROLES } from "../../theme/palettes";
@@ -8,6 +9,8 @@ import { Shot } from "./Shot";
 import { MiniBar } from "./MiniBar";
 import { STATUS_C, WA, perfScore, fmtR, type Supplier } from "./data";
 import { useProtoState } from "../../state/ProtoState";
+import { useLiveSupplierTickets } from "../../state/useLiveSupplierTickets";
+import { createSupplierTicket } from "../../lib/functions";
 
 const SWATCH_USE = ["Primary blooms", "Secondary blooms", "Foliage & depth", "Linen & stationery", "Metallics & candlelight"];
 
@@ -25,6 +28,8 @@ function catAvg(sup: Supplier[], role: string) {
 export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onClose: () => void; onOpenPalette: () => void }) {
   const { T, pal } = useTheme();
   const { sup, guests, bundleApplied, secure, moveZone, applyBundle, toast } = useProtoState();
+  const tickets = useLiveSupplierTickets();
+  const [requesting, setRequesting] = useState(false);
   const s = sup.find((x) => x.id === id);
   if (!s) return null;
 
@@ -33,6 +38,20 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
   const sc = STATUS_C(T)[s.status];
   const btnA = { background: T.accent, color: T.onAccent };
   const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
+  const ticket = tickets.get(s.name);
+  const supplierName = s.name;
+
+  async function requestConfirmation() {
+    setRequesting(true);
+    try {
+      await createSupplierTicket(supplierName);
+      toast("Confirmation requested");
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Couldn't request confirmation", "warn");
+    } finally {
+      setRequesting(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -117,6 +136,54 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
               <MiniBar label={`On-time delivery (avg ${avg.onTime.toFixed(0)}%)`} pct={s.onTime} c={s.onTime >= avg.onTime ? T.good : T.warn} T={T} />
               <MiniBar label={`Couples who'd rebook (avg ${avg.rebook.toFixed(0)}%)`} pct={s.rebook} c={s.rebook >= avg.rebook ? T.good : T.warn} T={T} />
             </div>
+          </Card>
+
+          <Card T={T}>
+            <div className="mb-2 flex items-center gap-2 text-sm font-bold"><Ticket size={15} style={{ color: T.gold }} />Confirmation ticket</div>
+            {(!ticket || ticket.status === "declined") && (
+              <>
+                {ticket?.status === "declined" && (
+                  <div className="mb-2 flex items-start gap-2 rounded-lg p-2" style={{ background: rgba(T.bad, 0.1) }}>
+                    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(T.bad, 0.18), color: T.bad }}><X size={11} /></span>
+                    <div className="text-xs">
+                      <div className="font-semibold" style={{ color: T.bad }}>They said no</div>
+                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="mb-2 text-xs" style={{ color: T.sub }}>Request confirmation from {s.name} or an admin — you'll see it turn orange, then green once confirmed.</div>
+                <button onClick={requestConfirmation} disabled={requesting} className="flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold press disabled:opacity-60" style={btnA}>
+                  <Ticket size={12} />{requesting ? "Requesting…" : ticket?.status === "declined" ? "Request again" : "Request confirmation"}
+                </button>
+              </>
+            )}
+            {ticket && ticket.status !== "declined" && (
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(T.good, 0.15), color: T.good }}><Check size={11} /></span>
+                  <div className="text-xs"><div className="font-semibold">Ticket created</div><div style={{ color: T.faint }}>{new Date(ticket.createdAt).toLocaleString()}</div></div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(ticket.status === "pending" ? T.warn : T.good, 0.15), color: ticket.status === "pending" ? T.warn : T.good }}>
+                    <Clock size={11} />
+                  </span>
+                  <div className="text-xs"><div className="font-semibold">{ticket.status === "pending" ? "Awaiting confirmation" : "Confirmation received"}</div>
+                    {ticket.status === "pending" && <div style={{ color: T.warn }}>Waiting on {s.name} or an admin</div>}
+                  </div>
+                </div>
+                <div className="flex items-start gap-2" style={{ opacity: ticket.status === "confirmed" ? 1 : 0.4 }}>
+                  <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(T.good, 0.15), color: T.good }}><CheckCircle2 size={11} /></span>
+                  <div className="text-xs">
+                    <div className="font-semibold">Confirmed</div>
+                    {ticket.status === "confirmed" ? (
+                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
+                    ) : (
+                      <div style={{ color: T.faint }}>Not yet</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
 
           <div className="grid grid-cols-2 gap-2">

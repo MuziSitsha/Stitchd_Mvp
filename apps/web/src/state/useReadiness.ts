@@ -66,7 +66,7 @@ export function useReadiness(setLens?: (l: LensKey) => void) {
       list.push({
         t: `Confirm ${unconfCore.length} core supplier${unconfCore.length > 1 ? "s" : ""}${unconfCore.some((s) => pRoles.has(s.role)) ? " — one is a priority role" : ""}`,
         pts: sim({ sup: sup.map((x) => (x.zone === "core" ? { ...x, status: "confirmed" as const } : x)) }),
-        go: () => setLens("squad"),
+        go: () => setLens("team"),
       });
     }
     const openT = tasks.filter((t) => t.st !== "done");
@@ -74,7 +74,7 @@ export function useReadiness(setLens?: (l: LensKey) => void) {
       list.push({
         t: `Clear ${openT.length} open task${openT.length > 1 ? "s" : ""}`,
         pts: sim({ tasks: tasks.map((t) => ({ ...t, st: "done" })) }),
-        go: () => setLens("tasks"),
+        go: () => setLens("week"),
       });
     }
     if (!bundleApplied) list.push({ t: "Apply the Oakfield package (Catering + DJ + Décor) — saves R71k", pts: 0, money: 71, go: () => applyBundle() });

@@ -12,7 +12,7 @@ interface ThemeCtx {
 const Ctx = createContext<ThemeCtx | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [mode, setMode] = useState<Mode>("dark");
+  const [mode, setMode] = useState<Mode>("light");
   const [pal, setPal] = useState(2); // Midnight Violet — the prototype's default
   const T = useMemo(() => buildTheme(mode, pal), [mode, pal]);
 

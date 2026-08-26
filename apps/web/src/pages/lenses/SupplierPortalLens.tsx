@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
   Store, Radio, Crown, MapPin, BadgeCheck, Check, Clock, Wallet, Percent,
-  TrendingUp, Gift, Plus, Info, ArrowRight,
+  TrendingUp, Gift, Plus, Info, ArrowRight, Ticket,
 } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
@@ -13,7 +13,7 @@ import { randR } from "../../components/proto/data";
 import { useProtoState } from "../../state/ProtoState";
 import { useAuth } from "../../lib/useAuth";
 import { supabase } from "../../lib/supabase";
-import { respondToLead, rerouteLead, adminToggleBoost } from "../../lib/functions";
+import { respondToLead, rerouteLead, adminToggleBoost, confirmSupplierTicket, respondToSupplierTicket } from "../../lib/functions";
 import { computeSupplierStats, type OrderItemRow } from "../../lib/supplierStats";
 
 type PortalRole = "supplier" | "ops" | "operator";
@@ -53,6 +53,14 @@ interface Addon {
   price_cents: number;
 }
 
+interface RealTicket {
+  id: string;
+  ref: string;
+  supplier_id: string;
+  status: "pending" | "confirmed";
+  created_at: string;
+}
+
 const bigNum = { fontFamily: "'Archivo Black',sans-serif", lineHeight: 1, fontVariantNumeric: "tabular-nums" as const };
 const BOOST_PRICE = 350;
 const VERIFY_CONV_LIFT = 42;
@@ -73,6 +81,7 @@ export function SupplierPortalLens() {
   const [leads, setLeads] = useState<RealLead[]>([]);
   const [orders, setOrders] = useState<{ id: string; total_cents: number; member_saving_cents: number }[]>([]);
   const [activeBoosts, setActiveBoosts] = useState<{ supplier_id: string; amount_cents: number }[]>([]);
+  const [tickets, setTickets] = useState<RealTicket[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItemRow[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [verification, setVerification] = useState<{ status: string } | null>(null);
@@ -157,12 +166,25 @@ export function SupplierPortalLens() {
     [],
   );
 
+  const loadTickets = useMemo(
+    () => async () => {
+      const { data } = await supabase
+        .from("supplier_tickets")
+        .select("id, ref, supplier_id, status, created_at")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      setTickets((data ?? []) as RealTicket[]);
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!hasAnyRole) return;
     loadSuppliers();
     loadLeads();
     loadOrders();
     loadBoosts();
+    loadTickets();
 
     const channel = supabase
       .channel("supplier-portal-lens")
@@ -170,12 +192,13 @@ export function SupplierPortalLens() {
       .on("postgres_changes", { event: "*", schema: "public", table: "suppliers" }, loadSuppliers)
       .on("postgres_changes", { event: "*", schema: "public", table: "boosts" }, loadBoosts)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, loadOrders)
+      .on("postgres_changes", { event: "*", schema: "public", table: "supplier_tickets" }, loadTickets)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [hasAnyRole, loadSuppliers, loadLeads, loadOrders, loadBoosts]);
+  }, [hasAnyRole, loadSuppliers, loadLeads, loadOrders, loadBoosts, loadTickets]);
 
   useEffect(() => {
     if (!meSupplierId) return;
@@ -269,6 +292,32 @@ export function SupplierPortalLens() {
     }
   }
 
+  async function handleConfirmTicket(ticketRef: string) {
+    setBusy(ticketRef);
+    setError(null);
+    try {
+      await confirmSupplierTicket(ticketRef);
+      toast("Ticket confirmed — client sees it turn green now", "good");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to confirm ticket");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function handleDeclineTicket(ticketRef: string) {
+    setBusy(ticketRef);
+    setError(null);
+    try {
+      await respondToSupplierTicket(ticketRef, "decline");
+      toast("Ticket declined — client sees it needs attention", "warn");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to decline ticket");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function handleReroute(leadRef: string) {
     const target = rerouteTarget[leadRef];
     if (!target) return;
@@ -347,6 +396,7 @@ export function SupplierPortalLens() {
   const me = suppliers.find((s) => s.id === meSupplierId);
   const myLeads = leads.filter((l) => l.supplier_id === meSupplierId);
   const newLeads = myLeads.filter((l) => l.status === "new");
+  const myTickets = tickets.filter((t) => t.supplier_id === meSupplierId);
   const isBoosted = !!rank?.featured;
 
   const RoleTab = ({ k, label, I }: { k: PortalRole; label: string; I: typeof Store }) => (
@@ -503,6 +553,45 @@ export function SupplierPortalLens() {
               {myLeads.length === 0 && <div className="py-4 text-center text-xs" style={{ color: T.faint }}>No leads yet. Get Featured below to pull more in.</div>}
             </div>
           </Card>
+
+          {myTickets.length > 0 && (
+            <Card T={T} style={{ borderColor: rgba(T.warn, 0.4) }}>
+              <div className="mb-2 flex items-center gap-2">
+                <Ticket size={14} style={{ color: T.warn }} />
+                <span className="text-sm font-bold">Confirmation requests</span>
+                <span className="rounded-full px-1.5 py-0.5 tnum" style={{ fontSize: 10, fontWeight: 800, background: rgba(T.warn, 0.15), color: T.warn }}>{myTickets.length} pending</span>
+              </div>
+              <div className="space-y-2">
+                {myTickets.map((t) => (
+                  <div key={t.id} className="flex flex-wrap items-center gap-2 rounded-xl border p-2.5" style={{ borderColor: rgba(T.warn, 0.4) }}>
+                    <div className="min-w-0 flex-1 text-xs">
+                      <div className="font-semibold">{t.ref}</div>
+                      <div style={{ color: T.faint }}>Requested {new Date(t.created_at).toLocaleString()}</div>
+                    </div>
+                    <div className="flex shrink-0 gap-1.5">
+                      <button
+                        onClick={() => canOperate && handleConfirmTicket(t.ref)}
+                        disabled={!canOperate || busy === t.ref}
+                        className="rounded-lg px-3 py-1.5 text-xs font-bold press"
+                        style={btnA}
+                      >
+                        {busy === t.ref ? "Working…" : "Yes"}
+                      </button>
+                      <button
+                        onClick={() => canOperate && handleDeclineTicket(t.ref)}
+                        disabled={!canOperate || busy === t.ref}
+                        className="rounded-lg px-3 py-1.5 text-xs font-bold press"
+                        style={{ background: rgba(T.bad, 0.14), color: T.bad }}
+                      >
+                        {busy === t.ref ? "Working…" : "No"}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {!canOperate && <div className="mt-1.5 text-center text-xs" style={{ color: T.faint }}>Admin/super only</div>}
+            </Card>
+          )}
 
           <Card T={T} style={{ borderColor: rgba(T.accent, 0.4) }}>
             <div className="flex items-center gap-1.5 text-sm font-bold"><Percent size={14} style={{ color: T.accent }} />Stitched+ brings you demand</div>

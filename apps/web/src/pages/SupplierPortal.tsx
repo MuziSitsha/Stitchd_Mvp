@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { respondToLead, startBoostCheckout } from "../lib/functions";
+import { respondToLead, startBoostCheckout, confirmSupplierTicket, respondToSupplierTicket, friendlyPaymentError } from "../lib/functions";
 import { computeSupplierStats, groupOrderItems, type OrderItemRow } from "../lib/supplierStats";
 import { Header } from "../components/Header";
 
@@ -45,6 +45,13 @@ interface Verification {
   status: "pending" | "verified" | "rejected";
 }
 
+interface SupplierTicket {
+  id: string;
+  ref: string;
+  status: "pending" | "confirmed";
+  created_at: string;
+}
+
 const rand = (cents: number) => `R${Math.round(cents / 100).toLocaleString("en-ZA")}`;
 
 export function SupplierPortal() {
@@ -55,6 +62,8 @@ export function SupplierPortal() {
   const [orderItems, setOrderItems] = useState<OrderItemRow[]>([]);
   const [addons, setAddons] = useState<Addon[]>([]);
   const [verification, setVerification] = useState<Verification | null>(null);
+  const [tickets, setTickets] = useState<SupplierTicket[]>([]);
+  const [confirmingRef, setConfirmingRef] = useState<string | null>(null);
   const [boosting, setBoosting] = useState(false);
   const [togglingStatus, setTogglingStatus] = useState(false);
   const [requestingVerification, setRequestingVerification] = useState(false);
@@ -137,6 +146,17 @@ export function SupplierPortal() {
       .maybeSingle()
       .then(({ data }) => setVerification(data));
 
+    const loadTickets = () => {
+      supabase
+        .from("supplier_tickets")
+        .select("id, ref, status, created_at")
+        .eq("supplier_id", supplier.id)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .then(({ data }) => setTickets((data ?? []) as SupplierTicket[]));
+    };
+    loadTickets();
+
     const channel = supabase
       .channel(`supplier:${supplier.id}`)
       .on(
@@ -151,6 +171,11 @@ export function SupplierPortal() {
             );
           });
         },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "supplier_tickets", filter: `supplier_id=eq.${supplier.id}` },
+        loadTickets,
       )
       .subscribe();
 
@@ -171,6 +196,32 @@ export function SupplierPortal() {
     }
   }
 
+  async function handleConfirmTicket(ticketRef: string) {
+    setConfirmingRef(ticketRef);
+    setError(null);
+    try {
+      await confirmSupplierTicket(ticketRef);
+      setTickets((prev) => prev.filter((t) => t.ref !== ticketRef));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to confirm ticket");
+    } finally {
+      setConfirmingRef(null);
+    }
+  }
+
+  async function handleDeclineTicket(ticketRef: string) {
+    setConfirmingRef(ticketRef);
+    setError(null);
+    try {
+      await respondToSupplierTicket(ticketRef, "decline");
+      setTickets((prev) => prev.filter((t) => t.ref !== ticketRef));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to decline ticket");
+    } finally {
+      setConfirmingRef(null);
+    }
+  }
+
   async function handleBoost() {
     setBoosting(true);
     setError(null);
@@ -178,7 +229,7 @@ export function SupplierPortal() {
       const { checkout_url } = await startBoostCheckout();
       window.location.href = checkout_url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Boost checkout unavailable right now");
+      setError(friendlyPaymentError(err));
       setBoosting(false);
     }
   }
@@ -404,6 +455,29 @@ export function SupplierPortal() {
               {requestingVerification ? "Requesting..." : "Request verification — free"}
             </button>
           )}
+        </section>
+
+        <section>
+          <h2>Confirmation requests ({tickets.length})</h2>
+          {tickets.length === 0 && <p>No pending confirmation requests.</p>}
+          <ul className="lead-list">
+            {tickets.map((ticket) => (
+              <li key={ticket.id} className="lead lead-new">
+                <div>
+                  <strong>{ticket.ref}</strong>
+                  <p>Requested {new Date(ticket.created_at).toLocaleString()}</p>
+                </div>
+                <div className="lead-actions">
+                  <button type="button" onClick={() => handleConfirmTicket(ticket.ref)} disabled={confirmingRef === ticket.ref}>
+                    {confirmingRef === ticket.ref ? "Working..." : "Yes, confirm"}
+                  </button>
+                  <button type="button" onClick={() => handleDeclineTicket(ticket.ref)} disabled={confirmingRef === ticket.ref}>
+                    {confirmingRef === ticket.ref ? "Working..." : "No"}
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section>

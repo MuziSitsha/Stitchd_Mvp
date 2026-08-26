@@ -40,6 +40,6 @@ export function Entry() {
   if (roleLoading || !role) return <Loading />;
 
   if (role === "supplier") return <Navigate to="/supplier" replace />;
-  if (role === "staff") return <Prototype initialLens="squad" skipOnboarding isStaff ownerId={session.user.id} />;
-  return <Prototype initialLens="squad" skipOnboarding={hasEvent} ownerId={session.user.id} />;
+  if (role === "staff") return <Prototype initialLens="today" skipOnboarding isStaff ownerId={session.user.id} />;
+  return <Prototype initialLens="today" skipOnboarding={hasEvent} ownerId={session.user.id} />;
 }

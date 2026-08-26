@@ -1,4 +1,4 @@
-import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap } from "lucide-react";
+import { Store, AlertTriangle, ArrowLeftRight, Star, Plus, ShieldCheck, Zap, Ticket, CheckCircle2 } from "lucide-react";
 import { rgba } from "../../theme/theme";
 import type { Theme } from "../../theme/theme";
 import { PALETTES } from "../../theme/palettes";
@@ -7,6 +7,7 @@ import { ROLE_ICON, POS, perfScore, fmtR, STATUS_C, type Supplier } from "./data
 import { Shot } from "./Shot";
 import { Bust } from "./Bust";
 import type { LiveSupplierStatus } from "../../state/useLiveSupplierStatus";
+import type { TicketStatus } from "../../state/useLiveSupplierTickets";
 
 // Ported exactly from stitchd-v9.jsx lines 750-843 (TIER, POS already in
 // data.ts, FutCard, EmptySlot) — the FIFA-Ultimate-Team-style supplier card.
@@ -28,6 +29,7 @@ export function FutCard({
   onDragStart,
   priority,
   live,
+  ticket,
   w = 156,
 }: {
   s: Supplier;
@@ -40,6 +42,7 @@ export function FutCard({
   onDragStart?: React.DragEventHandler;
   priority?: boolean;
   live?: LiveSupplierStatus;
+  ticket?: TicketStatus;
   w?: number;
 }) {
   const perf = perfScore(s);
@@ -139,7 +142,7 @@ export function FutCard({
                 IN PACKAGE
               </span>
             )}
-            {(live?.featured || live?.verified) && (
+            {(live?.featured || live?.verified || ticket) && (
               <div className="absolute bottom-9 right-2 flex flex-col items-end gap-1">
                 {live?.featured && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.accent, color: T.onAccent, fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
@@ -149,6 +152,15 @@ export function FutCard({
                 {live?.verified && (
                   <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: T.info, color: "#fff", fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}>
                     <ShieldCheck size={8} />VERIFIED
+                  </span>
+                )}
+                {ticket && (
+                  <span
+                    className="flex items-center gap-0.5 rounded px-1.5 py-0.5"
+                    style={{ background: ticket.status === "confirmed" ? T.good : T.warn, color: ticket.status === "confirmed" ? "#fff" : T.onGold, fontSize: 7.5, fontWeight: 800, letterSpacing: 0.5 }}
+                  >
+                    {ticket.status === "confirmed" ? <CheckCircle2 size={8} /> : <Ticket size={8} />}
+                    {ticket.status === "confirmed" ? "CONFIRMED" : "TICKET"}
                   </span>
                 )}
               </div>

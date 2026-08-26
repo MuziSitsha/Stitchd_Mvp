@@ -402,6 +402,29 @@ enabled = true
 # Public "request this supplier" form — no login.
 verify_jwt = false
 
+[functions.baskets-price]
+enabled = true
+# Live Stitch It quote preview — no writes, no auth (see the function's own
+# header comment). Not currently called by any UI, but was missing this
+# override same as orders-create/orders-checkout below, so fixed alongside
+# them rather than left as a latent 401 waiting to surface later.
+verify_jwt = false
+
+[functions.orders-create]
+enabled = true
+# Stitch It checkout — the customer isn't a Supabase Auth user in this flow
+# (see the function's own header comment), so the platform gateway can't
+# require a JWT here either. Was missing this override entirely, which made
+# every real "Book & get quote" attempt fail with a gateway-level 401 before
+# the function code (which has its own validation) ever ran.
+verify_jwt = false
+
+[functions.orders-checkout]
+enabled = true
+# Same public flow as orders-create, one step later (init the Paystack
+# transaction). Same missing-override bug, same fix.
+verify_jwt = false
+
 [functions.leads-respond]
 enabled = true
 verify_jwt = true

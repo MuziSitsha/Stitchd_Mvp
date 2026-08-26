@@ -1,22 +1,24 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { CheckCircle2, AlertTriangle } from "lucide-react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTheme } from "../theme/ThemeContext";
-import { rgba } from "../theme/theme";
+import { SwipeToast } from "../components/proto/SwipeToast";
 import { PALETTES } from "../theme/palettes";
 import { rolesFor } from "../components/proto/readiness";
-import { SUPPLIERS_SEED, GUESTS_SEED, TABLES_SEED, TASKS_SEED, WEDDING, PER_HEAD, fmtR, randR, type Supplier } from "../components/proto/data";
+import { SUPPLIERS_SEED, GUESTS_SEED, TABLES_SEED, TASKS_SEED, REGISTRY_SEED, WEDDING, PER_HEAD, fmtR, randR, type Supplier, type Candidate } from "../components/proto/data";
 import { supabase } from "../lib/supabase";
+import { useLiveSupplierTickets, type TicketStatus } from "./useLiveSupplierTickets";
 
 export type Guest = (typeof GUESTS_SEED)[number];
 export type Table = (typeof TABLES_SEED)[number];
 export type Task = (typeof TASKS_SEED)[number];
+export type RegistryItem = (typeof REGISTRY_SEED)[number];
 export type RsvpVal = "yes" | "no" | "pending";
 export type ChangeReq = { id: string; sup: string; role: string; delta: number; headcount: number; perHead: number; amount: number; status: "pending" | "approved" | "declined" };
 export type Msg = { who: string; t: string; m: string; act?: { l: string; go: () => void } };
 export type Profile = { etype: string; prior: Set<string>; supp: string; comm: "WhatsApp" | "Email" | "Call"; budget: number };
 export type OnboardingResult = { etype: string; prior: string[]; supp: string; comm: "WhatsApp" | "Email" | "Call"; budget: number; pal: number; guests: number };
 export type Basket = Record<string, { qty: number; addons: string[] }>;
-type Toast = { id: string; m: string; tone: string };
+export type ExtraBudgetItem = { id: string; cat: string; label: string; cost: number; need: number; paid: boolean };
+type Toast = { id: string; m: string; tone: string; onUndo?: () => void };
 
 const now = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 const DEFAULT_PROFILE: Profile = { etype: "Wedding", prior: new Set(["Food & Catering", "Music & Entertainment", "Décor & Flowers"]), supp: "Full planning support", comm: "WhatsApp", budget: 400 };
@@ -26,14 +28,18 @@ interface ProtoStateValue {
   gList: Guest[]; setGList: React.Dispatch<React.SetStateAction<Guest[]>>;
   tables: Table[]; setTables: React.Dispatch<React.SetStateAction<Table[]>>;
   tasks: Task[]; setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  registry: RegistryItem[]; setRegistry: React.Dispatch<React.SetStateAction<RegistryItem[]>>;
   budgetCap: number; setBudgetCap: (n: number) => void;
   pinned: Set<string>; setPinned: React.Dispatch<React.SetStateAction<Set<string>>>;
+  extraBudgetItems: ExtraBudgetItem[];
+  addBudgetItem: (cat: string, label: string, cost: number) => void;
   bundleApplied: boolean;
   msgs: Msg[]; setMsgs: React.Dispatch<React.SetStateAction<Msg[]>>;
   chased: boolean;
   toasts: Toast[];
-  toast: (m: string, tone?: string) => void;
+  toast: (m: string, tone?: string, onUndo?: () => void) => void;
   secure: (id: string) => void;
+  swapCandidate: (role: string, c: Candidate) => void;
   moveZone: (id: string) => void;
   applyBundle: () => void;
   setRsvp: (id: string, val: RsvpVal) => void;
@@ -83,8 +89,14 @@ export function ProtoStateProvider({
   const [gList, setGList] = useState<Guest[]>(GUESTS_SEED);
   const [tables, setTables] = useState<Table[]>(TABLES_SEED);
   const [tasks, setTasks] = useState<Task[]>(TASKS_SEED);
+  const [registry, setRegistry] = useState<RegistryItem[]>(REGISTRY_SEED);
   const [budgetCap, setBudgetCap] = useState(400);
   const [pinned, setPinned] = useState<Set<string>>(new Set());
+  const [extraBudgetItems, setExtraBudgetItems] = useState<ExtraBudgetItem[]>([]);
+  function addBudgetItem(cat: string, label: string, cost: number) {
+    setExtraBudgetItems((items) => [...items, { id: `bx${Date.now()}`, cat, label, cost, need: 5, paid: false }]);
+    toast(`${label} added to ${cat}`);
+  }
   const [bundleApplied, setBundleApplied] = useState(false);
   const [chased, setChased] = useState(false);
   const [changeReqs, setChangeReqs] = useState<ChangeReq[]>([]);
@@ -104,10 +116,10 @@ export function ProtoStateProvider({
 
   const coreN = guests < 80 ? 5 : guests <= 150 ? 6 : guests <= 250 ? 8 : 10;
 
-  function toast(m: string, tone = "good") {
+  function toast(m: string, tone = "good", onUndo?: () => void) {
     const id = Math.random().toString(36).slice(2);
-    setToasts((ts) => [...ts, { id, m, tone }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 3600);
+    setToasts((ts) => [...ts, { id, m, tone, onUndo }]);
+    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), onUndo ? 6000 : 3600);
   }
 
   // Side effects (toast/setMsgs) live outside the setSup/setGList updater
@@ -125,6 +137,56 @@ export function ProtoStateProvider({
       if (x.status === "issue") return { ...x, status: "confirmed" as const, issueNote: undefined };
       return { ...x, status: "confirmed" as const };
     }));
+  }
+
+  // Real supplier_tickets rows are the source of truth for "did the supplier
+  // actually say yes or no" — this reconciles that into the local `sup.status`
+  // shown everywhere (Squad, drawers, readiness), one-way, so a ticket
+  // resolving anywhere in Supabase (the couple requesting it, the supplier's
+  // own portal, or an admin acting for them) reflects back into the app the
+  // couple is looking at, live, regardless of which screen is open. Mounted
+  // once here (not per-lens) so it keeps working even while the couple is on
+  // an unrelated tab when the supplier responds.
+  const tickets = useLiveSupplierTickets();
+  const appliedTicketStatus = useRef(new Map<string, TicketStatus["status"]>());
+  useEffect(() => {
+    tickets.forEach((t, name) => {
+      const prev = appliedTicketStatus.current.get(name);
+      appliedTicketStatus.current.set(name, t.status);
+      if (t.status !== "confirmed" && t.status !== "declined") return;
+      // Only announce with a toast for a transition witnessed live this
+      // session (prev existed and differs) — a ticket that was already
+      // resolved before this page load reconciles silently on first sight.
+      applyTicketOutcome(name, t.status, prev !== undefined && prev !== t.status);
+    });
+  }, [tickets]);
+
+  function applyTicketOutcome(supplierName: string, outcome: "confirmed" | "declined", announce: boolean) {
+    const s = sup.find((x) => x.name === supplierName);
+    if (!s) return;
+    if (outcome === "confirmed") {
+      if (s.status === "confirmed") return;
+      if (announce) toast(`${supplierName} confirmed — ticket resolved`);
+      setSup((ss) => ss.map((x) => (x.name === supplierName ? { ...x, status: "confirmed" as const, issueNote: undefined } : x)));
+    } else {
+      if (s.status === "confirmed" || s.status === "issue") return;
+      if (announce) toast(`${supplierName} needs your attention — they said no`, "warn");
+      setSup((ss) => ss.map((x) => (x.name === supplierName ? { ...x, status: "issue" as const, issueNote: "Declined your confirmation request — check in with them." } : x)));
+    }
+  }
+
+  // Suppliers > Find someone's "Book" action. Every role already has exactly
+  // one supplier (see the Candidate interface's own comment in data.ts), so
+  // booking a candidate really does swap it in for that role's current
+  // pending pick, not add a second one — the caller (Marketplace.tsx) raises
+  // the real supplier_tickets row via createSupplierTicket first, and only
+  // calls this once that succeeds, so local state never claims a booking
+  // that didn't really go through.
+  function swapCandidate(role: string, c: Candidate) {
+    setSup((ss) => ss.map((x) => (x.role === role
+      ? { id: c.id, role: c.role, name: c.name, sub: `${c.style} · ${c.area}`, price: c.price, rating: c.rating, reviews: c.reviews, resp: c.respHours, onTime: 92, rebook: 85, status: "pending" as const, zone: "bench" as const }
+      : x)));
+    toast(`${c.name} booked — ticket sent, waiting on their reply`);
   }
 
   function moveZone(id: string) {
@@ -262,10 +324,10 @@ export function ProtoStateProvider({
   }
 
   const value: ProtoStateValue = {
-    sup, setSup, gList, setGList, tables, setTables, tasks, setTasks,
-    budgetCap, setBudgetCap, pinned, setPinned, bundleApplied,
+    sup, setSup, gList, setGList, tables, setTables, tasks, setTasks, registry, setRegistry,
+    budgetCap, setBudgetCap, pinned, setPinned, extraBudgetItems, addBudgetItem, bundleApplied,
     msgs, setMsgs, chased, toasts, toast,
-    secure, moveZone, applyBundle, setRsvp, toggleGuestNeed, markReminded, chaseRsvp, channelLink,
+    secure, swapCandidate, moveZone, applyBundle, setRsvp, toggleGuestNeed, markReminded, chaseRsvp, channelLink,
     changeReqs, headcountBase, raiseChangeReqs, resolveChange,
     guests, setGuests, profile, showOnb, setShowOnb, finishOnboarding,
     basket, setBasket,
@@ -278,10 +340,7 @@ export function ProtoStateProvider({
       {toasts.length > 0 && (
         <div className="pointer-events-none fixed bottom-4 left-1/2 z-[55] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 px-4">
           {toasts.map((t) => (
-            <div key={t.id} className="rise flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold" style={{ background: T.panel, borderColor: rgba(t.tone === "good" ? T.good : T.warn, 0.5), color: T.ink, boxShadow: T.shadow }}>
-              {t.tone === "good" ? <CheckCircle2 size={15} style={{ color: T.good }} /> : <AlertTriangle size={15} style={{ color: T.warn }} />}
-              <span className="min-w-0 flex-1">{t.m}</span>
-            </div>
+            <SwipeToast key={t.id} m={t.m} tone={t.tone} onUndo={t.onUndo} T={T} onDismiss={() => setToasts((ts) => ts.filter((x) => x.id !== t.id))} />
           ))}
         </div>
       )}

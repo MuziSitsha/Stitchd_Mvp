@@ -2,10 +2,11 @@
 // Supabase session involved (verify_jwt=false in config.toml). Truth-from-
 // webhook per STITCHD-SRS-SDS.md §9.5: never trust client-reported success.
 //
-// One reference can only ever match one of boosts/orders (both use
-// next_ref with a distinct type prefix, ST-BST-/ST-BKG-), so try boosts
-// first and only fall through to orders if nothing matched — that also
-// makes an already-processed retry of either kind a safe no-op.
+// One reference can only ever match one of boosts/orders/budget payments
+// (all use next_ref with a distinct type prefix, ST-BST-/ST-BKG-/ST-BPY-),
+// so try boosts first, then orders, then budget payments, falling through
+// until one matches — that also makes an already-processed retry of any
+// kind a safe no-op.
 import { adminClient, jsonResponse } from "../_shared/clients.ts";
 import { verifyWebhookSignature } from "../_shared/paystack.ts";
 import { sendSms } from "../_shared/clickatell.ts";
@@ -91,6 +92,24 @@ async function markOrderPaidAndSpawnLeads(reference: string): Promise<boolean> {
   return true;
 }
 
+async function markBudgetPaymentPaid(reference: string): Promise<boolean> {
+  const admin = adminClient();
+
+  const { data, error } = await admin
+    .from("budget_payments")
+    .update({ status: "paid", paid_at: new Date().toISOString() })
+    .eq("provider_ref", reference)
+    .eq("status", "pending")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("failed to mark budget payment paid", error.message);
+    throw new Error(error.message);
+  }
+  return !!data;
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
@@ -111,8 +130,9 @@ Deno.serve(async (req) => {
     try {
       const matchedBoost = await activateBoost(reference);
       const matchedOrder = matchedBoost ? false : await markOrderPaidAndSpawnLeads(reference);
-      if (!matchedBoost && !matchedOrder) {
-        console.log(`no pending boost or order matched reference ${reference} — likely an already-processed retry`);
+      const matchedBudgetPayment = matchedBoost || matchedOrder ? false : await markBudgetPaymentPaid(reference);
+      if (!matchedBoost && !matchedOrder && !matchedBudgetPayment) {
+        console.log(`no pending boost, order or budget payment matched reference ${reference} — likely an already-processed retry`);
       }
     } catch (e) {
       return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 500);

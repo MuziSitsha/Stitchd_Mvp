@@ -20,9 +20,28 @@ export const WEDDING = {
   coach: "Lungi Dlodlo",
   rsvpDeadline: "2026-09-15",
 };
+// The white wedding isn't the only gathering — most Gauteng weddings this
+// app is modelled on pair it with a traditional lobola celebration. Kept as
+// a distinct real constant (not a fabricated aside) so Passes/Our day can
+// show real per-event guest counts instead of inventing a second data
+// source.
+export const SECOND_EVENT = {
+  name: "Lobola",
+  dateLabel: "Sat 21 November 2026",
+  venue: "Family home, Soweto",
+  guests: 60,
+  note: "Families meet 19 July to finalise the day.",
+};
 const TODAY = new Date();
 export const DAYS_LEFT = Math.max(0, Math.ceil((new Date("2026-11-14T00:00:00").getTime() - TODAY.getTime()) / 86400000));
 export const RSVP_DAYS = Math.max(0, Math.ceil((new Date(WEDDING.rsvpDeadline).getTime() - TODAY.getTime()) / 86400000));
+
+// Task due dates are offsets from "now" rather than fixed calendar dates —
+// hardcoded ISO strings drift into the past as real time passes (every task
+// eventually reads "overdue" and piles into Week.tsx's "This week" column,
+// leaving "This month"/"Before the day" permanently empty), so the demo
+// stays realistic regardless of when it's actually opened.
+const isoDaysFromNow = (n: number) => new Date(TODAY.getTime() + n * 86400000).toISOString().slice(0, 10);
 
 export const ROLE_ICON: Record<string, typeof Crown> = {
   Planner: Crown, Venue: Building2, Catering: UtensilsCrossed, Photography: Camera,
@@ -44,7 +63,7 @@ export interface Supplier {
   reviews: number; resp: number; onTime: number; rebook: number;
   status: "confirmed" | "pending" | "issue"; zone: "core" | "bench";
   bundle?: [string, number][]; bundleList?: number; bundleSaving?: number;
-  issueNote?: string; rec?: boolean; viaBundle?: boolean;
+  issueNote?: string; waitNote?: string; rec?: boolean; viaBundle?: boolean;
 }
 const S = (id: string, role: string, name: string, sub: string, price: number, rating: number, reviews: number, resp: number, onTime: number, rebook: number, status: Supplier["status"], zone: Supplier["zone"], extra: Partial<Supplier> = {}): Supplier =>
   ({ id, role, name, sub, price, rating, reviews, resp, onTime, rebook, status, zone, ...extra });
@@ -57,18 +76,61 @@ export const SUPPLIERS_SEED: Supplier[] = [
   S("p4", "Catering", "Taste Affair", "Plated · 140 pax", 65, 4.7, 80, 5, 96, 87, "issue", "core",
     { issueNote: "Date clash on 14 Nov — awaiting reschedule confirmation" }),
   S("p6", "Entertainment", "Vibe Creators", "DJ & sound · Soweto", 15, 4.8, 156, 3, 97, 91, "confirmed", "core"),
-  S("p3v", "Videography", "Reel Love Films", "Highlight film · Rosebank", 28, 4.6, 67, 7, 94, 81, "pending", "bench"),
-  S("p8", "Cake", "Sugar & Spice", "3-tier + dessert table", 9.5, 4.9, 210, 5, 98, 92, "pending", "bench"),
-  S("p9", "MC", "MC Bongani Live", "Master of ceremonies", 6, 4.8, 65, 6, 95, 84, "pending", "bench"),
-  S("p10", "Hair & Makeup", "Glam Squad by Zanele", "Bride + 4 maids", 9, 4.7, 68, 4, 97, 88, "pending", "bench"),
-  S("p11", "Transport", "VIP Chauffeurs", "Couple car + guest shuttle", 12, 4.8, 40, 8, 93, 80, "pending", "bench"),
-  S("p13", "Tent & Weather", "Shade & Shine Marquees", "Weather backup · 160 pax", 18.5, 4.8, 54, 3, 98, 90, "pending", "bench", { rec: true }),
-  S("p14", "Tailor", "Stitch & Cut Atelier", "Groom + groomsmen suiting", 16, 4.8, 58, 5, 96, 86, "pending", "bench"),
+  S("p3v", "Videography", "Reel Love Films", "Highlight film · Rosebank", 28, 4.6, 67, 7, 94, 81, "pending", "bench",
+    { waitNote: "Quote came in at R28 000 for the full day. They can shoot Friday's setup too for R4 000 more if you want it." }),
+  S("p8", "Cake", "Sugar & Spice", "3-tier + dessert table", 9.5, 4.9, 210, 5, 98, 92, "pending", "bench",
+    { waitNote: "\"Three-tier with a dessert table for 140 comes to R9 500 — fondant or buttercream finish?\" Reply needed by Friday to lock the tasting slot." }),
+  S("p9", "MC", "MC Bongani Live", "Master of ceremonies", 6, 4.8, 65, 6, 95, 84, "pending", "bench",
+    { waitNote: "R6 000 for the full programme, running sheet included. He's asked for your final speech order by end of month." }),
+  S("p10", "Hair & Makeup", "Glam Squad by Zanele", "Bride + 4 maids", 9, 4.7, 68, 4, 97, 88, "pending", "bench",
+    { waitNote: "Bride + 4 maids quoted at R9 000. R1 500 more if you add a hair trial for your mom." }),
+  S("p11", "Transport", "VIP Chauffeurs", "Couple car + guest shuttle", 12, 4.8, 40, 8, 93, 80, "pending", "bench",
+    { waitNote: "Couple car + guest shuttle quoted at R12 000. They need your pickup addresses two weeks out to confirm routes." }),
+  S("p13", "Tent & Weather", "Shade & Shine Marquees", "Weather backup · 160 pax", 18.5, 4.8, 54, 3, 98, 90, "pending", "bench",
+    { rec: true, waitNote: "Weather backup for 160 guests — R18 500, refundable if you cancel by October. Recommended given your ceremony's outdoors." }),
+  S("p14", "Tailor", "Stitch & Cut Atelier", "Groom + groomsmen suiting", 16, 4.8, 58, 5, 96, 86, "pending", "bench",
+    { waitNote: "Groom + groomsmen suiting quoted at R16 000 for six. First fitting needs booking six weeks out." }),
   S("p5", "Flower Specialist", "Bloom Room", "Floral designer · Bryanston", 22, 4.9, 74, 4, 96, 89, "confirmed", "core"),
-  S("p12", "Décor Supplier", "Décor Elegance", "Draping, tables, lighting", 12, 4.6, 47, 7, 92, 79, "pending", "bench"),
+  S("p12", "Décor Supplier", "Décor Elegance", "Draping, tables, lighting", 12, 4.6, 47, 7, 92, 79, "pending", "bench",
+    { waitNote: "Draping, tables and lighting quoted at R12 000 to your palette. They're holding the slot until florals are confirmed." }),
 ];
 export const WA: Record<string, string> = { p1: "27821230001", p2: "27821230002", p3: "27821230003", p4: "27821230004", p5: "27821230005", p6: "27821230006", p3v: "27821230007", p8: "27821230008", p9: "27821230009", p10: "27821230010", p11: "27821230011", p12: "27821230012", p13: "27821230013", p14: "27821230014" };
 export const perfScore = (s: Supplier) => Math.max(40, Math.min(99, Math.round(s.rating * 10 + s.onTime * 0.2 + s.rebook * 0.25 - s.resp * 1.1)));
+
+// Suppliers > Find someone — real discovery, not a second "Your circle".
+// Every role in ROLE_ORDER already has exactly one supplier in
+// SUPPLIERS_SEED (readiness/budget/category-chip logic across the app
+// assumes one-per-role), so a candidate here isn't an *extra* supplier —
+// it's a real alternative to the role's current "pending" pick, and
+// booking one really does swap it in via ProtoState (see Marketplace.tsx's
+// bookCandidate). Confirmed roles aren't shown; there's nothing left to
+// decide on those.
+export interface Candidate {
+  id: string; role: string; name: string; area: string; style: string;
+  price: number; rating: number; reviews: number; respHours: number;
+  badge: "Held" | "Best value" | null; heldUntil?: string; compareNote: string;
+}
+const C = (id: string, role: string, name: string, area: string, style: string, price: number, rating: number, reviews: number, respHours: number, badge: Candidate["badge"], compareNote: string, heldUntil?: string): Candidate =>
+  ({ id, role, name, area, style, price, rating, reviews, respHours, badge, compareNote, heldUntil });
+
+export const CANDIDATE_SEED: Candidate[] = [
+  C("c3v", "Videography", "Frame & Story", "Melville", "documentary, natural light", 24, 4.7, 89, 3, "Best value",
+    "R4 000 cheaper than Reel Love Films and a faster reply time — but Reel Love already has your venue walkthrough booked."),
+  C("c8", "Cake", "Cocoa & Co", "Fourways", "modern, minimal tiers", 8, 4.8, 132, 4, "Held",
+    "Holding 14 November for you at R1 500 under Sugar & Spice — same flavour tasting slot, one week sooner.", "Fri 17:00"),
+  C("c9", "MC", "Thabo Live", "Braamfontein", "bilingual, high energy", 7, 4.9, 41, 2, null,
+    "R1 000 more than MC Bongani but 4.9★ over 41 events and bilingual — worth it if either family needs Zulu on the mic."),
+  C("c10", "Hair & Makeup", "Studio Nala", "Rosebank", "editorial, airbrush", 11, 4.9, 95, 3, null,
+    "R2 000 more than Glam Squad, but airbrush is included instead of an add-on — nets out close to even."),
+  C("c11", "Transport", "Sandton Fleet Cars", "Sandton", "classic cars, uniformed drivers", 10, 4.6, 52, 6, "Best value",
+    "R2 000 cheaper than VIP Chauffeurs for the same couple-car + shuttle package — slower to reply though."),
+  C("c13", "Tent & Weather", "Cover & Co Marquees", "Krugersdorp", "clear-span, 200 pax", 21, 4.9, 88, 2, "Held",
+    "R2 500 more than Shade & Shine but rated higher and already holding your date — Shade & Shine hasn't confirmed availability yet.", "Sun 12:00"),
+  C("c14", "Tailor", "Modern Fit Menswear", "Rivonia", "contemporary, quick turnaround", 14, 4.7, 63, 4, "Best value",
+    "R2 000 cheaper than Stitch & Cut and can still fit six people in four weeks instead of six."),
+  C("c12", "Décor Supplier", "Bloom & Drape Co", "Randburg", "florals + draping, one supplier", 13.5, 4.8, 59, 3, null,
+    "R1 500 more than Décor Elegance, but bundles florals in with draping — one supplier instead of two to coordinate."),
+];
 
 export const BUDGET_SEED = [
   { id: "b1", cat: "Venue", label: "Oakfield Farm — venue + service", cost: 85, need: 10, paid: true },
@@ -102,13 +164,13 @@ export const benchStatus = (spend: number, cat: string) => {
 };
 
 export const TASKS_SEED = [
-  { id: "t1", title: "Send remaining 32 invites", owner: "Nadine", due: "2026-07-24", pr: "high", st: "todo" },
-  { id: "t2", title: "Pay Bloom Room florals deposit (R6.6k)", owner: "Junior", due: "2026-07-25", pr: "high", st: "todo" },
-  { id: "t3", title: "Shot list with Memories by TK", owner: "Nadine", due: "2026-07-28", pr: "medium", st: "doing" },
-  { id: "t4", title: "Secure shuttle before Aug price rise", owner: "Junior", due: "2026-08-01", pr: "high", st: "waiting" },
-  { id: "t5", title: "Marriage officer paperwork", owner: "Lungi", due: "2026-08-15", pr: "high", st: "doing" },
-  { id: "t6", title: "Menu tasting at Oakfield", owner: "Both", due: "2026-07-10", pr: "high", st: "done" },
-  { id: "t7", title: "DJ playlist + do-not-play brief", owner: "Junior", due: "2026-07-15", pr: "low", st: "done" },
+  { id: "t1", title: "Send remaining 32 invites", note: "The Zuma cousins and a few others still haven't had theirs.", owner: "Nadine", due: isoDaysFromNow(3), pr: "high", st: "todo" },
+  { id: "t2", title: "Pay Bloom Room florals deposit (R6.6k)", note: "Lerato holds the in-season protea pricing until this lands.", owner: "Junior", due: isoDaysFromNow(4), pr: "high", st: "todo" },
+  { id: "t3", title: "Shot list with Memories by TK", note: "Getting-ready, family formals, and the two of you at golden hour.", owner: "Nadine", due: isoDaysFromNow(6), pr: "medium", st: "doing" },
+  { id: "t4", title: "Secure shuttle before Aug price rise", note: "Gauteng Shuttle Co. — two runs from Sandton, one from OR Tambo.", owner: "Junior", due: isoDaysFromNow(18), pr: "high", st: "waiting" },
+  { id: "t5", title: "Marriage officer paperwork", note: "Rev. Dlamini's reference is on file — just needs signing.", owner: "Lungi", due: isoDaysFromNow(45), pr: "high", st: "doing" },
+  { id: "t6", title: "Menu tasting at Oakfield", note: "Confirmed with Avianto — five courses, two cake options.", owner: "Both", due: isoDaysFromNow(-10), pr: "high", st: "done" },
+  { id: "t7", title: "DJ playlist + do-not-play brief", note: "Vibe Creators has the final list.", owner: "Junior", due: isoDaysFromNow(-15), pr: "low", st: "done" },
 ];
 export const T_COLS: [string, string][] = [["todo", "To do"], ["doing", "Doing"], ["waiting", "Waiting"], ["done", "Done"]];
 
@@ -142,7 +204,27 @@ export const GUESTS_SEED = [
   G("g11", "Palesa Ndlovu", "Bride's extended family", "Ndlovu cousins", "pending", 1, "27821110011", "palesa.n@example.co.za", null),
   G("g12", "Vusi Mokoena", "Groom's extended family", "Mokoena uncles", "pending", 1, "27821110012", "vusi.mokoena@example.co.za", null),
   G("g13", "Baby Lisakhanya", "Children", "Sipho & Lerato", "yes", 1, "27821110004", "sipho.m@example.co.za", null, [], true),
+  G("g14a", "Nomvula Mahlangu", "Bride's extended family", "Mahlangu", "yes", 1, "27821110021", "nomvula.m@example.co.za", "T5"),
+  G("g14b", "Sibusiso Mahlangu", "Bride's extended family", "Mahlangu", "yes", 1, "27821110022", "sibusiso.m@example.co.za", "T5"),
+  G("g15", "Andile Khumalo", "Colleagues", "Khumalo", "yes", 1, "27821110023", "andile.k@example.co.za", "T5"),
+  G("g16", "Boitumelo Sithole", "Mutual friends", "Sithole", "pending", 1, "27821110024", "boitumelo.s@example.co.za", null),
+  G("g17", "Karabo Ngwenya", "Groom's friends", "Ngwenya", "yes", 2, "27821110025", "karabo.n@example.co.za", "T6"),
+  G("g18", "Lindiwe Cele", "Bride's friends", "Cele", "yes", 1, "27821110026", "lindiwe.c@example.co.za", "T6", [["Vegetarian", 1]]),
+  G("g19", "Mpho Radebe", "Colleagues", "Radebe", "pending", 1, "27821110027", "mpho.r@example.co.za", null),
 ];
+// Real reply text for the Invitations feed ("What people are saying") —
+// keyed by GUESTS_SEED id rather than a new field on G() so the helper's
+// signature (and every existing call site) stays untouched. Only guests
+// whose rsvp isn't "pending" get a quote here — a household that hasn't
+// replied yet has nothing to quote.
+export const GUEST_QUOTES: Record<string, string> = {
+  g1: "All two of us, and we'll bring a diabetic-friendly plate reminder just in case.",
+  g3: "Wouldn't miss it. Could we get a chair near the front for Thandi?",
+  g7a: "Coming with Bongani — please make sure the caterer has the Halal order.",
+  g8: "So sorry, we'll be in Cape Town that weekend — gift is on its way.",
+  g10a: "We're there! Vegetarian plate confirmed for me, standard for Thabo.",
+  g14a: "Both of us are in, Sibusiso's bringing his mother's koeksisters for the family table.",
+};
 export const RSVP_BASE = { seats: 96, halal: 6, veg: 4 };
 export const SEAT_CAP = 10;
 // Per-head suppliers that must approve a material headcount change (rand/guest).
@@ -152,6 +234,8 @@ export const TABLES_SEED = [
   { id: "T2", name: "Table 2 — Ndlovu family", cap: 10, locked: false },
   { id: "T3", name: "Table 3 — Extended family", cap: 10, locked: false },
   { id: "T4", name: "Table 4 — Wedding party", cap: 10, locked: false },
+  { id: "T5", name: "Table 5 — Mahlangu family", cap: 10, locked: false },
+  { id: "T6", name: "Table 6 — Friends", cap: 10, locked: false },
 ];
 
 export const randR = (n: number) => `R${Math.round(n).toLocaleString("en-ZA")}`;
@@ -219,6 +303,132 @@ export const BOOK = [
   { id: "w2", c: "Junior & Nadine", d: "14 Nov 2026", days: DAYS_LEFT, risk: "medium" as const, ready: 0, guests: 140, fee: 35, open: 2, venue: "Oakfield Farm, Muldersdrift", wa: "27825550102", note: "Taste Affair date clash open; RSVPs behind schedule." },
   { id: "w3", c: "Sipho & Amahle", d: "20 Feb 2027", days: 213, risk: "low" as const, ready: 64, guests: 90, fee: 28, open: 1, venue: "Nooitgedacht, Stellenbosch", wa: "27825550103", note: "On track. Venue walkthrough Friday, nothing blocking." },
   { id: "w4", c: "Priya & Daniel", d: "22 May 2027", days: 304, risk: "low" as const, guests: 320, fee: 55, open: 3, ready: 41, venue: "Val de Vie, Paarl", wa: "27825550104", note: "Early stage. Budget workshop booked; guest list still moving." },
+];
+
+// "Us" group seed content (Our day / Vision / Gifts / The day / Documents) —
+// net-new demo domains with no existing analogue in ProtoState, per the
+// phased redesign plan. Coach reuses the real readiness score instead (see
+// useReadiness's R.parts) rather than a separate fabricated breakdown.
+export const STORY_SEED = [
+  { year: "2021", title: "Met through mutual friends", note: "A birthday braai in Melville", shotSeed: "story-braai" },
+  { year: "2023", title: "First trip together", note: "Four days in the Drakensberg, one flat tyre", shotSeed: "story-trip1" },
+  { year: "2025", title: "He asked", note: "Sunset at Zoo Lake, ring in his jacket pocket", shotSeed: "story-asked2" },
+  { year: "Mar 2026", title: "Lobola concluded", note: "Both families, one long Saturday", shotSeed: "story-lobola1" },
+  { year: "14 Nov", title: "White wedding", note: `${WEDDING.venue} · 140 guests`, cat: "Venue" },
+  { year: "21 Nov", title: `${SECOND_EVENT.name} celebration`, note: `${SECOND_EVENT.venue} · ${SECOND_EVENT.guests} guests`, shotSeed: "story-umabo" },
+];
+
+// `seed`/`female` are explicit (not left to Face's name-hash fallback) —
+// three of these six names hashed to the identical EF_F[6] photo, the same
+// class of duplicate-image bug fixed elsewhere this session (STORY_SEED,
+// CANDIDATE_SEED). Seeds picked to land on distinct, non-zero pool indices
+// (index 0 is reserved for the bride/groom themselves).
+export const PARTY_SEED = [
+  { id: "pty1", name: "Katlego Mahlangu", role: "Maid of honour", job: "Speech + getting-ready logistics", state: "Fitting booked", tone: "gold" as const, seed: "party-pty1", female: true },
+  { id: "pty2", name: "Boitumelo Sithole", role: "Best man", job: "Rings, speech, shuttle marshalling", state: "Suit fitted — Stitch & Cut", tone: "good" as const, seed: "party-pty2", female: false },
+  { id: "pty3", name: "Karabo Ntuli", role: "Bridesmaid", job: "Bouquet and veil", state: "Hair trial 18 Jul — Glam Squad", tone: "gold" as const, seed: "party-pty3", female: true },
+  { id: "pty4", name: "Nomvula Radebe", role: "Bridesmaid", job: "Guest book and gifts table", state: "Hair trial 18 Jul — Glam Squad", tone: "gold" as const, seed: "party-pty4", female: true },
+  { id: "pty5", name: "Mpho Dlamini", role: "Groomsman", job: "Ushering, 14:00 seating", state: "Suit fitted — Stitch & Cut", tone: "good" as const, seed: "party-pty5", female: false },
+  { id: "pty6", name: "Lindiwe Chaka", role: "Flower girl", job: "Petals, then the kids' table", state: "Dress ordered", tone: "info" as const, seed: "party-pty6", female: true },
+];
+
+export const PAPERWORK_SEED = [
+  { title: "Lobola concluded", note: "Both families signed off, March 2026", done: true },
+  { title: "Home Affairs appointment", note: "Roodepoort branch booked for 15 Aug", done: true },
+  { title: "Marriage officer confirmed", note: "On file with Lungi — see task list", done: false },
+  { title: "ID copies for both of you", note: "Certified, uploaded to Documents", done: true },
+  { title: "Antenuptial contract", note: "Signed with the attorney by 15 August", done: false },
+];
+
+export const DECISIONS_SEED = [
+  { q: "Dress code", a: "Smart formal, gold accents", who: "Told to guests on the invite" },
+  { q: "First dance", a: "Live intro, then Vibe Creators mixes in", who: "Vibe Creators has the track" },
+  { q: "Cake", a: "3-tier vanilla + dessert table", who: "Sugar & Spice confirmed" },
+  { q: "MC", a: "MC Bongani keeps the day on time", who: "Run sheet shared" },
+];
+
+export const MOODBOARD_SEED = [
+  { id: "vis1", label: "Table setting" },
+  { id: "vis2", label: "Bouquet & florals" },
+  { id: "vis3", label: "Bridal attire" },
+  { id: "vis4", label: "Lighting after dark" },
+  { id: "vis5", label: "Cake" },
+  { id: "vis6", label: "Décor & draping" },
+];
+
+export const REGISTRY_SEED = [
+  { id: "reg1", item: "Honeymoon fund", target: 28000, got: 16400, color: "#6C4BE0", note: "Zanzibar, 22–29 November. 23 guests have contributed." },
+  { id: "reg2", item: "Kitchen & home essentials", target: 12000, got: 9200, color: "#2E7D5B", note: "Most-chosen gift so far." },
+  { id: "reg3", item: "Home deposit fund", target: 30000, got: 21500, color: "#2A7B8C", note: "14 households have contributed." },
+];
+
+export const RUNSHEET_SEED = [
+  { time: "07:00", what: "Hair and make-up begins", detail: "Bridal suite · Glam Squad, bride + 4 maids", owner: "Glam Squad by Zanele" },
+  { time: "10:00", what: "Suppliers arrive and set up", detail: "Florals, sound, marquee, cake table", owner: "Bloom Room" },
+  { time: "12:30", what: "Photographer arrives", detail: "Getting-ready coverage, then details and dress", owner: "Memories by TK" },
+  { time: "13:40", what: "Guest shuttle lands", detail: "First run from Sandton", owner: "VIP Chauffeurs" },
+  { time: "14:00", what: "Guests seated", detail: "140 seats, doors open 13:45", owner: "Oakfield Farm" },
+  { time: "14:30", what: "You get married", detail: "45 minutes · garden lawn", owner: "MC Bongani Live" },
+  { time: "15:30", what: "Drinks and canapés", detail: "Terrace — Vibe Creators opening set", owner: "Vibe Creators" },
+  { time: "18:00", what: "Dinner served", detail: "140 plated", owner: "Taste Affair" },
+  { time: "20:00", what: "Speeches", detail: "MC keeps time, four speeches", owner: "MC Bongani Live" },
+  { time: "21:00", what: "First dance, floor opens", detail: "Set runs to midnight", owner: "Vibe Creators" },
+  { time: "00:00", what: "Load-out and last shuttle", detail: "Venue clear by 01:00 per site rules", owner: "VIP Chauffeurs" },
+];
+
+export const DOCS_SEED = [
+  { kind: "PDF" as const, name: "Oakfield Farm — venue contract", supplier: "Oakfield Farm", added: "12 Mar", size: "1.8 MB", state: "Signed" as const },
+  { kind: "PDF" as const, name: "Taste Affair — catering quote v3", supplier: "Taste Affair", added: "18 Jun", size: "820 KB", state: "Needs you" as const },
+  { kind: "PDF" as const, name: "Memories by TK — agreement", supplier: "Memories by TK", added: "02 Apr", size: "640 KB", state: "Signed" as const },
+  { kind: "PDF" as const, name: "Vibe Creators — booking form", supplier: "Vibe Creators", added: "14 Apr", size: "310 KB", state: "Signed" as const },
+  { kind: "PDF" as const, name: "Bloom Room — revised proposal", supplier: "Bloom Room", added: "20 Jun", size: "2.4 MB", state: "Needs you" as const },
+  { kind: "DOC" as const, name: "Ceremony programme draft", supplier: "MC Bongani Live", added: "09 Jun", size: "48 KB", state: "In review" as const },
+  { kind: "XLS" as const, name: "Guest list master", supplier: "Yours", added: "22 Jun", size: "96 KB", state: "Live" as const },
+  { kind: "PDF" as const, name: "VIP Hosting — planning agreement", supplier: "VIP Hosting", added: "04 Feb", size: "410 KB", state: "Signed" as const },
+  { kind: "JPG" as const, name: "Marriage licence scan", supplier: "Home Affairs", added: "28 May", size: "1.1 MB", state: "Filed" as const },
+];
+
+export const VISION_BRIEF = {
+  words: ["Warm", "Golden-hour", "Unhurried"],
+  note: "Candlelight over overhead lighting, in-season blooms over hothouse roses, and a floor that fills itself once the plates are cleared.",
+};
+
+export const LESSONS_SEED = [
+  {
+    title: "How to ask a caterer for a better number",
+    mins: "4 min read",
+    note: "The three lines that work, and the one that offends.",
+    body: [
+      "Caterers quote to the brief they're given, not to your budget — so the fastest way down in price is a smaller, more specific brief, not a haggle.",
+      "Line one: ask for a buffet-vs-plated comparison on the same menu, even if you've already decided. It shows you understand the cost driver (service staff, not food), and it usually surfaces a number you didn't know was on the table.",
+      "Line two: ask which of your add-ons they'd drop first if the budget got tight. Caterers know their own margins better than you do — let them tell you where the fat is instead of guessing.",
+      "Line three: ask for their off-peak pricing, even for a Saturday. Many Gauteng caterers quietly discount for a 2pm start over a 6pm one, because it changes their staffing shift.",
+      "The line that offends: \"can you just do it cheaper\" with no brief change. It reads as not respecting their costing, and it's the fastest way to get a defensive, padded second quote instead of a better one.",
+    ],
+  },
+  {
+    title: "Lobola and a white wedding, weeks apart",
+    mins: "6 min read",
+    note: "Who hosts what, who pays what, and how to keep both families calm.",
+    body: [
+      "The two events have different hosts by tradition, and mixing that up early is where most of the tension starts — lobola negotiations are the groom's family's event to run, the white wedding is usually planned jointly.",
+      "Money gets confusing fast if it isn't named early. A short, calm conversation with both sets of parents — before venues are booked, not after — about who's covering what removes most of the guesswork that otherwise turns into resentment two months in.",
+      "Guest list overlap is the second flashpoint: elders who attend lobola often expect a seat at the white wedding too, and vice versa. Build one shared household list early so nobody's counted twice or left off by accident.",
+      "Timing between the two matters more than people admit — a gap of at least two or three weeks gives both families room to actually enjoy each event instead of running on fumes for both in one weekend.",
+      "When it gets tense, the honest move is naming it directly to both families rather than letting the couple absorb it quietly — \"we want both sides to feel equally hosted\" is a sentence that defuses more than it seems like it should.",
+    ],
+  },
+  {
+    title: "Load-shedding is a wedding problem",
+    mins: "3 min read",
+    note: "What venues actually cover, and what you must hire yourself.",
+    body: [
+      "Most Gauteng venues will tell you they have backup power — ask exactly what that backup covers, because it's very often just the reception hall and kitchen, not the marquee, the dance floor lighting, or the outdoor ceremony sound.",
+      "Get the venue's actual load-shedding schedule area (not just \"we have a generator\") and cross-check it against Eskom's stage 4+ schedule for your date. A Saturday evening slot can land right in a scheduled outage window with zero warning if the stage changes that week.",
+      "The cheap insurance is a second, smaller generator hired just for the marquee lighting and DJ rig — most rental companies will do a half-day booking for this specifically, and it's a fraction of the cost of the main event generator.",
+      "Tell your photographer and videographer in advance too — a sudden dark venue mid-reception is exactly the kind of moment they can plan around with backup lighting if they know it's a real possibility, not a surprise.",
+    ],
+  },
 ];
 
 // Icons re-exported for the shell/nav (Store, LayoutGrid, ShoppingBag, Banknote,

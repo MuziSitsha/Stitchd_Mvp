@@ -2,6 +2,18 @@ import { supabase } from "./supabase";
 
 const FUNCTIONS_URL = `${import.meta.env.VITE_SUPABASE_URL as string}/functions/v1`;
 
+// orders-checkout / boosts-checkout both throw the Paystack SDK's own error
+// message verbatim (see supabase/functions/_shared/paystack.ts) — genuinely
+// useful in server logs, but "PAYSTACK_SECRET_KEY not configured" reads like
+// a leaked internal detail if a real user (or a demo audience) sees it raised
+// as-is in the UI. This is the one translation point both checkout call
+// sites funnel through.
+export function friendlyPaymentError(e: unknown): string {
+  const msg = e instanceof Error ? e.message : String(e);
+  if (/paystack_secret_key/i.test(msg)) return "Card payments aren't switched on in this environment yet — use “Print quote” to send it instead.";
+  return msg || "Checkout failed";
+}
+
 async function callFunction<T>(name: string, options: { body?: unknown; auth?: boolean } = {}): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
 
@@ -83,5 +95,33 @@ export function adminToggleBoost(supplierId: string) {
   return callFunction<{ featured: boolean }>("boosts-admin-toggle", {
     auth: true,
     body: { supplier_id: supplierId },
+  });
+}
+
+export function createSupplierTicket(supplierName: string) {
+  return callFunction<{ ref: string; status: string; created_at: string }>("supplier-tickets-create", {
+    auth: true,
+    body: { supplier_name: supplierName },
+  });
+}
+
+export function confirmSupplierTicket(ticketRef: string) {
+  return callFunction<{ ref: string; status: string; confirmed_at: string; confirmed_role: string }>("supplier-tickets-confirm", {
+    auth: true,
+    body: { ticket_ref: ticketRef },
+  });
+}
+
+export function respondToSupplierTicket(ticketRef: string, decision: "confirm" | "decline") {
+  return callFunction<{ ref: string; status: string; confirmed_at: string; confirmed_role: string }>("supplier-tickets-confirm", {
+    auth: true,
+    body: { ticket_ref: ticketRef, decision },
+  });
+}
+
+export function checkoutBudgetPayment(label: string, amountCents: number) {
+  return callFunction<{ ref: string; checkout_url: string }>("budget-payment-checkout", {
+    auth: true,
+    body: { label, amount_cents: amountCents },
   });
 }

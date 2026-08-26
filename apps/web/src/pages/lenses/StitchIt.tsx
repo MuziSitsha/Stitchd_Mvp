@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import {
   ShoppingBag, Zap, Percent, BadgeCheck, ShoppingCart, TrendingUp, MapPin, Star,
-  Plus, Minus, X, Check, CalendarCheck, Printer, ClipboardCheck, CheckCircle2, AlertTriangle,
+  Plus, Minus, X, Check, CalendarCheck, Printer, ClipboardCheck, Clock,
 } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
@@ -11,7 +11,7 @@ import { hash } from "../../components/proto/imagery";
 import { HIRE, HIRE_CATS, OCCASIONS, SUB, randR } from "../../components/proto/data";
 import { useProtoState, type Basket } from "../../state/ProtoState";
 import { supabase } from "../../lib/supabase";
-import { createOrder, checkoutOrder } from "../../lib/functions";
+import { createOrder, checkoutOrder, friendlyPaymentError } from "../../lib/functions";
 import { useLiveSupplierStatus } from "../../state/useLiveSupplierStatus";
 
 type PrintDoc = { kind: "quote" | "checklist" };
@@ -27,17 +27,23 @@ const DEFAULT_CHECKLIST = ["Confirm final numbers 48h before", "Clear delivery &
 
 const bigNum = { fontFamily: "'Archivo Black',sans-serif", lineHeight: 1, fontVariantNumeric: "tabular-nums" as const };
 
+// The "On demand" promo ribbon — four real HIRE items (not a fabricated
+// promos domain), tagged by what's actually true of each (this-weekend
+// availability, category) plus the real Stitched+ member discount (SUB.pct)
+// as the struck-through "was" price, so nothing on the ribbon is invented.
+const PROMO_IDS = ["h1", "h5", "h8", "h11"];
+const PROMO_TAGS: Record<string, string> = { h1: "This weekend only", h5: "Member price", h8: "Member price", h11: "Weather cover" };
+
 // Ported exactly from stitchd-v9.jsx lines 2168-2300.
 export function StitchIt() {
   const { T, pal } = useTheme();
-  const { basket, setBasket } = useProtoState();
+  const { basket, setBasket, toast } = useProtoState();
   const [hireCat, setHireCat] = useState("all");
   const [hireQ, setHireQ] = useState("");
   const [subscriber, setSubscriber] = useState(false);
   const [hireDate, setHireDate] = useState("Sat 2 Aug");
   const [occasion, setOccasion] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintDoc | null>(null);
-  const [toasts, setToasts] = useState<{ id: string; m: string; tone: string }[]>([]);
   // Featured/verified badges now come from the real Supplier Portal lens
   // (ops/admin Boost + Verify actions) via the same name-keyed live-status
   // hook Suppliers.tsx/Squad.tsx already use — this is the other half of the
@@ -52,12 +58,6 @@ export function StitchIt() {
   const btnA = { background: T.accent, color: T.onAccent };
   const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
-
-  function toast(m: string, tone = "good") {
-    const id = Math.random().toString(36).slice(2);
-    setToasts((ts) => [...ts, { id, m, tone }]);
-    setTimeout(() => setToasts((ts) => ts.filter((x) => x.id !== id)), 3600);
-  }
 
   const byHire = (id: string) => HIRE.find((h) => h.id === id);
 
@@ -156,7 +156,7 @@ export function StitchIt() {
       const checkout = await checkoutOrder(order.ref);
       window.location.href = checkout.checkout_url;
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Checkout failed", "warn");
+      toast(friendlyPaymentError(e), "warn");
     } finally {
       setPaying(false);
     }
@@ -194,6 +194,32 @@ export function StitchIt() {
           </div>
         </div>
 
+        <div>
+          <div className="mb-1.5 text-xs font-bold" style={{ color: T.faint, letterSpacing: 1 }}>ON DEMAND · FIXED PRICES</div>
+          <div className="grid grid-cols-2 gap-2.5 xl:grid-cols-4">
+            {PROMO_IDS.map((id) => {
+              const h = byHire(id);
+              if (!h) return null;
+              const memberPrice = Math.round(h.price * (1 - SUB.pct));
+              return (
+                <button key={id} onClick={() => addToBasket(id)} className="press lift group relative overflow-hidden rounded-2xl text-left" style={{ height: 150 }}>
+                  <Shot cat={h.cat} seed={h.id} T={T} pal={pal} h={150} />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(0deg, rgba(6,6,12,.92), rgba(6,6,12,.15) 60%)" }} />
+                  <span className="absolute left-2 top-2 rounded-full px-2 py-0.5" style={{ background: T.gold, color: T.onGold, fontSize: 9, fontWeight: 800 }}>{PROMO_TAGS[id]}</span>
+                  <div className="absolute inset-x-0 bottom-0 p-2.5">
+                    <div className="truncate text-xs font-bold" style={{ color: "#fff" }}>{h.name}</div>
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="tnum font-extrabold" style={{ fontSize: 15, color: "#fff" }}>{randR(memberPrice)}</span>
+                      <span className="tnum" style={{ fontSize: 10.5, color: rgba("#fff", 0.5), textDecoration: "line-through" }}>{randR(h.price)}</span>
+                    </div>
+                    <div className="flex items-center gap-1" style={{ fontSize: 9.5, color: rgba("#fff", 0.7) }}><Clock size={9} />{h.area} · {h.avail}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {!subscriber && (
           <button onClick={() => { setSubscriber(true); toast("Stitched+ preview on — watch your quote drop"); }} className="press lift flex w-full items-center gap-3 rounded-2xl border p-3 text-left" style={{ borderColor: rgba(T.accent, 0.4), background: T.panel }}>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.accent, 0.14) }}><Percent size={18} style={{ color: T.accent }} /></div>
@@ -219,6 +245,7 @@ export function StitchIt() {
           {HIRE_CATS.map((c) => (
             <button key={c.k} onClick={() => setHireCat(c.k)} className="flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-xs font-bold press" style={hireCat === c.k ? btnA : { color: T.sub, background: T.panel2 }}>
               <c.I size={12} />{c.label}
+              <span style={{ opacity: 0.6 }}>{HIRE.filter((h) => h.cat === c.k).length}</span>
             </button>
           ))}
         </div>
@@ -227,7 +254,7 @@ export function StitchIt() {
           <input value={hireQ} onChange={(e) => setHireQ(e.target.value)} placeholder="Search: marquee, DJ, braai, jumping castle…" className="min-w-0 flex-1 bg-transparent text-sm outline-none" style={{ color: T.ink }} />
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {items.map((h) => {
             const cm = catMeta(h.cat);
             const inBasket = !!basket[h.id];
@@ -235,26 +262,22 @@ export function StitchIt() {
               <div key={h.id} className="overflow-hidden rounded-2xl border" style={{ background: T.panel, borderColor: inBasket ? rgba(T.good, 0.5) : T.border, borderWidth: inBasket ? 2 : 1 }}>
                 <div className="relative">
                   <Shot cat={h.id === "h2" ? "marquee2" : h.id === "h4" ? "seating2" : h.cat} seed={h.id} T={T} pal={pal} h={130} />
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, transparent 45%, rgba(6,6,12,.82))" }} />
-                  <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: rgba("#0A0A0E", 0.6), color: "#fff", fontSize: 9.5, fontWeight: 700 }}><cm.I size={10} />{cm.label}</span>
+                  <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: rgba("#0A0A0E", 0.65), color: "#fff", fontSize: 9.5, fontWeight: 700 }}><cm.I size={10} />{cm.label}</span>
                   {live.get(h.name)?.featured && <span className="absolute left-2 top-9 flex items-center gap-1 rounded-full px-2 py-0.5" style={{ background: T.gold, color: T.onGold, fontSize: 8.5, fontWeight: 800 }}><TrendingUp size={9} />FEATURED</span>}
                   <span className="absolute right-2 top-2 flex flex-col items-end gap-1">
                     <span className="rounded-full px-2 py-0.5" style={{ background: h.avail.includes("weekend") ? rgba(T.good, 0.9) : rgba(T.warn, 0.9), color: "#fff", fontSize: 9, fontWeight: 800 }}>{h.avail}</span>
-                    {live.get(h.name)?.verified && <span className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5" style={{ background: rgba(T.info, 0.95), color: "#fff", fontSize: 8.5, fontWeight: 800 }}><BadgeCheck size={9} />VERIFIED</span>}
                   </span>
-                  <div className="absolute bottom-2 left-2.5 right-2.5 flex items-end justify-between">
-                    <div>
-                      <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 13, color: "#fff", lineHeight: 1 }}>{h.name}</div>
-                      <div className="flex items-center gap-1" style={{ fontSize: 10, color: rgba("#fff", 0.8) }}><MapPin size={9} />{h.area} · {cm.tag}</div>
-                    </div>
-                    <span className="flex items-center gap-0.5 rounded px-1.5 py-0.5" style={{ background: rgba("#0A0A0E", 0.55), color: T.gold, fontSize: 10, fontWeight: 800 }}><Star size={9} fill="currentColor" />{h.rating}</span>
-                  </div>
                 </div>
                 <div className="p-2.5">
-                  <div className="text-xs" style={{ color: T.sub, minHeight: 32 }}>{h.blurb}</div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="min-w-0 truncate font-bold" style={{ fontSize: 14 }}>{h.name}</span>
+                    {live.get(h.name)?.verified && <span className="flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5" style={{ background: rgba(T.info, 0.14), color: T.info, fontSize: 8.5, fontWeight: 800 }}><BadgeCheck size={9} />PARTNER</span>}
+                  </div>
+                  <div className="flex items-center gap-1 text-xs" style={{ color: T.sub }}><MapPin size={9} />{h.area} · <Star size={9} className="shrink-0" fill={T.gold} style={{ color: T.gold }} />{h.rating} · {h.reviews} hires</div>
+                  <div className="mt-1.5 text-xs" style={{ color: T.sub, minHeight: 32 }}>{h.blurb}</div>
                   <div className="mt-1.5 flex items-end justify-between">
                     <div><span className="tnum" style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 16, color: T.ink }}>{randR(h.price)}</span><span style={{ fontSize: 10, color: T.faint }}> /{h.unit}</span></div>
-                    <span className="text-xs" style={{ color: T.faint }}>{h.reviews} reviews</span>
+                    <span className="text-xs" style={{ color: T.faint }}>{cm.tag}</span>
                   </div>
                   {h.addons.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
@@ -363,17 +386,6 @@ export function StitchIt() {
             <div className="mt-1.5 text-xs" style={{ color: T.faint }}>Every hire earns Stitchd a 12% service fee — revenue between the big events.</div>
           </Card>
       </div>
-
-      {toasts.length > 0 && (
-        <div className="pointer-events-none fixed bottom-4 left-1/2 z-[55] flex w-full max-w-sm -translate-x-1/2 flex-col gap-2 px-4">
-          {toasts.map((t) => (
-            <div key={t.id} className="rise flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold" style={{ background: T.panel, borderColor: rgba(t.tone === "good" ? T.good : T.warn, 0.5), color: T.ink, boxShadow: T.shadow }}>
-              {t.tone === "good" ? <CheckCircle2 size={15} style={{ color: T.good }} /> : <AlertTriangle size={15} style={{ color: T.warn }} />}
-              <span className="min-w-0 flex-1">{t.m}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       {printDoc && (() => {
         const occ = occasion ? OCCASIONS.find((o) => o.k === occasion) : null;

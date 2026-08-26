@@ -27,9 +27,15 @@ export function Face({
   const n = hash(seed || name || "p");
   const isF = female != null ? female : n % 2 === 0;
   const embed = useMemo(() => {
-    if (seed === "junior") return EF_M[EF_GROOM];
-    if (seed === "nadine") return EF_F[EF_BRIDE];
-    if (seed === "coach") return EF_COACH;
+    // Case-insensitive: callers pass "Junior"/"Nadine" (capitalized, e.g.
+    // task owners) just as often as the lowercase seed literal — a strict
+    // === here silently missed those, sending them through the hash
+    // fallback instead (which, worse, sometimes guessed the wrong gender
+    // pool and/or collided with another owner's photo).
+    const seedLower = seed?.toLowerCase();
+    if (seedLower === "junior") return EF_M[EF_GROOM];
+    if (seedLower === "nadine") return EF_F[EF_BRIDE];
+    if (seedLower === "coach" || seedLower === "lungi") return EF_COACH;
     if (seed && GUEST_FACE[seed]) return GUEST_FACE[seed];
     const pool = isF ? EF_F : EF_M;
     return pool[n % pool.length];

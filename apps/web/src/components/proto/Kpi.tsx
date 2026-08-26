@@ -7,6 +7,7 @@ export interface KpiDef {
   label: string;
   v: number;
   isCount?: boolean;
+  critical?: boolean;
   insight: string;
   act: string;
   go: () => void;
@@ -16,11 +17,11 @@ export interface KpiDef {
 export function KpiTile({ k, T, compact }: { k: KpiDef; T: Theme; compact?: boolean }) {
   const isCount = k.isCount;
   const v = k.v;
-  const col = isCount ? (v > 0 ? T.warn : T.good) : v >= 75 ? T.good : v >= 50 ? T.warn : T.bad;
-  const status = isCount ? (v > 0 ? "due soon" : "clear") : v >= 75 ? "on track" : v >= 50 ? "needs work" : "at risk";
+  const col = k.critical ? T.bad : isCount ? (v > 0 ? T.warn : T.good) : v >= 75 ? T.good : v >= 50 ? T.warn : T.bad;
+  const status = k.critical ? "needs attention" : isCount ? (v > 0 ? "due soon" : "clear") : v >= 75 ? "on track" : v >= 50 ? "needs work" : "at risk";
 
   return (
-    <button onClick={k.go} className={`lift press w-full rounded-xl border text-left ${compact ? "p-2" : "p-2.5"}`} style={{ background: T.panel, borderColor: T.border }}>
+    <button onClick={k.go} className={`lift press w-full rounded-xl border text-left ${compact ? "p-2" : "p-2.5"}`} style={{ background: T.panel, borderColor: k.critical ? T.bad : T.border }}>
       <div className={`flex items-center ${compact ? "gap-1.5" : "gap-2"}`}>
         <span className={`flex shrink-0 items-center justify-center rounded-lg ${compact ? "h-6 w-6" : "h-7 w-7"}`} style={{ background: rgba(col, 0.14), color: col }}>
           <k.I size={compact ? 12 : 14} />

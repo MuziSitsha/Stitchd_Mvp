@@ -1,34 +1,64 @@
 import { useState } from "react";
+import { ShoppingBag } from "lucide-react";
 import { AppShell, type LensKey } from "../components/proto/AppShell";
 import { Onboarding } from "../components/proto/Onboarding";
 import { ProtoStateProvider, useProtoState } from "../state/ProtoState";
 import { useTheme } from "../theme/ThemeContext";
+import { Today } from "./lenses/Today";
+import { Week } from "./lenses/Week";
 import { Squad } from "./Squad";
-import { Suppliers } from "./lenses/Suppliers";
+import { Marketplace } from "./lenses/Marketplace";
 import { SupplierPortalLens } from "./lenses/SupplierPortalLens";
 import { Budget } from "./lenses/Budget";
+import { Payments } from "./lenses/Payments";
+import { GuestList } from "./lenses/GuestList";
 import { Rsvp } from "./lenses/Rsvp";
+import { Passes } from "./lenses/Passes";
 import { Seating } from "./lenses/Seating";
+import { OurDay } from "./lenses/OurDay";
+import { Vision } from "./lenses/Vision";
+import { Gifts } from "./lenses/Gifts";
+import { Runsheet } from "./lenses/Runsheet";
+import { Documents } from "./lenses/Documents";
+import { CoachClient } from "./lenses/CoachClient";
 import { StitchIt } from "./lenses/StitchIt";
-import { Tasks } from "./lenses/Tasks";
-import { Timeline } from "./lenses/Timeline";
 import { Chat } from "./lenses/Chat";
-import { Coach } from "./lenses/Coach";
+import { ComingSoon } from "./lenses/ComingSoon";
 
+// Interim map while the redesign lands screen by screen (see the phased
+// plan): every new Screen key already routes somewhere real — either its
+// finished new-design component, the closest existing lens reused as-is,
+// or a ComingSoon placeholder for screens with no old equivalent yet.
 function Lens({ lens, setLens }: { lens: LensKey; setLens: (l: LensKey) => void }) {
   switch (lens) {
-    case "squad": return <Squad setLens={setLens} />;
-    case "suppliers": return <Suppliers />;
-    case "portal": return <SupplierPortalLens />;
-    case "budget": return <Budget setLens={setLens} />;
-    case "rsvp": return <Rsvp />;
+    // Today
+    case "today": return <Today setLens={setLens} />;
+    case "week": return <Week />;
+    // Suppliers
+    case "team": return <Squad />;
+    case "marketplace": return <Marketplace />;
+    // Guests
+    case "guestlist": return <GuestList />;
+    case "rsvp": return <Rsvp setLens={setLens} />;
+    case "passes": return <Passes />;
     case "seating": return <Seating />;
+    // Money
+    case "budget": return <Budget setLens={setLens} />;
+    case "payments": return <Payments setLens={setLens} />;
+    // Us
+    case "ourday": return <OurDay setLens={setLens} />;
+    case "vision": return <Vision setLens={setLens} />;
+    case "gifts": return <Gifts />;
+    case "runsheet": return <Runsheet />;
+    case "docs": return <Documents />;
+    case "coach": return <CoachClient />;
+    // Stitch It
     case "stitchit": return <StitchIt />;
-    case "tasks": return <Tasks />;
-    case "timeline": return <Timeline setLens={setLens} />;
-    case "chat": return <Chat setLens={setLens} />;
-    case "coach": return <Coach setLens={setLens} />;
-    default: return null;
+    // Ask Lungi
+    case "lungi": return <Chat setLens={setLens} />;
+    // Staff-only
+    case "portal": return <SupplierPortalLens />;
+    default: return <ComingSoon label="This screen" icon={ShoppingBag} />;
   }
 }
 
@@ -56,7 +86,7 @@ function PrototypeInner({ initialLens, isStaff }: { initialLens: LensKey; isStaf
 // are the only ones who ever see its nav tab at all (isStaff defaults false
 // — hidden unless explicitly granted, not the other way round).
 export function Prototype({
-  initialLens = "squad",
+  initialLens = "today",
   skipOnboarding = false,
   isStaff = false,
   ownerId,

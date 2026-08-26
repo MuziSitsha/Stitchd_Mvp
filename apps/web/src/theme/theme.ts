@@ -79,26 +79,32 @@ export function buildTheme(mode: Mode, palIdx = 2): Theme {
     };
   }
 
+  // Fixed neutrals, not palette-mixed — matches the reference design's own
+  // token table exactly (Page bg/Surface/Surface tint/Border/Ink/Body/Muted).
+  // Only accent/gold stay palette-driven, so the palette-switcher (Vision
+  // screen, Onboarding) keeps working for every other choice; the *default*
+  // palette (Midnight Violet, see palettes.ts) is tuned so its light accent/
+  // gold equal the reference's fixed brand colors exactly.
   return {
     mode,
-    bg: mix("#F3F1ED", P.cols[3], 0.5),
+    bg: "#F7F5FB",
     bgTint: rgba(P.cols[0], 0.4),
-    panel: mix("#FCFBF8", P.cols[3], 0.25),
-    panel2: mix("#ECEAE4", P.cols[0], 0.12),
-    border: rgba(accent, 0.16),
-    ink: "#171522",
-    sub: "#5D5A6E",
-    faint: "#96939F",
+    panel: "#FFFFFF",
+    panel2: "#F1EDFB",
+    border: "#E7E2F2",
+    ink: "#1A1726",
+    sub: "#4B4460",
+    faint: "#9A93AC",
     accent,
     gold,
     onAccent: inkOn(accent),
     onGold: inkOn(gold),
-    good: "#178A57",
-    warn: "#A97614",
-    bad: "#C24B33",
-    info: "#2A6BB0",
-    grid: "rgba(20,18,30,0.07)",
-    tipBg: mix("#FCFBF8", P.cols[3], 0.25),
-    shadow: "0 10px 26px rgba(20,18,30,0.10)",
+    good: "#1E8E5B",
+    warn: "#B3730A",
+    bad: "#E0483A",
+    info: "#1D7A94",
+    grid: "rgba(26,23,38,0.08)",
+    tipBg: "#FFFFFF",
+    shadow: "0 16px 30px -18px rgba(26,23,38,.35)",
   };
 }

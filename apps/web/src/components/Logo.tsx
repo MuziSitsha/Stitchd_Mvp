@@ -6,9 +6,9 @@ import type { Theme } from "../theme/theme";
 // theme so the wordmark reacts to mode/palette changes; the real Supplier
 // Portal's Header doesn't have a theme system, so it falls back to the
 // static CSS vars in index.css.
-export function Logo({ size = 22, T }: { size?: number; T?: Theme }) {
+export function Logo({ size = 22, T, dashColor }: { size?: number; T?: Theme; dashColor?: string }) {
   const ink = T ? T.ink : "var(--ink)";
-  const gold = T ? T.gold : "var(--gold)";
+  const gold = dashColor ?? (T ? T.accent : "var(--accent)");
   const faint = T ? T.faint : "var(--faint)";
   return (
     <div className="select-none leading-none">

@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState } from "react";
-import { Send, ArrowRight } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Send, ArrowRight, Eye } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
+import { rgba } from "../../theme/theme";
 import { PALETTES } from "../../theme/palettes";
 import { Card } from "../../components/proto/Card";
 import { Chip } from "../../components/proto/Chip";
 import { Face } from "../../components/proto/Face";
-import { RSVP_DAYS, fmtR } from "../../components/proto/data";
+import { RSVP_DAYS, WEDDING, fmtR } from "../../components/proto/data";
 import { useProtoState } from "../../state/ProtoState";
 import { useReadiness } from "../../state/useReadiness";
 import type { LensKey } from "../../components/proto/AppShell";
+
+const QUESTIONS = ["What's our rain plan?", "Where's the budget at?", "What's still at risk?", "Talk me through the palette", "How ready are we?"];
 
 const WEATHER_RAIN = 55;
 
@@ -18,11 +21,12 @@ const WEATHER_RAIN = 55;
 // real lens (Suppliers / Squad) instead.
 export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
   const { T, pal } = useTheme();
-  const { sup, budgetCap, bundleApplied, msgs, setMsgs, chaseRsvp, applyBundle, guests, profile, setSelSup, setReadyOpen } = useProtoState();
+  const { sup, gList, budgetCap, bundleApplied, msgs, setMsgs, chaseRsvp, applyBundle, guests, profile, setSelSup, setReadyOpen } = useProtoState();
   const { coreList, rsvp, budget, pRoles, WEIGHTS, R, sug } = useReadiness(setLens);
   const [draft, setDraft] = useState("");
   const [typing, setTyping] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
+  const invitedSeats = useMemo(() => gList.reduce((a, g) => a + g.party, 0), [gList]);
 
   const now = () => { const d = new Date(); return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
@@ -55,7 +59,7 @@ export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
       return { m: `Readiness is ${R.total}. ${R.parts.filter((p) => p.pct < 70).map((p) => `${p.l.toLowerCase()} at ${p.pct}%`).join(", ") || "every component is above 70%"}. ${top ? `Biggest single move: ${top.t.toLowerCase()}.` : "Nothing material left."}`, act: { l: "Show the maths", go: () => setReadyOpen(true) } };
     }
     if (/supplier|squad|core|bench|who/.test(q)) {
-      return { m: `Core is ${coreList.filter((s) => s.status === "confirmed").length}/${coreList.length} confirmed. ${pRoles.size ? `Your priorities push ${[...pRoles].join(", ")} to the front of the bench.` : ""}${unconf.length ? ` Outstanding: ${unconf.map((s) => s.name).join(", ")}.` : ""}`, act: { l: "Open squad", go: () => setLens("squad") } };
+      return { m: `Core is ${coreList.filter((s) => s.status === "confirmed").length}/${coreList.length} confirmed. ${pRoles.size ? `Your priorities push ${[...pRoles].join(", ")} to the front of the bench.` : ""}${unconf.length ? ` Outstanding: ${unconf.map((s) => s.name).join(", ")}.` : ""}`, act: { l: "Open squad", go: () => setLens("team") } };
     }
     const top = sug[0];
     return { m: `Noted — I'll take it from here. While you're in: readiness ${R.total}, ${rsvp.pend} RSVPs open, ${fmtR(Math.max(0, budget.headroom))} budget spare.${top ? ` Best next move is ${top.t.toLowerCase()}.` : ""}`, act: top ? { l: "Do it", go: top.go } : null };
@@ -77,12 +81,11 @@ export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
   useEffect(() => { chatEnd.current?.scrollIntoView?.({ behavior: "smooth", block: "end" }); }, [msgs]);
 
   const btnA = { background: T.accent, color: T.onAccent };
-  const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
 
   return (
-    <div className="rise">
-      <Card T={T} className="flex flex-col" style={{ height: "62dvh", minHeight: 420 }}>
+    <div className="rise grid gap-3 lg:grid-cols-[1fr_290px] lg:items-start">
+      <Card T={T} className="flex flex-col" style={{ height: "70dvh", minHeight: 460 }}>
         <div className="mb-2 flex items-center gap-2 border-b pb-2" style={{ borderColor: T.border }}>
           <Face seed="coach" T={T} name="Lungi Dlodlo" />
           <div className="min-w-0 flex-1">
@@ -115,12 +118,25 @@ export function Chat({ setLens }: { setLens: (l: LensKey) => void }) {
           <input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Ask about budget, RSVPs, palette, risk…" className="min-w-0 flex-1 rounded-xl px-3 py-2 text-sm outline-none" style={inputS} />
           <button type="submit" aria-label="Send" className="rounded-xl px-3 py-2" style={btnA}><Send size={15} /></button>
         </form>
-        <div className="mt-2 flex gap-1.5 overflow-x-auto">
-          {["What's our rain plan?", "Where's the budget at?", "What's still at risk?", "Talk me through the palette", "How ready are we?"].map((x) => (
-            <button key={x} onClick={() => sendMsg(x)} className="whitespace-nowrap rounded-full px-2.5 py-1 text-xs" style={btnG}>{x}</button>
-          ))}
-        </div>
       </Card>
+
+      <div className="space-y-3">
+        <div className="rounded-2xl border p-4" style={{ borderColor: rgba(T.gold, 0.4), background: rgba(T.gold, 0.08) }}>
+          <div className="mb-2.5 text-xs font-bold" style={{ color: T.gold, letterSpacing: 1 }}>THINGS COUPLES ASK</div>
+          <div className="flex flex-col gap-2">
+            {QUESTIONS.map((x) => (
+              <button key={x} onClick={() => sendMsg(x)} className="press text-left text-xs font-semibold leading-snug" style={{ color: T.ink }}>{x}</button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border p-4" style={{ borderColor: T.border, background: T.panel }}>
+          <div className="mb-1.5 flex items-center gap-1.5 text-xs font-bold" style={{ color: T.faint, letterSpacing: 1 }}><Eye size={12} />WHAT LUNGI CAN SEE</div>
+          <div className="text-xs leading-relaxed" style={{ color: T.sub }}>
+            Your {fmtR(budgetCap)} budget, {sup.length} supplier contracts, {invitedSeats} invited seats, the {WEDDING.venue} site details and live Gauteng supplier pricing. Nothing leaves your account.
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

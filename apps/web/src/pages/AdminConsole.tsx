@@ -21,6 +21,14 @@ interface AdminLead {
   suppliers: { name: string; category: string } | null;
 }
 
+interface AdminTicket {
+  id: string;
+  ref: string;
+  status: "pending" | "confirmed";
+  created_at: string;
+  suppliers: { name: string; category: string } | null;
+}
+
 // FR-ADMIN-01/02: a live cross-supplier lead board, and verify/feature
 // toggles. Both are read/write against real tables/functions that already
 // existed with zero UI — this page is the first face on them.
@@ -28,6 +36,7 @@ export function AdminConsole() {
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   const [suppliers, setSuppliers] = useState<AdminSupplier[]>([]);
   const [leads, setLeads] = useState<AdminLead[]>([]);
+  const [tickets, setTickets] = useState<AdminTicket[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -49,6 +58,16 @@ export function AdminConsole() {
       .limit(50);
     if (fetchError) setError(fetchError.message);
     else setLeads((data as unknown as AdminLead[]) ?? []);
+  }, []);
+
+  const loadTickets = useCallback(async () => {
+    const { data, error: fetchError } = await supabase
+      .from("supplier_tickets")
+      .select("id, ref, status, created_at, suppliers(name, category)")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    if (fetchError) setError(fetchError.message);
+    else setTickets((data as unknown as AdminTicket[]) ?? []);
   }, []);
 
   useEffect(() => {
@@ -83,23 +102,45 @@ export function AdminConsole() {
     if (!authorized) return;
     loadSuppliers();
     loadLeads();
+    loadTickets();
 
     const channel = supabase
       .channel("admin-console")
       .on("postgres_changes", { event: "*", schema: "public", table: "leads" }, loadLeads)
       .on("postgres_changes", { event: "*", schema: "public", table: "suppliers" }, loadSuppliers)
+      .on("postgres_changes", { event: "*", schema: "public", table: "supplier_tickets" }, loadTickets)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authorized, loadSuppliers, loadLeads]);
+  }, [authorized, loadSuppliers, loadLeads, loadTickets]);
 
   async function setVerification(supplierId: string, decision: "verified" | "rejected") {
     setBusyId(supplierId);
     setError(null);
     const { error: fnError } = await supabase.functions.invoke("verifications-toggle", {
       body: { supplier_id: supplierId, decision },
+    });
+    if (fnError) setError(fnError.message);
+    setBusyId(null);
+  }
+
+  async function confirmTicket(ticketRef: string) {
+    setBusyId(ticketRef);
+    setError(null);
+    const { error: fnError } = await supabase.functions.invoke("supplier-tickets-confirm", {
+      body: { ticket_ref: ticketRef },
+    });
+    if (fnError) setError(fnError.message);
+    setBusyId(null);
+  }
+
+  async function declineTicket(ticketRef: string) {
+    setBusyId(ticketRef);
+    setError(null);
+    const { error: fnError } = await supabase.functions.invoke("supplier-tickets-confirm", {
+      body: { ticket_ref: ticketRef, decision: "decline" },
     });
     if (fnError) setError(fnError.message);
     setBusyId(null);
@@ -156,6 +197,29 @@ export function AdminConsole() {
                 </div>
               </li>
             ))}
+          </ul>
+        </section>
+
+        <section>
+          <h2>Supplier tickets ({tickets.length} pending)</h2>
+          <ul className="lead-list">
+            {tickets.map((ticket) => (
+              <li key={ticket.id} className="lead lead-new">
+                <div>
+                  <strong>{ticket.suppliers?.name ?? "unknown supplier"}</strong> · {ticket.suppliers?.category}
+                  <span className="ref">{ticket.ref}</span>
+                </div>
+                <div className="lead-actions">
+                  <button type="button" disabled={busyId === ticket.ref} onClick={() => confirmTicket(ticket.ref)}>
+                    {busyId === ticket.ref ? "Working..." : "Yes, confirm"}
+                  </button>
+                  <button type="button" disabled={busyId === ticket.ref} onClick={() => declineTicket(ticket.ref)}>
+                    {busyId === ticket.ref ? "Working..." : "No"}
+                  </button>
+                </div>
+              </li>
+            ))}
+            {tickets.length === 0 && <li>No pending tickets.</li>}
           </ul>
         </section>
 
