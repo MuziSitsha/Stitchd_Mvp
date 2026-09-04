@@ -11,8 +11,10 @@ import { hash } from "../../components/proto/imagery";
 import { HIRE, HIRE_CATS, OCCASIONS, SUB, randR } from "../../components/proto/data";
 import { useProtoState, type Basket } from "../../state/ProtoState";
 import { supabase } from "../../lib/supabase";
-import { createOrder, checkoutOrder, friendlyPaymentError } from "../../lib/functions";
+import { createOrder, checkoutOrder, friendlyPaymentError, subscribeStitchedPlus, cancelStitchedPlus } from "../../lib/functions";
 import { useLiveSupplierStatus } from "../../state/useLiveSupplierStatus";
+import { useLiveSubscription } from "../../state/useLiveSubscription";
+import { SupplierDealsStrip } from "../../components/proto/SupplierDealsStrip";
 
 type PrintDoc = { kind: "quote" | "checklist" };
 
@@ -40,7 +42,9 @@ export function StitchIt() {
   const { basket, setBasket, toast } = useProtoState();
   const [hireCat, setHireCat] = useState("all");
   const [hireQ, setHireQ] = useState("");
-  const [subscriber, setSubscriber] = useState(false);
+  const { active: subscriber } = useLiveSubscription();
+  const [subscribing, setSubscribing] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [hireDate, setHireDate] = useState("Sat 2 Aug");
   const [occasion, setOccasion] = useState<string | null>(null);
   const [printDoc, setPrintDoc] = useState<PrintDoc | null>(null);
@@ -60,6 +64,17 @@ export function StitchIt() {
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
 
   const byHire = (id: string) => HIRE.find((h) => h.id === id);
+
+  async function startSubscribe() {
+    setSubscribing(true);
+    try {
+      const { checkout_url } = await subscribeStitchedPlus();
+      window.location.href = checkout_url;
+    } catch (e) {
+      toast(friendlyPaymentError(e), "warn");
+      setSubscribing(false);
+    }
+  }
 
   function addToBasket(id: string, addon?: string) {
     const already = !!basket[id];
@@ -220,8 +235,15 @@ export function StitchIt() {
           </div>
         </div>
 
+        <SupplierDealsStrip T={T} />
+
         {!subscriber && (
-          <button onClick={() => { setSubscriber(true); toast("Stitched+ preview on — watch your quote drop"); }} className="press lift flex w-full items-center gap-3 rounded-2xl border p-3 text-left" style={{ borderColor: rgba(T.accent, 0.4), background: T.panel }}>
+          <button
+            disabled={subscribing}
+            onClick={startSubscribe}
+            className="press lift flex w-full items-center gap-3 rounded-2xl border p-3 text-left disabled:opacity-60"
+            style={{ borderColor: rgba(T.accent, 0.4), background: T.panel }}
+          >
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: rgba(T.accent, 0.14) }}><Percent size={18} style={{ color: T.accent }} /></div>
             <div className="min-w-0 flex-1">
               <div className="text-sm font-bold">Become a <span style={{ color: T.accent }}>Stitched+</span> member — {randR(SUB.price)}/mo</div>
@@ -230,13 +252,30 @@ export function StitchIt() {
                 {cart.n > 0 && <b style={{ color: T.good }}> You'd save {randR(cart.potentialMember)} on this quote alone.</b>}
               </div>
             </div>
-            <span className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold" style={btnA}>Try it free</span>
+            <span className="shrink-0 rounded-lg px-3 py-2 text-xs font-bold" style={btnA}>{subscribing ? "Redirecting…" : "Subscribe"}</span>
           </button>
         )}
         {subscriber && (
           <div className="flex items-center gap-2 rounded-2xl border p-2.5 text-xs font-bold" style={{ borderColor: rgba(T.good, 0.4), color: T.good, background: rgba(T.good, 0.06) }}>
-            <BadgeCheck size={15} />Stitched+ preview active — {Math.round(SUB.pct * 100)}% off + free delivery applied.
-            <button onClick={() => setSubscriber(false)} className="ml-auto rounded px-2 py-0.5" style={{ color: T.sub, background: T.panel2 }}>Turn off</button>
+            <BadgeCheck size={15} />Stitched+ member — {Math.round(SUB.pct * 100)}% off + free delivery applied.
+            <button
+              disabled={cancelling}
+              onClick={async () => {
+                setCancelling(true);
+                try {
+                  await cancelStitchedPlus();
+                  toast("Stitched+ cancelled");
+                } catch (e) {
+                  toast(e instanceof Error ? e.message : "Couldn't cancel — try again", "warn");
+                } finally {
+                  setCancelling(false);
+                }
+              }}
+              className="ml-auto rounded px-2 py-0.5 disabled:opacity-60"
+              style={{ color: T.sub, background: T.panel2 }}
+            >
+              {cancelling ? "Cancelling…" : "Cancel"}
+            </button>
           </div>
         )}
 
@@ -349,8 +388,8 @@ export function StitchIt() {
                   <div className="flex justify-between border-t pt-1 text-sm font-bold" style={{ borderColor: T.border }}><span>Total</span><span className="tnum" style={{ color: T.gold }}>{randR(cart.total)}</span></div>
                 </div>
                 {!subscriber && cart.potentialMember > 0 && (
-                  <button onClick={() => { setSubscriber(true); toast("Stitched+ applied"); }} className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold" style={{ background: rgba(T.accent, 0.12), color: T.accent }}>
-                    <Percent size={12} />Join Stitched+ and save {randR(cart.potentialMember)} now
+                  <button disabled={subscribing} onClick={startSubscribe} className="mt-2 flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-bold disabled:opacity-60" style={{ background: rgba(T.accent, 0.12), color: T.accent }}>
+                    <Percent size={12} />{subscribing ? "Redirecting…" : `Join Stitched+ and save ${randR(cart.potentialMember)} now`}
                   </button>
                 )}
                 <button onClick={() => openPrint({ kind: "quote" })} className="press mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-2.5 text-sm font-bold" style={btnA}><BadgeCheck size={14} />Book &amp; get quote</button>

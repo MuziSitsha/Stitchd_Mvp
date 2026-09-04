@@ -15,7 +15,7 @@ export type RsvpVal = "yes" | "no" | "pending";
 export type ChangeReq = { id: string; sup: string; role: string; delta: number; headcount: number; perHead: number; amount: number; status: "pending" | "approved" | "declined" };
 export type Msg = { who: string; t: string; m: string; act?: { l: string; go: () => void } };
 export type Profile = { etype: string; prior: Set<string>; supp: string; comm: "WhatsApp" | "Email" | "Call"; budget: number };
-export type OnboardingResult = { etype: string; prior: string[]; supp: string; comm: "WhatsApp" | "Email" | "Call"; budget: number; pal: number; guests: number };
+export type OnboardingResult = { etype: string; prior: string[]; supp: string; comm: "WhatsApp" | "Email" | "Call"; budget: number; pal: number; guests: number; eventDate: string };
 export type Basket = Record<string, { qty: number; addons: string[] }>;
 export type ExtraBudgetItem = { id: string; cat: string; label: string; cost: number; need: number; paid: boolean };
 type Toast = { id: string; m: string; tone: string; onUndo?: () => void };
@@ -298,6 +298,7 @@ export function ProtoStateProvider({
           owner_id: ownerId,
           type: p.etype,
           guest_count: p.guests,
+          event_date: p.eventDate || null,
           budget_cap_cents: Math.round(p.budget * 100),
           palette_index: p.pal,
           priorities: p.prior,

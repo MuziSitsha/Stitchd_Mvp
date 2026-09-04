@@ -9,7 +9,7 @@
 // kind a safe no-op.
 import { adminClient, jsonResponse } from "../_shared/clients.ts";
 import { verifyWebhookSignature } from "../_shared/paystack.ts";
-import { sendSms } from "../_shared/clickatell.ts";
+import { notify } from "../_shared/notify.ts";
 
 async function activateBoost(reference: string): Promise<boolean> {
   const admin = adminClient();
@@ -53,16 +53,16 @@ async function markOrderPaidAndSpawnLeads(reference: string): Promise<boolean> {
 
   const { data: items, error: itemsErr } = await admin
     .from("order_items")
-    .select("supplier_id, label, suppliers(name, phone)")
+    .select("supplier_id, label, suppliers(name, phone, profile_id)")
     .eq("order_id", order.id);
   if (itemsErr) {
     console.error("failed to load order items for lead spawn", itemsErr.message);
     return true;
   }
 
-  const bySupplier = new Map<string, { name: string; phone: string | null; labels: string[] }>();
-  for (const it of (items ?? []) as unknown as { supplier_id: string; label: string; suppliers: { name: string; phone: string | null } | null }[]) {
-    const entry = bySupplier.get(it.supplier_id) ?? { name: it.suppliers?.name ?? "supplier", phone: it.suppliers?.phone ?? null, labels: [] };
+  const bySupplier = new Map<string, { name: string; phone: string | null; profileId: string | null; labels: string[] }>();
+  for (const it of (items ?? []) as unknown as { supplier_id: string; label: string; suppliers: { name: string; phone: string | null; profile_id: string | null } | null }[]) {
+    const entry = bySupplier.get(it.supplier_id) ?? { name: it.suppliers?.name ?? "supplier", phone: it.suppliers?.phone ?? null, profileId: it.suppliers?.profile_id ?? null, labels: [] };
     entry.labels.push(it.label);
     bySupplier.set(it.supplier_id, entry);
   }
@@ -84,12 +84,48 @@ async function markOrderPaidAndSpawnLeads(reference: string): Promise<boolean> {
       console.error(`failed to spawn lead for supplier ${supplierId} on order ${order.ref}`, leadErr.message);
       continue;
     }
-    if (s.phone) {
-      await sendSms(s.phone, `STITCHD: New paid booking from ${order.customer_name} (${order.customer_phone}). Ref ${lead.ref}. Log in to accept or decline.`);
-    }
+    await notify(lead.ref, "lead_alert", { clientName: `${order.customer_name} (${order.customer_phone})`, ref: lead.ref }, s.phone, s.profileId ?? undefined);
   }
 
   return true;
+}
+
+// subscription.create fires once Paystack confirms the plan-based charge —
+// separately from charge.success, which also fires for the same transaction
+// but carries no subscription_code. Correlated by the customer's email
+// (stored on the subscribers row's owning auth.users, matching the email
+// stitched-plus-subscribe passed to Paystack at checkout) since Paystack's
+// subscription payload carries no reference back to our own user_id.
+async function activateSubscription(data: { subscription_code?: string; plan?: { plan_code?: string }; customer?: { email?: string; customer_code?: string } }): Promise<boolean> {
+  const admin = adminClient();
+  const email = data.customer?.email;
+  if (!email || !data.subscription_code) return false;
+
+  const { data: list, error: listErr } = await admin.auth.admin.listUsers();
+  if (listErr) {
+    console.error("failed to list users for subscription activation", listErr.message);
+    throw new Error(listErr.message);
+  }
+  const user = list.users.find((u) => u.email === email);
+  if (!user) return false;
+
+  const { data: updated, error } = await admin
+    .from("subscribers")
+    .update({
+      status: "active",
+      paystack_customer_code: data.customer?.customer_code ?? null,
+      paystack_subscription_code: data.subscription_code,
+      plan_code: data.plan?.plan_code ?? null,
+      started_at: new Date().toISOString(),
+    })
+    .eq("user_id", user.id)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("failed to activate subscriber", error.message);
+    throw new Error(error.message);
+  }
+  return !!updated;
 }
 
 async function markBudgetPaymentPaid(reference: string): Promise<boolean> {
@@ -110,6 +146,28 @@ async function markBudgetPaymentPaid(reference: string): Promise<boolean> {
   return !!data;
 }
 
+// Every invocation gets exactly one row — success, failure, or a rejected
+// signature — so Admin's Integration Health view has a real dead-letter/
+// retry trail instead of console.error()s nobody can query.
+async function recordDelivery(fields: {
+  eventType: string | null;
+  reference: string | null;
+  status: "received" | "processed" | "failed" | "invalid_signature";
+  errorMessage?: string;
+  rawPayload: unknown;
+}) {
+  const admin = adminClient();
+  const { error } = await admin.from("webhook_deliveries").insert({
+    provider: "paystack",
+    event_type: fields.eventType,
+    reference: fields.reference,
+    status: fields.status,
+    error_message: fields.errorMessage ?? null,
+    raw_payload: fields.rawPayload ?? {},
+  });
+  if (error) console.error("failed to record webhook_deliveries row", error.message);
+}
+
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
     return jsonResponse({ error: "POST only" }, 405);
@@ -120,26 +178,52 @@ Deno.serve(async (req) => {
 
   const valid = await verifyWebhookSignature(rawBody, signature);
   if (!valid) {
+    await recordDelivery({ eventType: null, reference: null, status: "invalid_signature", errorMessage: "invalid signature", rawPayload: safeParse(rawBody) });
     return jsonResponse({ error: "invalid signature" }, 400);
   }
 
   const event = JSON.parse(rawBody);
+  const reference: string | null = event.data?.reference ?? null;
 
   if (event.event === "charge.success") {
-    const reference = event.data?.reference;
     try {
       const matchedBoost = await activateBoost(reference);
       const matchedOrder = matchedBoost ? false : await markOrderPaidAndSpawnLeads(reference);
       const matchedBudgetPayment = matchedBoost || matchedOrder ? false : await markBudgetPaymentPaid(reference);
-      if (!matchedBoost && !matchedOrder && !matchedBudgetPayment) {
-        console.log(`no pending boost, order or budget payment matched reference ${reference} — likely an already-processed retry`);
-      }
+      const note = !matchedBoost && !matchedOrder && !matchedBudgetPayment
+        ? "no pending boost, order or budget payment matched — likely an already-processed retry"
+        : undefined;
+      if (note) console.log(`${note} (reference ${reference})`);
+      await recordDelivery({ eventType: event.event, reference, status: "processed", errorMessage: note, rawPayload: event });
     } catch (e) {
-      return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 500);
+      const message = e instanceof Error ? e.message : String(e);
+      await recordDelivery({ eventType: event.event, reference, status: "failed", errorMessage: message, rawPayload: event });
+      return jsonResponse({ error: message }, 500);
     }
+  } else if (event.event === "subscription.create") {
+    try {
+      const matched = await activateSubscription(event.data);
+      const note = matched ? undefined : "no subscriber matched this customer email";
+      if (note) console.log(`${note} (reference ${reference})`);
+      await recordDelivery({ eventType: event.event, reference, status: "processed", errorMessage: note, rawPayload: event });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      await recordDelivery({ eventType: event.event, reference, status: "failed", errorMessage: message, rawPayload: event });
+      return jsonResponse({ error: message }, 500);
+    }
+  } else {
+    await recordDelivery({ eventType: event.event, reference, status: "received", rawPayload: event });
   }
 
   // Always 200 on a verified, recognised webhook so Paystack doesn't retry
   // indefinitely — even for event types we don't act on yet.
   return jsonResponse({ received: true });
 });
+
+function safeParse(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { raw };
+  }
+}

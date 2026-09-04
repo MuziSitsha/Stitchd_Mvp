@@ -57,6 +57,50 @@ export function computeSupplierStats(orderItems: OrderItemRow[]): SupplierStats 
   return { earnings30d, ordersCount: byOrder.size, repeatPct, memberSharePct, lifetimeEarnedCents };
 }
 
+export interface WeeklyEarning {
+  weekStart: string;
+  label: string;
+  totalCents: number;
+}
+
+// Same paid-order-items source computeSupplierStats already collapses into
+// one 30-day number — bucketed by week instead, for the Phase 5 chart. Weeks
+// run Monday-start; always returns `weeks` buckets (zero-filled) so a quiet
+// week reads as a real dip rather than a missing bar.
+export function computeWeeklyEarnings(orderItems: OrderItemRow[], weeks = 8): WeeklyEarning[] {
+  const paid = orderItems.filter((oi) => oi.orders.status === "paid");
+
+  function mondayOf(d: Date): Date {
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    const m = new Date(d);
+    m.setHours(0, 0, 0, 0);
+    m.setDate(m.getDate() + diff);
+    return m;
+  }
+
+  const thisWeekStart = mondayOf(new Date());
+  const buckets: WeeklyEarning[] = [];
+  for (let i = weeks - 1; i >= 0; i--) {
+    const start = new Date(thisWeekStart);
+    start.setDate(start.getDate() - i * 7);
+    buckets.push({
+      weekStart: start.toISOString().slice(0, 10),
+      label: start.toLocaleDateString("en-ZA", { day: "numeric", month: "short" }),
+      totalCents: 0,
+    });
+  }
+
+  const byWeekStart = new Map(buckets.map((b) => [b.weekStart, b]));
+  for (const oi of paid) {
+    const weekStart = mondayOf(new Date(oi.orders.created_at)).toISOString().slice(0, 10);
+    const bucket = byWeekStart.get(weekStart);
+    if (bucket) bucket.totalCents += oi.line_total_cents;
+  }
+
+  return buckets;
+}
+
 export function groupOrderItems(orderItems: OrderItemRow[]): { order: OrderInfo; items: OrderItemRow[] }[] {
   const map = new Map<string, { order: OrderInfo; items: OrderItemRow[] }>();
   for (const oi of orderItems) {

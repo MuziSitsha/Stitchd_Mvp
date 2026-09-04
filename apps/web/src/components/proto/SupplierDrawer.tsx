@@ -7,10 +7,14 @@ import { Card } from "./Card";
 import { Chip } from "./Chip";
 import { Shot } from "./Shot";
 import { MiniBar } from "./MiniBar";
-import { STATUS_C, WA, perfScore, fmtR, type Supplier } from "./data";
+import { STATUS_C, WA, perfScore, fmtR, WEDDING, type Supplier } from "./data";
 import { useProtoState } from "../../state/ProtoState";
 import { useLiveSupplierTickets } from "../../state/useLiveSupplierTickets";
+import { useLiveSupplierAvailability } from "../../state/useLiveSupplierAvailability";
 import { createSupplierTicket } from "../../lib/functions";
+import { TicketThread } from "./TicketThread";
+import { QuoteReceivedCard } from "./QuoteReceivedCard";
+import { ReportIssueCard } from "./ReportIssueCard";
 
 const SWATCH_USE = ["Primary blooms", "Secondary blooms", "Foliage & depth", "Linen & stationery", "Metallics & candlelight"];
 
@@ -29,9 +33,12 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
   const { T, pal } = useTheme();
   const { sup, guests, bundleApplied, secure, moveZone, applyBundle, toast } = useProtoState();
   const tickets = useLiveSupplierTickets();
+  const availability = useLiveSupplierAvailability(WEDDING.dateISO);
   const [requesting, setRequesting] = useState(false);
   const s = sup.find((x) => x.id === id);
   if (!s) return null;
+
+  const availabilityStatus = availability.get(s.name);
 
   const perf = perfScore(s);
   const avg = catAvg(sup, s.role);
@@ -81,6 +88,21 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
                 <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: T.bad }} />
                 <div><div className="font-bold" style={{ color: T.bad }}>Needs resolving</div><div style={{ color: T.sub }}>{s.issueNote}</div></div>
               </div>
+            </Card>
+          )}
+
+          {availabilityStatus === "blocked" && (
+            <Card T={T} style={{ borderColor: rgba(T.bad, 0.5) }}>
+              <div className="flex items-start gap-2 text-sm">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: T.bad }} />
+                <div><div className="font-bold" style={{ color: T.bad }}>Not available on your date</div><div style={{ color: T.sub }}>{s.name} has marked {WEDDING.dateLabel} as unavailable — check with them before booking.</div></div>
+              </div>
+            </Card>
+          )}
+          {availabilityStatus === "promo" && (
+            <Card T={T} style={{ borderColor: rgba(T.gold, 0.5) }}>
+              <div className="flex items-center gap-2 text-sm font-bold" style={{ color: T.gold }}><Ticket size={15} />Promo pricing on your date</div>
+              <div className="mt-1 text-xs" style={{ color: T.sub }}>{s.name} is running a promotion for {WEDDING.dateLabel} — ask them for details.</div>
             </Card>
           )}
 
@@ -147,7 +169,7 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
                     <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full" style={{ background: rgba(T.bad, 0.18), color: T.bad }}><X size={11} /></span>
                     <div className="text-xs">
                       <div className="font-semibold" style={{ color: T.bad }}>They said no</div>
-                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
+                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : ticket.confirmedRole === "client" ? "you" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
                     </div>
                   </div>
                 )}
@@ -176,7 +198,7 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
                   <div className="text-xs">
                     <div className="font-semibold">Confirmed</div>
                     {ticket.status === "confirmed" ? (
-                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
+                      <div style={{ color: T.faint }}>by {ticket.confirmedRole === "admin" ? "an admin" : ticket.confirmedRole === "client" ? "you" : s.name} · {ticket.confirmedAt ? new Date(ticket.confirmedAt).toLocaleString() : ""}</div>
                     ) : (
                       <div style={{ color: T.faint }}>Not yet</div>
                     )}
@@ -185,6 +207,17 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
               </div>
             )}
           </Card>
+
+          {ticket && <QuoteReceivedCard T={T} ticketId={ticket.id} />}
+
+          {ticket && (
+            <Card T={T}>
+              <div className="mb-2 text-sm font-bold">Message {s.name}</div>
+              <TicketThread T={T} ticketId={ticket.id} senderRole="client" />
+            </Card>
+          )}
+
+          {ticket && <ReportIssueCard T={T} ticketId={ticket.id} />}
 
           <div className="grid grid-cols-2 gap-2">
             <Shot seed={s.id + "a"} T={T} pal={pal} h={92} radius={10}><span className="absolute bottom-1 left-1.5 rounded px-1 text-xs" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>Portfolio</span></Shot>

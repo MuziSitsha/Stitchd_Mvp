@@ -1,7 +1,7 @@
 import {
   LayoutGrid, Store, Users, Banknote, Heart, Zap, MessageCircle,
   ClipboardCheck, ShoppingBag, Mail, Ticket, Utensils, Wallet, CreditCard,
-  Palette, Gift, CalendarRange, FileText, Crown,
+  Palette, Gift, CalendarRange, FileText, Crown, LifeBuoy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -14,10 +14,10 @@ export type TopTab = "today" | "suppliers" | "guests" | "money" | "us" | "stitch
 
 export type Screen =
   | "today" | "week"
-  | "team" | "marketplace"
+  | "team"
   | "guestlist" | "rsvp" | "passes" | "seating"
   | "budget" | "payments"
-  | "ourday" | "vision" | "gifts" | "runsheet" | "docs" | "coach"
+  | "ourday" | "vision" | "gifts" | "runsheet" | "docs" | "coach" | "support"
   | "stitchit"
   | "lungi"
   | "portal";
@@ -38,9 +38,11 @@ export const SUBS_FOR: Record<TopTab, SubTab[]> = {
     { key: "today", label: "Today", icon: LayoutGrid },
     { key: "week", label: "All tasks", icon: ClipboardCheck },
   ],
+  // "Find someone" (candidate-alternative shopping, not tied to the actual
+  // wedding squad) deliberately removed for now — the Suppliers tab shows
+  // only the suppliers the client actually has.
   suppliers: [
     { key: "team", label: "Your circle", icon: Store },
-    { key: "marketplace", label: "Find someone", icon: ShoppingBag },
   ],
   guests: [
     { key: "guestlist", label: "Guest list", icon: Users },
@@ -59,6 +61,7 @@ export const SUBS_FOR: Record<TopTab, SubTab[]> = {
     { key: "runsheet", label: "The day", icon: CalendarRange },
     { key: "docs", label: "Documents", icon: FileText },
     { key: "coach", label: "Coach", icon: Crown },
+    { key: "support", label: "Support", icon: LifeBuoy },
   ],
   stitchit: [
     { key: "stitchit", label: "On demand", icon: ShoppingBag },

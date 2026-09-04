@@ -16,6 +16,7 @@ export const STATUS_C = (T: Theme) => ({ confirmed: T.good, pending: T.faint, is
 export const WEDDING = {
   couple: "Junior & Nadine",
   dateLabel: "Sat 14 November 2026",
+  dateISO: "2026-11-14",
   venue: "Oakfield Farm, Muldersdrift",
   coach: "Lungi Dlodlo",
   rsvpDeadline: "2026-09-15",

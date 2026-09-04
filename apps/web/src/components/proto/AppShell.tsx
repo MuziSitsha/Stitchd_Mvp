@@ -181,25 +181,30 @@ export function AppShell({
                 </div>
                 <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 18, color: T.ink }}>{activeTabLabel}</div>
               </div>
-              <div className="flex gap-1">
-                {subTabs.map(({ key, label, icon: I }) => (
-                  <button
-                    key={key}
-                    onClick={() => setLens(key)}
-                    className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold"
-                    style={lens === key ? { color: T.accent, background: rgba(T.accent, 0.12) } : { color: T.faint }}
-                  >
-                    <I size={12} />
-                    {label}
-                    {key === "rsvp" && rsvpPend > 0 && (
-                      <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.bad, color: "#fff" }}>{rsvpPend}</span>
-                    )}
-                    {key === "stitchit" && cartN > 0 && (
-                      <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.gold, color: T.onGold }}>{cartN}</span>
-                    )}
-                  </button>
-                ))}
-              </div>
+              {/* A lone sub-tab is nothing to pick between — hide the pill
+                  row and let the title stand alone (e.g. "Suppliers" now
+                  that "Find someone" is gone, it's just "Your circle"). */}
+              {subTabs.length > 1 && (
+                <div className="flex gap-1">
+                  {subTabs.map(({ key, label, icon: I }) => (
+                    <button
+                      key={key}
+                      onClick={() => setLens(key)}
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={lens === key ? { color: T.accent, background: rgba(T.accent, 0.12) } : { color: T.faint }}
+                    >
+                      <I size={12} />
+                      {label}
+                      {key === "rsvp" && rsvpPend > 0 && (
+                        <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.bad, color: "#fff" }}>{rsvpPend}</span>
+                      )}
+                      {key === "stitchit" && cartN > 0 && (
+                        <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.gold, color: T.onGold }}>{cartN}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}

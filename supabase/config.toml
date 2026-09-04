@@ -437,6 +437,13 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+[functions.lead-messages]
+enabled = true
+# Dual-path: an anonymous customer authenticates via their lead's
+# access_token, not a Supabase JWT (same reasoning as leads-create/
+# orders-create above) — the function does its own auth check either way.
+verify_jwt = false
+
 [functions.webhooks-paystack]
 enabled = true
 # Paystack calls this directly with its own signature, not a Supabase JWT.

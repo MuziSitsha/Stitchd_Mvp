@@ -1,7 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
+import { Search, Check } from "lucide-react";
+import { useTheme } from "../theme/ThemeContext";
+import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
-import { Header } from "../components/Header";
+import { PortalShell, PortalCard } from "../components/PortalShell";
 
 interface UnclaimedSupplier {
   id: string;
@@ -17,6 +20,7 @@ const CATEGORIES = [
 ];
 
 export function SupplierClaim() {
+  const { T } = useTheme();
   const [suppliers, setSuppliers] = useState<UnclaimedSupplier[]>([]);
   const [query, setQuery] = useState("");
   const [claiming, setClaiming] = useState<string | null>(null);
@@ -108,76 +112,90 @@ export function SupplierClaim() {
   }
 
   const filtered = suppliers.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()));
+  const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
+  const btnA = { background: T.accent, color: T.onAccent };
+  const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
 
   return (
-    <>
-      <Header />
-      <main className="claim-page portal-page">
-        <h1>Is your business already listed?</h1>
-        <p>Search for your business below and claim it, or skip to create a new listing.</p>
+    <PortalShell eyebrow="Supplier" title="Is your business already listed?">
+      <PortalCard T={T}>
+        <div className="mb-3 text-xs" style={{ color: T.sub }}>
+          Search for your business below and claim it, or skip to create a new listing.
+        </div>
+        <div className="relative">
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.faint }} />
+          <input
+            type="search"
+            placeholder="Search by business name..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="w-full rounded-xl py-2.5 pl-9 pr-3.5 text-sm outline-none"
+            style={inputS}
+          />
+        </div>
 
-        <input
-          type="search"
-          placeholder="Search by business name..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        {error && <div className="mt-3 rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>}
 
-        {error && <p className="error">{error}</p>}
-
-        <ul className="claim-list">
+        <div className="mt-3 space-y-2">
           {filtered.map((s) => (
-            <li key={s.id}>
-              <div>
-                <strong>{s.name}</strong>
-                <span> — {s.category}</span>
-                {s.headline && <p>{s.headline}</p>}
+            <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: T.border }}>
+              <div className="min-w-0">
+                <div className="text-xs font-bold">{s.name} <span className="font-normal" style={{ color: T.sub }}>— {s.category}</span></div>
+                {s.headline && <div className="mt-0.5 text-[11px]" style={{ color: T.sub }}>{s.headline}</div>}
               </div>
-              <button type="button" disabled={claiming === s.id} onClick={() => claim(s.id)}>
-                {claiming === s.id ? "Claiming..." : "This is my business"}
+              <button
+                type="button"
+                disabled={claiming === s.id}
+                onClick={() => claim(s.id)}
+                className="press flex shrink-0 items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60"
+                style={btnA}
+              >
+                <Check size={11} />{claiming === s.id ? "Claiming…" : "This is my business"}
               </button>
-            </li>
+            </div>
           ))}
-          {filtered.length === 0 && <li>No matching unclaimed listing.</li>}
-        </ul>
+          {filtered.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No matching unclaimed listing.</div>}
+        </div>
+      </PortalCard>
 
-        {!creating ? (
-          <button type="button" className="link-button" onClick={() => setCreating(true)}>
-            Skip — create a new listing
-          </button>
-        ) : (
-          <form onSubmit={createListing}>
-            <h2>Create a new listing</h2>
-            <label>
-              Business name
-              <input required value={newName} onChange={(e) => setNewName(e.target.value)} />
+      {!creating ? (
+        <button type="button" onClick={() => setCreating(true)} className="w-full text-center text-xs font-bold" style={{ color: T.accent }}>
+          Skip — create a new listing
+        </button>
+      ) : (
+        <PortalCard T={T}>
+          <form onSubmit={createListing} className="space-y-3">
+            <div className="text-sm font-bold">Create a new listing</div>
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Business name</div>
+              <input required value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
             </label>
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: "var(--sub)", marginBottom: 6 }}>
-                Categories — pick all that apply
-              </div>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px" }}>
+              <div className="mb-1.5 text-xs font-semibold" style={{ color: T.sub }}>Categories — pick all that apply</div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
                 {CATEGORIES.map((c) => (
-                  <label key={c} style={{ flexDirection: "row", alignItems: "center", gap: 6, width: "auto", fontWeight: 400, color: "var(--ink)" }}>
-                    <input type="checkbox" checked={newCategories.has(c)} onChange={() => toggleCategory(c)} style={{ width: "auto" }} />
+                  <label key={c} className="flex items-center gap-1.5 text-xs" style={{ color: T.ink }}>
+                    <input type="checkbox" checked={newCategories.has(c)} onChange={() => toggleCategory(c)} className="h-3.5 w-3.5" />
                     {c}
                   </label>
                 ))}
               </div>
             </div>
-            <label>
-              Headline (optional)
-              <input value={newHeadline} onChange={(e) => setNewHeadline(e.target.value)} placeholder="One line about what you do" />
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Headline (optional)</div>
+              <input value={newHeadline} onChange={(e) => setNewHeadline(e.target.value)} placeholder="One line about what you do" className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
             </label>
-            <button type="submit" disabled={submitting || !newName.trim()}>
-              {submitting ? "Creating..." : "Create listing"}
-            </button>
-            <button type="button" className="link-button" onClick={() => setCreating(false)}>
-              Back to search
-            </button>
+            <div className="flex gap-2">
+              <button type="submit" disabled={submitting || !newName.trim()} className="press flex-1 rounded-xl py-2.5 text-sm font-bold disabled:opacity-60" style={btnA}>
+                {submitting ? "Creating…" : "Create listing"}
+              </button>
+              <button type="button" onClick={() => setCreating(false)} className="press rounded-xl px-4 py-2.5 text-sm font-bold" style={btnG}>
+                Back to search
+              </button>
+            </div>
           </form>
-        )}
-      </main>
-    </>
+        </PortalCard>
+      )}
+    </PortalShell>
   );
 }

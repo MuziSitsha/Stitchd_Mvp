@@ -4,7 +4,7 @@ import type { Theme } from "../../theme/theme";
 import { rgba } from "../../theme/theme";
 import { PALETTES } from "../../theme/palettes";
 import { rolesFor, weightsFor } from "./readiness";
-import { WEDDING, fmtR } from "./data";
+import { fmtR } from "./data";
 import { Logo } from "../Logo";
 import { MoodTile } from "./MoodTile";
 import { PaletteShot } from "./PaletteShot";
@@ -41,10 +41,11 @@ export function Onboarding({
   const [supp, setSupp] = useState(initial.supp || "Full planning support");
   const [comm, setComm] = useState<"WhatsApp" | "Email" | "Call">(initial.comm || "WhatsApp");
   const [budget, setBudget] = useState(initial.budget || 400);
+  const [eventDate, setEventDate] = useState("2026-11-14");
   const coreN = guests < 80 ? 5 : guests <= 150 ? 6 : guests <= 250 ? 8 : 10;
   const pRoles = rolesFor(prior);
   const { why } = weightsFor(prior);
-  const finish = () => onDone({ etype, prior: [...prior], supp, comm, budget, pal, guests });
+  const finish = () => onDone({ etype, prior: [...prior], supp, comm, budget, pal, guests, eventDate });
   const btnA = { background: T.accent, color: T.onAccent };
 
   return (
@@ -76,7 +77,18 @@ export function Onboarding({
 
         {step === 1 && (
           <div className="space-y-3">
-            {([["Event date", WEDDING.dateLabel], ["Start time", "14:00"], ["Location", "Muldersdrift, Gauteng"]] as [string, string][]).map(([l, v]) => (
+            <div className="rounded-xl border px-3 py-2.5" style={{ borderColor: T.border, background: T.panel2 }}>
+              <div className="text-xs" style={{ color: T.faint }}>Event date</div>
+              <input
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                className="w-full bg-transparent text-sm font-semibold outline-none"
+                style={{ color: T.ink }}
+                aria-label="Event date"
+              />
+            </div>
+            {([["Start time", "14:00"], ["Location", "Muldersdrift, Gauteng"]] as [string, string][]).map(([l, v]) => (
               <div key={l} className="rounded-xl border px-3 py-2.5" style={{ borderColor: T.border, background: T.panel2 }}>
                 <div className="text-xs" style={{ color: T.faint }}>{l}</div>
                 <div className="text-sm font-semibold">{v}</div>
@@ -168,6 +180,7 @@ export function Onboarding({
             <div className="space-y-1.5 text-left text-xs">
               {([
                 ["Event", `${etype} · ${guests} guests`, `Core squad sized to ${coreN} roles`],
+                ["Date", new Date(`${eventDate}T00:00:00`).toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "long", year: "numeric" }), "Powers your countdown and supplier date-clash checks"],
                 ["Palette", PALETTES[pal].name, "Accent colour applied across the board"],
                 ["Priorities", [...prior].join(", ") || "none", pRoles.size ? `${[...pRoles].join(", ")} ranked first + double weight` : "no supplier reordering"],
                 ["Budget", fmtR(budget), "Live cap for the optimizer"],

@@ -4,6 +4,7 @@
 // return the existing row (matches auth-test-token's own
 // select-then-write idiom for the same class of uniqueness gotcha).
 import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
+import { notify } from "../_shared/notify.ts";
 
 Deno.serve(async (req) => {
   const preflight = handlePreflight(req);
@@ -30,7 +31,7 @@ Deno.serve(async (req) => {
   if (!event) return jsonResponse({ error: "no event found for this account" }, 404);
 
   const { data: supplier, error: supplierErr } = await caller
-    .from("suppliers").select("id").eq("name", supplierName).maybeSingle();
+    .from("suppliers").select("id, category, phone, profile_id").eq("name", supplierName).maybeSingle();
   if (supplierErr) return jsonResponse({ error: supplierErr.message }, 500);
   if (!supplier) return jsonResponse({ error: "supplier not found" }, 404);
 
@@ -62,6 +63,13 @@ Deno.serve(async (req) => {
     }
     return jsonResponse({ error: insertErr.message }, 500);
   }
+
+  const { data: profile } = await admin.from("profiles").select("display_name").eq("id", userRes.user.id).maybeSingle();
+  await notify(
+    ticket.ref, "lead_alert",
+    { clientName: profile?.display_name ?? "A couple", role: supplier.category, ref: ticket.ref },
+    supplier.phone, supplier.profile_id ?? undefined,
+  );
 
   return jsonResponse(ticket);
 });

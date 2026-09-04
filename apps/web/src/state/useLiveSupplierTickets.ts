@@ -2,11 +2,12 @@ import { useEffect, useId, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 export type TicketStatus = {
+  id: string;
   ref: string;
   status: "pending" | "confirmed" | "declined";
   createdAt: string;
   confirmedAt: string | null;
-  confirmedRole: "supplier" | "admin" | null;
+  confirmedRole: "supplier" | "admin" | "client" | null;
 };
 
 // Sibling to useLiveSupplierStatus.ts — same name-matching + Realtime-refetch
@@ -31,7 +32,7 @@ export function useLiveSupplierTickets() {
     async function load() {
       const { data, error } = await supabase
         .from("supplier_tickets")
-        .select("ref, status, created_at, confirmed_at, confirmed_role, suppliers(name)")
+        .select("id, ref, status, created_at, confirmed_at, confirmed_role, suppliers(name)")
         .order("created_at", { ascending: true });
       if (cancelled) return;
       if (error) {
@@ -46,11 +47,12 @@ export function useLiveSupplierTickets() {
         const supplierName = (r.suppliers as unknown as { name: string } | null)?.name;
         if (!supplierName) continue;
         next.set(supplierName, {
+          id: r.id,
           ref: r.ref,
           status: r.status as "pending" | "confirmed" | "declined",
           createdAt: r.created_at,
           confirmedAt: r.confirmed_at,
-          confirmedRole: r.confirmed_role as "supplier" | "admin" | null,
+          confirmedRole: r.confirmed_role as "supplier" | "admin" | "client" | null,
         });
       }
       setByName(next);

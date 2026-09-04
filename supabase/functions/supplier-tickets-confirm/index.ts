@@ -10,6 +10,7 @@
 // attention" path — same confirmed_by/confirmed_role/confirmed_at columns
 // record who responded and when either way.
 import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
+import { notify } from "../_shared/notify.ts";
 
 Deno.serve(async (req) => {
   const preflight = handlePreflight(req);
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
 
   const { data: ticket, error: ticketErr } = await admin
     .from("supplier_tickets")
-    .select("id, ref, status, supplier_id")
+    .select("id, ref, status, supplier_id, event_id, suppliers(name)")
     .eq("ref", ticketRef).eq("status", "pending")
     .maybeSingle();
   if (ticketErr) return jsonResponse({ error: ticketErr.message }, 500);
@@ -71,6 +72,15 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (updateErr) return jsonResponse({ error: updateErr.message }, 500);
   if (!updated) return jsonResponse({ error: "already responded to by someone else" }, 409);
+
+  if (newStatus === "confirmed") {
+    const { data: event } = await admin.from("events").select("owner_id").eq("id", ticket.event_id).maybeSingle();
+    if (event) {
+      const { data: profile } = await admin.from("profiles").select("phone").eq("id", event.owner_id).maybeSingle();
+      const supplierName = (ticket.suppliers as unknown as { name: string } | null)?.name ?? "your supplier";
+      await notify(updated.ref, "lead_accepted", { supplierName, ref: updated.ref }, profile?.phone ?? null, event.owner_id);
+    }
+  }
 
   return jsonResponse(updated);
 });

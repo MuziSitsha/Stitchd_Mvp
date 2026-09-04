@@ -5,6 +5,7 @@ import { SupplierAuth } from './pages/SupplierAuth'
 import { SupplierClaim } from './pages/SupplierClaim'
 import { SupplierPortal } from './pages/SupplierPortal'
 import { RequestSupplier } from './pages/RequestSupplier'
+import { LeadThread } from './pages/LeadThread'
 import { AdminAuth } from './pages/AdminAuth'
 import { AdminConsole } from './pages/AdminConsole'
 
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Entry />} />
           <Route path="/request" element={<RequestSupplier />} />
+          <Route path="/thread/:ref" element={<LeadThread />} />
           <Route path="/supplier/login" element={<SupplierAuth />} />
           <Route path="/supplier/claim" element={<SupplierClaim />} />
           <Route path="/supplier" element={<SupplierPortal />} />

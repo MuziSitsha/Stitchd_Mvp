@@ -5,7 +5,7 @@
 // leads from a paid order); this is the deliberately narrow Supplier Pilot
 // Week path (docs/decisions.md) — a lead a supplier can act on today.
 import { adminClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
-import { sendSms } from "../_shared/clickatell.ts";
+import { notify } from "../_shared/notify.ts";
 
 Deno.serve(async (req) => {
   const preflight = handlePreflight(req);
@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
   const { data: supplier, error: supplierErr } = await admin
     .from("suppliers")
-    .select("id, name, phone, status")
+    .select("id, name, phone, status, profile_id")
     .eq("id", supplier_id)
     .maybeSingle();
 
@@ -43,12 +43,7 @@ Deno.serve(async (req) => {
 
   if (leadErr) return jsonResponse({ error: leadErr.message }, 500);
 
-  if (supplier.phone) {
-    await sendSms(
-      supplier.phone,
-      `STITCHD: New lead from ${requester_name} (${requester_phone}). Ref ${lead.ref}. Log in to accept or decline.`,
-    );
-  }
+  await notify(lead.ref, "lead_alert", { clientName: `${requester_name} (${requester_phone})`, ref: lead.ref }, supplier.phone, supplier.profile_id ?? undefined);
 
   return jsonResponse({ ref: lead.ref, supplier: supplier.name }, 201);
 });

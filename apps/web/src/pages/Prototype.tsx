@@ -7,7 +7,6 @@ import { useTheme } from "../theme/ThemeContext";
 import { Today } from "./lenses/Today";
 import { Week } from "./lenses/Week";
 import { Squad } from "./Squad";
-import { Marketplace } from "./lenses/Marketplace";
 import { SupplierPortalLens } from "./lenses/SupplierPortalLens";
 import { Budget } from "./lenses/Budget";
 import { Payments } from "./lenses/Payments";
@@ -21,6 +20,7 @@ import { Gifts } from "./lenses/Gifts";
 import { Runsheet } from "./lenses/Runsheet";
 import { Documents } from "./lenses/Documents";
 import { CoachClient } from "./lenses/CoachClient";
+import { Support } from "./lenses/Support";
 import { StitchIt } from "./lenses/StitchIt";
 import { Chat } from "./lenses/Chat";
 import { ComingSoon } from "./lenses/ComingSoon";
@@ -36,7 +36,6 @@ function Lens({ lens, setLens }: { lens: LensKey; setLens: (l: LensKey) => void 
     case "week": return <Week />;
     // Suppliers
     case "team": return <Squad />;
-    case "marketplace": return <Marketplace />;
     // Guests
     case "guestlist": return <GuestList />;
     case "rsvp": return <Rsvp setLens={setLens} />;
@@ -52,6 +51,7 @@ function Lens({ lens, setLens }: { lens: LensKey; setLens: (l: LensKey) => void 
     case "runsheet": return <Runsheet />;
     case "docs": return <Documents />;
     case "coach": return <CoachClient />;
+    case "support": return <Support />;
     // Stitch It
     case "stitchit": return <StitchIt />;
     // Ask Lungi
