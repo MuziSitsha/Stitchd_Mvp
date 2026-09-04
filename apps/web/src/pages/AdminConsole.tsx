@@ -7,7 +7,7 @@ import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
 import { adminToggleBoost, adminSuspendSupplier, unpublishPromotion, refundOrder } from "../lib/functions";
 import { computeWeeklyEarnings, type OrderItemRow } from "../lib/supplierStats";
-import { PortalShell, PortalCard, StatTile, StatusChip } from "../components/PortalShell";
+import { PortalShell, PortalCard, StatTile, StatusChip, ConfirmDialog } from "../components/PortalShell";
 import { TicketThread } from "../components/proto/TicketThread";
 import { LeadThreadPanel } from "../components/proto/LeadThreadPanel";
 import { TicketV2Card, TICKET_STATUS_LABEL, TICKET_STATUS_TONE } from "../components/proto/TicketV2Card";
@@ -183,6 +183,7 @@ export function AdminConsole() {
   const [messageLog, setMessageLog] = useState<MessageLogRow[]>([]);
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [refundingRef, setRefundingRef] = useState<string | null>(null);
+  const [refundDialogRef, setRefundDialogRef] = useState<string | null>(null);
   const [openSupportId, setOpenSupportId] = useState<string | null>(null);
   const [promotions, setPromotions] = useState<AdminPromotion[]>([]);
   const [openLeadThreadId, setOpenLeadThreadId] = useState<string | null>(null);
@@ -278,9 +279,10 @@ export function AdminConsole() {
     else setOrders((data as unknown as AdminOrder[]) ?? []);
   }, []);
 
-  async function issueRefund(ref: string) {
-    const reason = window.prompt(`Reason for refunding ${ref}?`);
-    if (!reason?.trim()) return;
+  async function confirmRefund(reason?: string) {
+    const ref = refundDialogRef;
+    setRefundDialogRef(null);
+    if (!ref || !reason?.trim()) return;
     setRefundingRef(ref);
     setError(null);
     try {
@@ -872,7 +874,7 @@ export function AdminConsole() {
                 {o.status === "paid" && (
                   <button
                     disabled={refundingRef === o.ref}
-                    onClick={() => issueRefund(o.ref)}
+                    onClick={() => setRefundDialogRef(o.ref)}
                     className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60"
                     style={{ background: rgba(T.bad, 0.12), color: T.bad }}
                   >
@@ -998,6 +1000,19 @@ export function AdminConsole() {
           {leads.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No leads yet.</div>}
         </div>
       </PortalCard>
+
+      <ConfirmDialog
+        T={T}
+        open={refundDialogRef !== null}
+        title={`Refund ${refundDialogRef ?? ""}?`}
+        message="This moves real money back via Paystack — give a reason for the audit trail."
+        confirmLabel="Issue refund"
+        danger
+        promptLabel="Reason for refunding"
+        promptPlaceholder="e.g. supplier no-show, duplicate charge…"
+        onConfirm={confirmRefund}
+        onCancel={() => setRefundDialogRef(null)}
+      />
     </PortalShell>
   );
 }

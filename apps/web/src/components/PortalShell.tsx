@@ -119,3 +119,62 @@ export function StatusChip({ T, tone, children }: { T: Theme; tone: "good" | "wa
     </span>
   );
 }
+
+// A styled stand-in for window.confirm()/window.prompt() — those block the
+// main thread until dismissed (shows up as a real INP violation in web
+// vitals, not just a look-and-feel complaint) and render as a jarring
+// native OS dialog with none of the app's own chrome. Pass `promptLabel`
+// to also collect a line of text (the refund-reason case); omit it for a
+// plain yes/no confirmation (the switch-listing case).
+export function ConfirmDialog({
+  T, open, title, message, confirmLabel = "Confirm", cancelLabel = "Cancel", danger, promptLabel, promptPlaceholder, onConfirm, onCancel,
+}: {
+  T: Theme;
+  open: boolean;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+  promptLabel?: string;
+  promptPlaceholder?: string;
+  onConfirm: (text?: string) => void;
+  onCancel: () => void;
+}) {
+  const [text, setText] = useState("");
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: rgba("#000000", 0.5) }} onClick={onCancel}>
+      <div className="w-full max-w-sm rounded-2xl border p-4" style={{ background: T.panel, borderColor: T.border, boxShadow: T.shadow }} onClick={(e) => e.stopPropagation()}>
+        <div className="text-sm font-bold">{title}</div>
+        <div className="mt-1.5 text-xs" style={{ color: T.sub }}>{message}</div>
+        {promptLabel && (
+          <label className="mt-3 block">
+            <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>{promptLabel}</div>
+            <textarea
+              autoFocus
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={promptPlaceholder}
+              className="w-full rounded-lg px-2.5 py-2 text-xs outline-none"
+              style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}`, minHeight: 64 }}
+            />
+          </label>
+        )}
+        <div className="mt-3.5 flex justify-end gap-1.5">
+          <button onClick={onCancel} className="press rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: "transparent", color: T.sub, border: `1px solid ${T.border}` }}>
+            {cancelLabel}
+          </button>
+          <button
+            onClick={() => { const t = text.trim(); setText(""); onConfirm(promptLabel ? t : undefined); }}
+            disabled={!!promptLabel && !text.trim()}
+            className="press rounded-lg px-3 py-1.5 text-xs font-bold disabled:opacity-60"
+            style={{ background: danger ? T.bad : T.accent, color: danger ? "#fff" : T.onAccent }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

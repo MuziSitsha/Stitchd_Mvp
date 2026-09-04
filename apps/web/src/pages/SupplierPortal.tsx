@@ -7,7 +7,7 @@ import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
 import { respondToLead, startBoostCheckout, confirmSupplierTicket, respondToSupplierTicket, friendlyPaymentError, createQuote } from "../lib/functions";
 import { computeSupplierStats, computeWeeklyEarnings, groupOrderItems, type OrderItemRow } from "../lib/supplierStats";
-import { PortalShell, PortalCard, StatTile, StatusChip } from "../components/PortalShell";
+import { PortalShell, PortalCard, StatTile, StatusChip, ConfirmDialog } from "../components/PortalShell";
 import { TicketThread } from "../components/proto/TicketThread";
 import { LeadThreadPanel } from "../components/proto/LeadThreadPanel";
 import { TicketV2Card, TICKET_STATUS_LABEL, TICKET_STATUS_TONE } from "../components/proto/TicketV2Card";
@@ -163,6 +163,7 @@ export function SupplierPortal() {
   const [addonPrice, setAddonPrice] = useState("");
   const [addonSubmitting, setAddonSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   const loadSupplier = useCallback(async () => {
@@ -666,9 +667,9 @@ export function SupplierPortal() {
     }
   }
 
-  async function handleSwitchBusiness() {
+  async function confirmSwitchBusiness() {
     if (!supplier) return;
-    if (!window.confirm(`Release "${supplier.name}" and pick a different listing?`)) return;
+    setSwitchDialogOpen(false);
     setError(null);
     const { error: releaseError } = await supabase.from("suppliers").update({ profile_id: null }).eq("id", supplier.id);
     if (releaseError) {
@@ -782,7 +783,7 @@ export function SupplierPortal() {
               <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>Paused listings don't appear in client search or rankings.</div>
             )}
           </div>
-          <button onClick={handleSwitchBusiness} className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: rgba("#fff", 0.12), color: "#fff" }}>
+          <button onClick={() => setSwitchDialogOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: rgba("#fff", 0.12), color: "#fff" }}>
             <ArrowLeftRight size={12} />Switch listing
           </button>
         </div>
@@ -1330,6 +1331,17 @@ export function SupplierPortal() {
           </div>
         </PortalCard>
       </div>
+
+      <ConfirmDialog
+        T={T}
+        open={switchDialogOpen}
+        title="Switch listing?"
+        message={`This releases "${supplier.name}" back to unclaimed — you'll pick a different listing (or claim this one again) next.`}
+        confirmLabel="Release & switch"
+        danger
+        onConfirm={confirmSwitchBusiness}
+        onCancel={() => setSwitchDialogOpen(false)}
+      />
     </PortalShell>
   );
 }
