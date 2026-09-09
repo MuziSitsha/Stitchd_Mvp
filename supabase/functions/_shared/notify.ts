@@ -17,6 +17,7 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
   lead_message: (v) => `STITCHD: ${v.supplierName} sent you a message about your request (${v.ref}). Reply here: ${v.link}`,
   supplier_approved: (v) => `STITCHD: your listing "${v.supplierName}" is approved and live — clients can now find and request you.`,
   supplier_declined: (v) => `STITCHD: your listing "${v.supplierName}" wasn't approved this time. Log in to your Supplier Portal for details.`,
+  ticket_escalated: (v) => `STITCHD: ticket ${v.ref} breached its ${v.clock} clock (severity ${v.priority}) and has been escalated to level ${v.level}. Log in to review.`,
 };
 
 async function sendWhatsApp(to: string, message: string): Promise<{ ok: boolean; error?: string }> {
@@ -45,13 +46,20 @@ async function sendWhatsApp(to: string, message: string): Promise<{ ok: boolean;
 // intended channel if neither could send). `to` may be null (no contact
 // number on file) — still logs, so the audit trail shows the notification
 // was due even when there was nowhere to send it.
+// Return value added for notification_queue's processor (WBS-05) to make a
+// real retry decision from — every existing call site uses `await
+// notify(...)` with no destructuring, so this is purely additive, nothing
+// upstream needed to change. "logged" means "nothing wrong, just nowhere to
+// send it" (no contact number, or a provider genuinely unconfigured) —
+// retrying won't fix either, so the queue treats it as suppressed, not
+// failed.
 export async function notify(
   ref: string,
   template: keyof typeof TEMPLATES,
   vars: Record<string, string>,
   to: string | null,
   toUserId?: string,
-): Promise<void> {
+): Promise<{ status: "sent" | "logged" }> {
   const admin = adminClient();
   const message = TEMPLATES[template](vars);
 
@@ -60,7 +68,7 @@ export async function notify(
       ref, channel: "whatsapp", template, to_phone: null, to_user_id: toUserId ?? null,
       status: "logged", provider: "none", payload: { message, reason: "no contact number on file" },
     });
-    return;
+    return { status: "logged" };
   }
 
   const wa = await sendWhatsApp(to, message);
@@ -69,7 +77,7 @@ export async function notify(
       ref, channel: "whatsapp", template, to_phone: to, to_user_id: toUserId ?? null,
       status: "sent", provider: "whatsapp_cloud", payload: { message },
     });
-    return;
+    return { status: "sent" };
   }
 
   const sms = await sendSms(to, message);
@@ -79,4 +87,5 @@ export async function notify(
     provider: sms.ok ? "clickatell" : "whatsapp_cloud",
     payload: { message, whatsapp_error: wa.error, sms_error: sms.error },
   });
+  return { status: sms.ok ? "sent" : "logged" };
 }
