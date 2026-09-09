@@ -225,7 +225,9 @@ describe("the real guest loop through rsvp-exchange-token and rsvp-submit-respon
       session_token: sessionToken,
       responses: [{ guest_id: guestId, function_id: functionId, answer: "declined", expected_revision: 0 /* stale — real revision is now 1 */ }],
     });
-    expect(status).toBe(409);
+    // Always 200 — conflict is a per-item flag, not an HTTP status, since a
+    // single batch can have some responses succeed and others conflict.
+    expect(status).toBe(200);
     expect(json.results[0]).toMatchObject({ conflict: true });
 
     const { data: stillAttending } = await admin.from("guest_responses").select("answer, meal").eq("guest_id", guestId).eq("function_id", functionId).single();

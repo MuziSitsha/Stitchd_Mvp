@@ -222,3 +222,81 @@ export function sendLeadMessage(ref: string, body: string, opts: { token?: strin
     body: { ref, token: opts.token, body },
   });
 }
+
+// RSVP — host side (real Supabase session, event owner only).
+export interface RsvpImportResult {
+  imported: boolean;
+  already_imported: boolean;
+  household_count: number;
+  guest_count: number;
+}
+export function importRsvpGuests(
+  eventId: string,
+  fingerprint: string,
+  households: { label: string; guests: { display_name: string; person_type?: "adult" | "child"; function_ids: string[] }[] }[],
+) {
+  return callFunction<RsvpImportResult>("rsvp-import-guests", {
+    auth: true,
+    body: { event_id: eventId, fingerprint, households },
+  });
+}
+export function publishRsvpInvitation(householdId: string) {
+  return callFunction<{ token: string; expires_at: string }>("rsvp-publish-invitation", {
+    auth: true,
+    body: { household_id: householdId },
+  });
+}
+
+// RSVP — guest side. No Supabase session at all (see rsvp-exchange-token's
+// own header comment) — token/session_token are the only credential, same
+// shape as the Stitch It lead-thread functions above.
+export interface RsvpGuestEntitlement {
+  function_id: string;
+  plus_one_allowed: boolean;
+  functions: { id: string; name: string; starts_at: string | null; location: string | null } | null;
+}
+export interface RsvpGuestResponseRow {
+  function_id: string;
+  state: "not_responded" | "draft" | "submitted";
+  answer: "attending" | "declined" | null;
+  meal: string | null;
+  dietary_note: string | null;
+  plus_one_name: string | null;
+  revision: number;
+}
+export interface RsvpGuestRow {
+  id: string;
+  display_name: string;
+  person_type: "adult" | "child";
+  guest_entitlements: RsvpGuestEntitlement[];
+  guest_responses: RsvpGuestResponseRow[];
+}
+export interface RsvpExchangeResult {
+  session_token: string;
+  session_expires_at: string;
+  household: { id: string; label: string };
+  guests: RsvpGuestRow[];
+}
+export function exchangeRsvpToken(token: string) {
+  return callFunction<RsvpExchangeResult>("rsvp-exchange-token", { body: { token } });
+}
+
+export interface RsvpSubmitInput {
+  guest_id: string;
+  function_id: string;
+  answer?: "attending" | "declined";
+  draft?: boolean;
+  meal?: string | null;
+  dietary_note?: string | null;
+  plus_one_name?: string | null;
+  expected_revision: number;
+}
+export interface RsvpSubmitResult {
+  results: Array<{ guest_id: string; function_id: string; state?: string; revision?: number; conflict?: boolean }>;
+  counts: Record<string, number>;
+}
+export function submitRsvpResponses(sessionToken: string, responses: RsvpSubmitInput[]) {
+  return callFunction<RsvpSubmitResult>("rsvp-submit-response", {
+    body: { session_token: sessionToken, responses },
+  });
+}

@@ -9,6 +9,8 @@ import { RequestSupplier } from './pages/RequestSupplier'
 import { LeadThread } from './pages/LeadThread'
 import { AdminAuth } from './pages/AdminAuth'
 import { AdminConsole } from './pages/AdminConsole'
+import { RsvpInvite, RsvpGuestForm, RsvpConfirmed } from './pages/RsvpGuest'
+import { RsvpHostManager } from './pages/RsvpHostManager'
 
 function App() {
   return (
@@ -24,6 +26,10 @@ function App() {
           <Route path="/supplier" element={<SupplierPortal />} />
           <Route path="/admin/login" element={<AdminAuth />} />
           <Route path="/admin" element={<AdminConsole />} />
+          <Route path="/invite/:token" element={<RsvpInvite />} />
+          <Route path="/rsvp" element={<RsvpGuestForm />} />
+          <Route path="/rsvp/confirmed" element={<RsvpConfirmed />} />
+          <Route path="/rsvp-manager" element={<RsvpHostManager />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

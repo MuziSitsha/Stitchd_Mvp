@@ -122,8 +122,6 @@ Deno.serve(async (req) => {
     results.push(updated);
   }
 
-  const hasConflict = results.some((r) => "conflict" in r);
-
   // Recompute counts for every function touched, live — "A completed
   // response immediately updates host counts." Function count = distinct
   // attending entitled guests, never a sum across functions.
@@ -139,5 +137,10 @@ Deno.serve(async (req) => {
     counts[fid] = count ?? 0;
   }
 
-  return jsonResponse({ results, counts }, hasConflict ? 409 : 200);
+  // Always 200: a single batch can have some responses succeed and others
+  // conflict, so "conflict" is a per-item flag in `results`, not an
+  // overall HTTP status — and this project's shared callFunction() helper
+  // discards the response body on any non-2xx status, which would have
+  // silently thrown away the very results the caller needs to react to.
+  return jsonResponse({ results, counts });
 });
