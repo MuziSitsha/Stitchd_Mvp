@@ -81,8 +81,11 @@ afterAll(async () => {
     await admin.from("budget_payments").delete().eq("id", id);
   }
   if (eventAId) await admin.from("events").delete().eq("id", eventAId);
-  if (userAId) await admin.auth.admin.deleteUser(userAId);
-  if (userBId) await admin.auth.admin.deleteUser(userBId);
+  for (const id of [userAId, userBId]) {
+    if (!id) continue;
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (error) console.error(`could not delete fixture user ${id}:`, error.message);
+  }
 });
 
 describe("events RLS isolation", () => {

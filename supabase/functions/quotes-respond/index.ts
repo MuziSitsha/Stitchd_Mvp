@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
   const { data: quote, error: quoteErr } = await admin
     .from("quotes")
-    .select("id, status, ticket_id, supplier_tickets(id, event_id, status, supplier_id, suppliers(phone, profile_id))")
+    .select("id, status, ticket_id, current_version, supplier_tickets(id, event_id, status, supplier_id, suppliers(phone, profile_id))")
     .eq("ref", quoteRef)
     .maybeSingle();
   if (quoteErr) return jsonResponse({ error: quoteErr.message }, 500);
@@ -63,13 +63,37 @@ Deno.serve(async (req) => {
   if (updateErr) return jsonResponse({ error: updateErr.message }, 500);
   if (!updatedQuote) return jsonResponse({ error: "quote was updated by someone else — refresh and retry" }, 409);
 
-  if (decision === "accept" && ticket.status === "pending") {
-    const { error: confirmErr } = await admin
-      .from("supplier_tickets")
-      .update({ status: "confirmed", confirmed_by: userRes.user.id, confirmed_role: "client", confirmed_at: new Date().toISOString() })
-      .eq("id", ticket.id)
-      .eq("status", "pending");
-    if (confirmErr) return jsonResponse({ error: confirmErr.message }, 500);
+  if (decision === "accept") {
+    if (ticket.status === "pending") {
+      const { error: confirmErr } = await admin
+        .from("supplier_tickets")
+        .update({ status: "confirmed", confirmed_by: userRes.user.id, confirmed_role: "client", confirmed_at: new Date().toISOString() })
+        .eq("id", ticket.id)
+        .eq("status", "pending");
+      if (confirmErr) return jsonResponse({ error: confirmErr.message }, 500);
+    }
+
+    // Part J1: "exactly one booking per accepted quote version" — this is
+    // that row, not just the quotes.status flip. quote.current_version was
+    // read in the same query as the "must currently be sent" check above,
+    // so this is exactly the version that was just locked as accepted, not
+    // a value that could have moved between read and write.
+    const { data: versionRow } = await admin
+      .from("quote_versions")
+      .select("id")
+      .eq("quote_id", quote.id)
+      .eq("version", quote.current_version)
+      .maybeSingle();
+    if (versionRow) {
+      const { error: bookingErr } = await admin
+        .from("bookings")
+        .insert({ quote_version_id: versionRow.id, state: "confirmed", confirmed_at: new Date().toISOString() });
+      // bookings_one_per_quote_version makes a retried accept a harmless
+      // conflict, not a real failure — the row we wanted already exists.
+      if (bookingErr && !bookingErr.message.includes("bookings_one_per_quote_version")) {
+        console.error("failed to create booking row", bookingErr.message);
+      }
+    }
   }
 
   if (decision === "request_changes" && note?.trim()) {

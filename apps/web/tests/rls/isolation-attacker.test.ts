@@ -123,7 +123,11 @@ afterAll(async () => {
   await admin.from("supplier_tickets").delete().eq("id", supplierTicketAId);
   for (const id of supplierIds) await admin.from("suppliers").delete().eq("id", id);
   for (const id of eventIds) await admin.from("events").delete().eq("id", id);
-  for (const id of userIds) await admin.auth.admin.deleteUser(id);
+  for (const id of userIds) await admin.from("message_log").delete().eq("to_user_id", id);
+  for (const id of userIds) {
+    const { error } = await admin.auth.admin.deleteUser(id);
+    if (error) console.error(`could not delete fixture user ${id}:`, error.message);
+  }
 });
 
 describe("suppliers — the WBS-01 privileged-column guard", () => {
@@ -146,7 +150,8 @@ describe("suppliers — the WBS-01 privileged-column guard", () => {
     expect(stillPending?.status).toBe("pending");
 
     await admin.from("suppliers").delete().eq("id", pendingSupplier.id);
-    await admin.auth.admin.deleteUser(pending.id);
+    const { error: delErr } = await admin.auth.admin.deleteUser(pending.id);
+    if (delErr) console.error(`could not delete fixture user ${pending.id}:`, delErr.message);
   });
 
   it("an attacking supplier cannot set verified=true on itself", async () => {
