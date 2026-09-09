@@ -15,6 +15,8 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
   quote_responded: (v) => `STITCHD: your quote for ${v.ref} was ${v.status} by the client. Check the Supplier Portal for details.`,
   dispute_update: (v) => `STITCHD: ticket ${v.ref} is now ${v.status}. Log in to review.`,
   lead_message: (v) => `STITCHD: ${v.supplierName} sent you a message about your request (${v.ref}). Reply here: ${v.link}`,
+  supplier_approved: (v) => `STITCHD: your listing "${v.supplierName}" is approved and live — clients can now find and request you.`,
+  supplier_declined: (v) => `STITCHD: your listing "${v.supplierName}" wasn't approved this time. Log in to your Supplier Portal for details.`,
 };
 
 async function sendWhatsApp(to: string, message: string): Promise<{ ok: boolean; error?: string }> {

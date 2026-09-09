@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { BadgeCheck, Star, Sparkles, TrendingUp, Plus, X, ShieldCheck, ArrowLeftRight, MessageCircle, Calendar, AlertTriangle, LifeBuoy, ChevronLeft, ChevronRight } from "lucide-react";
+import { BadgeCheck, Star, Sparkles, TrendingUp, Plus, X, ShieldCheck, ArrowLeftRight, MessageCircle, Calendar, AlertTriangle, LifeBuoy, ChevronLeft, ChevronRight, Camera, CheckCircle2, Pencil } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
@@ -11,20 +11,31 @@ import { PortalShell, PortalCard, StatTile, StatusChip, ConfirmDialog } from "..
 import { TicketThread } from "../components/proto/TicketThread";
 import { LeadThreadPanel } from "../components/proto/LeadThreadPanel";
 import { TicketV2Card, TICKET_STATUS_LABEL, TICKET_STATUS_TONE } from "../components/proto/TicketV2Card";
+import { ImageUpload } from "../components/proto/ImageUpload";
+import { CATEGORIES } from "./SupplierClaim";
+import { PRICING_UNITS, pricePreview as pricePreviewFor, priceLabel, type PricingUnit } from "../lib/pricing";
 
 const TICKET_CATEGORIES = ["supplier_delay", "payment", "venue", "guest", "task", "platform_support", "dispute", "other"] as const;
 const TICKET_PRIORITIES = ["low", "medium", "high", "critical"] as const;
+
+const LISTING_STATUS_LABEL: Record<string, string> = { pending: "Awaiting review", active: "Live", paused: "Paused", suspended: "Suspended", declined: "Not approved" };
+const LISTING_STATUS_TONE: Record<string, "good" | "warn" | "bad" | "accent" | "faint"> = { pending: "warn", active: "good", paused: "faint", suspended: "bad", declined: "bad" };
 
 interface Supplier {
   id: string;
   category: string;
   name: string;
   headline: string | null;
+  bio: string | null;
   rating: number | null;
   review_count: number;
   verified: boolean;
   status: string;
   price_from_cents: number | null;
+  pricing_unit: string;
+  photo_url: string | null;
+  service_area: string | null;
+  phone: string | null;
 }
 
 interface Lead {
@@ -143,6 +154,7 @@ export function SupplierPortal() {
   const [quoteItemQty, setQuoteItemQty] = useState("1");
   const [quoteItemPrice, setQuoteItemPrice] = useState("");
   const [sendingQuote, setSendingQuote] = useState(false);
+  const [myCategories, setMyCategories] = useState<string[]>([]);
   const [promotions, setPromotions] = useState<PromotionRow[]>([]);
   const [newPromoTitle, setNewPromoTitle] = useState("");
   const [newPromoDiscount, setNewPromoDiscount] = useState("");
@@ -164,6 +176,22 @@ export function SupplierPortal() {
   const [addonSubmitting, setAddonSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [switchDialogOpen, setSwitchDialogOpen] = useState(false);
+
+  // "Edit your listing" — nothing set at onboarding could be changed
+  // afterward until now. Draft fields only, so a supplier can back out
+  // without partial edits leaking into the read-only view.
+  const [editingListing, setEditingListing] = useState(false);
+  const [editCategory, setEditCategory] = useState("");
+  const [editExtraCategories, setEditExtraCategories] = useState<Set<string>>(new Set());
+  const [editHeadline, setEditHeadline] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editPricingUnit, setEditPricingUnit] = useState<PricingUnit>("total");
+  const [editPriceRand, setEditPriceRand] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editServiceArea, setEditServiceArea] = useState("");
+  const [editPhotoUrl, setEditPhotoUrl] = useState<string | null>(null);
+  const [editUploadingPhoto, setEditUploadingPhoto] = useState(false);
+  const [savingListing, setSavingListing] = useState(false);
   const navigate = useNavigate();
 
   const loadSupplier = useCallback(async () => {
@@ -174,7 +202,7 @@ export function SupplierPortal() {
     }
     const { data, error: fetchError } = await supabase
       .from("suppliers")
-      .select("id, category, name, headline, rating, review_count, verified, status, price_from_cents")
+      .select("id, category, name, headline, bio, rating, review_count, verified, status, price_from_cents, pricing_unit, photo_url, service_area, phone")
       .eq("profile_id", userRes.user.id)
       .maybeSingle();
 
@@ -249,6 +277,12 @@ export function SupplierPortal() {
         .then(({ data }) => setTickets((data ?? []) as SupplierTicket[]));
     };
     loadTickets();
+
+    supabase
+      .from("supplier_categories")
+      .select("category")
+      .eq("supplier_id", supplier.id)
+      .then(({ data }) => setMyCategories((data ?? []).map((r) => r.category)));
 
     const loadPromotions = () => {
       supabase
@@ -679,12 +713,91 @@ export function SupplierPortal() {
     navigate("/supplier/claim");
   }
 
-  async function toggleListingStatus() {
+  function openEditListing() {
     if (!supplier) return;
+    setEditCategory(supplier.category);
+    setEditExtraCategories(new Set(myCategories.filter((c) => c !== supplier.category)));
+    setEditHeadline(supplier.headline ?? "");
+    setEditBio(supplier.bio ?? "");
+    setEditPricingUnit((supplier.pricing_unit as PricingUnit) || "total");
+    setEditPriceRand(supplier.price_from_cents != null ? String(supplier.price_from_cents / 100) : "");
+    setEditPhone(supplier.phone ?? "");
+    setEditServiceArea(supplier.service_area ?? "");
+    setEditPhotoUrl(supplier.photo_url);
+    setEditingListing(true);
+  }
+
+  async function handleEditPhotoFiles(files: FileList) {
+    const file = files[0];
+    if (!file) return;
+    setEditUploadingPhoto(true);
+    setError(null);
+    const { data: userRes } = await supabase.auth.getUser();
+    if (!userRes.user) { setEditUploadingPhoto(false); return; }
+    const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const path = `${userRes.user.id}/cover.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from("supplier-photos").upload(path, file, { upsert: true });
+    if (uploadErr) {
+      setError(uploadErr.message);
+      setEditUploadingPhoto(false);
+      return;
+    }
+    const { data } = supabase.storage.from("supplier-photos").getPublicUrl(path);
+    setEditPhotoUrl(`${data.publicUrl}?t=${Date.now()}`);
+    setEditUploadingPhoto(false);
+  }
+
+  // Saving while declined doubles as "fix it and resubmit" — there was
+  // otherwise no way back from a decline except raising a support ticket.
+  // Saving from any other state just updates the fields in place.
+  async function saveListing() {
+    if (!supplier) return;
+    setSavingListing(true);
+    setError(null);
+    const priceCents = editPricingUnit === "quote_only" ? null : Math.round((parseFloat(editPriceRand) || 0) * 100);
+    const nextStatus = supplier.status === "declined" ? "pending" : supplier.status;
+    const { error: updateErr } = await supabase
+      .from("suppliers")
+      .update({
+        category: editCategory,
+        headline: editHeadline.trim() || null,
+        bio: editBio.trim() || null,
+        pricing_unit: editPricingUnit,
+        price_from_cents: priceCents,
+        phone: editPhone.trim() || null,
+        service_area: editServiceArea.trim() || null,
+        photo_url: editPhotoUrl,
+        status: nextStatus,
+      })
+      .eq("id", supplier.id);
+    if (updateErr) {
+      setError(updateErr.message);
+      setSavingListing(false);
+      return;
+    }
+
+    const nextCategories = [...new Set([editCategory, ...editExtraCategories])];
+    await supabase.from("supplier_categories").delete().eq("supplier_id", supplier.id);
+    const { error: catErr } = await supabase.from("supplier_categories").insert(nextCategories.map((category) => ({ supplier_id: supplier.id, category })));
+    if (catErr) setError(`Saved, but categories failed to update: ${catErr.message}`);
+
+    setMyCategories(nextCategories);
+    setSupplier({ ...supplier, category: editCategory, headline: editHeadline.trim() || null, bio: editBio.trim() || null, pricing_unit: editPricingUnit, price_from_cents: priceCents, phone: editPhone.trim() || null, service_area: editServiceArea.trim() || null, photo_url: editPhotoUrl, status: nextStatus });
+    setSavingListing(false);
+    setEditingListing(false);
+  }
+
+  // Only ever flips between the supplier's own two reversible states — a
+  // 'pending' application or a 'declined'/'suspended' listing needs an
+  // admin action, not a self-service toggle, so this is a no-op outside
+  // active/paused (the .in() below is the real guard; the render layer
+  // just never shows this button in those states to begin with).
+  async function toggleListingStatus() {
+    if (!supplier || (supplier.status !== "active" && supplier.status !== "paused")) return;
     setTogglingStatus(true);
     setError(null);
     const nextStatus = supplier.status === "active" ? "paused" : "active";
-    const { error: statusError } = await supabase.from("suppliers").update({ status: nextStatus }).eq("id", supplier.id);
+    const { error: statusError } = await supabase.from("suppliers").update({ status: nextStatus }).eq("id", supplier.id).in("status", ["active", "paused"]);
     setTogglingStatus(false);
     if (statusError) {
       setError(statusError.message);
@@ -756,12 +869,16 @@ export function SupplierPortal() {
   if (supplier === null) return null;
 
   return (
-    <PortalShell eyebrow={supplier.category} title={supplier.name} right={<StatusChip T={T} tone={supplier.status === "active" ? "good" : "warn"}>{supplier.status === "active" ? "Live" : "Paused"}</StatusChip>}>
+    <PortalShell eyebrow={supplier.category} title={supplier.name} right={<StatusChip T={T} tone={LISTING_STATUS_TONE[supplier.status] ?? "faint"}>{LISTING_STATUS_LABEL[supplier.status] ?? supplier.status}</StatusChip>}>
       {/* HERO */}
       <PortalCard T={T} style={{ background: "#1A1726", borderColor: "#1A1726" }}>
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 22, color: "#fff" }}>{supplier.name}</div>
+          <div className="flex min-w-0 items-start gap-3">
+            {supplier.photo_url && (
+              <img src={supplier.photo_url} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+            )}
+            <div className="min-w-0">
+              <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 22, color: "#fff" }}>{supplier.name}</div>
             <div className="mt-1 text-sm" style={{ color: rgba("#fff", 0.7) }}>
               {supplier.category}{supplier.headline ? ` · ${supplier.headline}` : ""}
             </div>
@@ -779,9 +896,16 @@ export function SupplierPortal() {
               ) : (
                 <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>Not yet ranked — check back once client searches start rolling in.</div>
               )
+            ) : supplier.status === "pending" ? (
+              <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>Your listing is with admin for review — we'll message you the moment it's approved and live.</div>
+            ) : supplier.status === "declined" ? (
+              <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>This listing wasn't approved — raise a support ticket below if you'd like to know more.</div>
+            ) : supplier.status === "suspended" ? (
+              <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>This listing has been suspended by admin and isn't visible to clients.</div>
             ) : (
               <div className="mt-2.5 text-xs" style={{ color: rgba("#fff", 0.6) }}>Paused listings don't appear in client search or rankings.</div>
             )}
+            </div>
           </div>
           <button onClick={() => setSwitchDialogOpen(true)} className="flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: rgba("#fff", 0.12), color: "#fff" }}>
             <ArrowLeftRight size={12} />Switch listing
@@ -803,16 +927,158 @@ export function SupplierPortal() {
           <StatTile T={T} value={`${stats.repeatPct}%`} label="Repeat" />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <button onClick={toggleListingStatus} disabled={togglingStatus} className="press rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-60" style={supplier.status === "active" ? btnG : btnA}>
-            {supplier.status === "active" ? "Listing live — pause it" : "Listing paused — make it live"}
-          </button>
-          {supplier.price_from_cents != null && (
-            <span className="text-xs" style={{ color: T.sub }}>Rate: <b style={{ color: T.ink }}>{rand(supplier.price_from_cents)}</b></span>
+          {supplier.status === "active" || supplier.status === "paused" ? (
+            <button onClick={toggleListingStatus} disabled={togglingStatus} className="press rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-60" style={supplier.status === "active" ? btnG : btnA}>
+              {supplier.status === "active" ? "Listing live — pause it" : "Listing paused — make it live"}
+            </button>
+          ) : (
+            <span className="rounded-lg px-3 py-2 text-xs font-bold" style={{ background: rgba(supplier.status === "pending" ? T.warn : T.bad, 0.1), color: supplier.status === "pending" ? T.warn : T.bad }}>
+              {LISTING_STATUS_LABEL[supplier.status] ?? supplier.status} — {supplier.status === "pending" ? "admin will review it shortly" : "contact support if you have questions"}
+            </span>
+          )}
+          {priceLabel(supplier.pricing_unit, supplier.price_from_cents) && (
+            <span className="text-xs" style={{ color: T.sub }}>Rate: <b style={{ color: T.ink }}>{priceLabel(supplier.pricing_unit, supplier.price_from_cents)}</b></span>
           )}
         </div>
         <div className="mt-2.5 text-xs" style={{ color: T.faint }}>
           Payouts are handled manually for now — {rand(orderItems.filter((oi) => oi.orders.status === "paid").reduce((s, oi) => s + oi.line_total_cents, 0))} earned lifetime via Stitchd.
         </div>
+      </PortalCard>
+
+      {/* EDIT YOUR LISTING — nothing set at onboarding could be changed
+          afterward before this. Saving while declined also resubmits for
+          review (sets status back to 'pending') — the only way back from a
+          decline that isn't "raise a support ticket". */}
+      <PortalCard T={T}>
+        {!editingListing ? (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <div className="text-sm font-bold">Your listing details</div>
+              <div className="mt-0.5 text-xs" style={{ color: T.sub }}>
+                {supplier.status === "declined" ? "Fix anything below and resubmit for review." : "Category, pricing, description, contact, and photo."}
+              </div>
+            </div>
+            <button onClick={openEditListing} className="press flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold" style={btnG}>
+              <Pencil size={12} />{supplier.status === "declined" ? "Fix & resubmit" : "Edit listing"}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="text-sm font-bold">Edit your listing</div>
+
+            <div>
+              <div className="mb-1.5 text-xs font-bold" style={{ color: T.sub }}>PRIMARY CATEGORY</div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setEditCategory(c)}
+                    className="flex items-center justify-between gap-1 rounded-xl border p-2 text-left text-xs font-semibold"
+                    style={{ borderColor: editCategory === c ? T.accent : T.border, background: editCategory === c ? rgba(T.accent, 0.1) : T.panel2 }}
+                  >
+                    {c}
+                    {editCategory === c && <CheckCircle2 size={12} className="shrink-0" style={{ color: T.accent }} />}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <div className="mb-1.5 text-xs font-bold" style={{ color: T.sub }}>ALSO OFFER (optional)</div>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORIES.filter((c) => c !== editCategory).map((c) => {
+                  const on = editExtraCategories.has(c);
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setEditExtraCategories((s) => { const n = new Set(s); if (n.has(c)) n.delete(c); else n.add(c); return n; })}
+                      className="rounded-full border px-3 py-1.5 text-xs font-semibold"
+                      style={{ borderColor: on ? T.accent : T.border, background: on ? T.accent : T.panel2, color: on ? T.onAccent : T.ink }}
+                    >
+                      {c}{on ? " ✓" : ""}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Headline</div>
+              <input value={editHeadline} onChange={(e) => setEditHeadline(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
+            </label>
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>About your business</div>
+              <textarea value={editBio} onChange={(e) => setEditBio(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={{ ...inputS, minHeight: 90 }} />
+            </label>
+
+            <div>
+              <div className="mb-1.5 text-xs font-bold" style={{ color: T.sub }}>PRICING</div>
+              <div className="space-y-1.5">
+                {PRICING_UNITS.map((u) => (
+                  <button
+                    key={u.key}
+                    onClick={() => setEditPricingUnit(u.key)}
+                    className="flex w-full items-center justify-between rounded-xl border px-3 py-2 text-sm"
+                    style={{ borderColor: editPricingUnit === u.key ? T.accent : T.border, background: editPricingUnit === u.key ? rgba(T.accent, 0.1) : T.panel2 }}
+                  >
+                    <div className="text-left">
+                      <div className="font-semibold">{u.label}</div>
+                      <div className="text-xs" style={{ color: T.sub }}>{u.hint}</div>
+                    </div>
+                    {editPricingUnit === u.key && <CheckCircle2 size={16} className="shrink-0" style={{ color: T.accent }} />}
+                  </button>
+                ))}
+              </div>
+              {editPricingUnit !== "quote_only" && (
+                <input type="number" min={0} inputMode="decimal" value={editPriceRand} onChange={(e) => setEditPriceRand(e.target.value)} placeholder="Amount (R)" className="mt-1.5 w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
+              )}
+              <div className="mt-1.5 text-xs" style={{ color: T.faint }}>Clients will see: <b style={{ color: T.ink }}>{pricePreviewFor(editPricingUnit, editPriceRand)}</b></div>
+            </div>
+
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Phone number</div>
+              <input type="tel" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
+            </label>
+            <label className="block">
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Service area</div>
+              <input value={editServiceArea} onChange={(e) => setEditServiceArea(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
+            </label>
+
+            <div>
+              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Cover photo</div>
+              <ImageUpload
+                onFiles={handleEditPhotoFiles}
+                multiple={false}
+                disabled={editUploadingPhoto}
+                className="flex flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border-2 border-dashed text-center"
+                style={{ borderColor: rgba(T.ink, 0.22), background: rgba(T.ink, 0.04), height: 140 }}
+              >
+                {editPhotoUrl ? (
+                  <img src={editPhotoUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <>
+                    <Camera size={20} style={{ color: T.faint }} />
+                    <span className="text-xs font-semibold" style={{ color: T.sub }}>{editUploadingPhoto ? "Uploading…" : "Add a cover photo"}</span>
+                  </>
+                )}
+              </ImageUpload>
+            </div>
+
+            {supplier.status === "declined" && (
+              <div className="rounded-xl px-3 py-2.5 text-xs font-semibold" style={{ background: rgba(T.warn, 0.1), color: T.warn }}>
+                Saving resubmits this listing for admin review.
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              <button onClick={saveListing} disabled={savingListing || !editCategory} className="press flex-1 rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-60" style={btnA}>
+                {savingListing ? "Saving…" : supplier.status === "declined" ? "Save & resubmit" : "Save changes"}
+              </button>
+              <button onClick={() => setEditingListing(false)} disabled={savingListing} className="press rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-60" style={btnG}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </PortalCard>
 
       {/* NEEDS YOUR ATTENTION — merges confirmation requests + new leads into

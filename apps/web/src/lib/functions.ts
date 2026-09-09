@@ -120,6 +120,13 @@ export function adminSuspendSupplier(supplierId: string, suspend: boolean) {
   });
 }
 
+export function adminReviewSupplier(supplierId: string, decision: "approve" | "decline") {
+  return callFunction<{ status: string }>("suppliers-admin-review", {
+    auth: true,
+    body: { supplier_id: supplierId, decision },
+  });
+}
+
 export type TicketStatusV2 =
   | "open" | "assigned" | "accepted" | "in_progress"
   | "waiting_client" | "waiting_supplier" | "resolved" | "closed" | "reopened";

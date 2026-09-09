@@ -40,6 +40,12 @@ export function Entry() {
   if (roleLoading || !role) return <Loading />;
 
   if (role === "supplier") return <Navigate to="/supplier" replace />;
-  if (role === "staff") return <Prototype initialLens="today" skipOnboarding isStaff ownerId={session.user.id} />;
+  // Staff (ops/admin/super/coach) means the real ops console, not a client
+  // dashboard wearing a staff badge — admin is a moderation/oversight seat
+  // over both the client and supplier apps, not a third "which app am I"
+  // choice. AdminConsole.tsx's own access check is the real gate (a coach-
+  // only account lands there and sees "not authorised", same as visiting
+  // /admin/login directly with the wrong role).
+  if (role === "staff") return <Navigate to="/admin" replace />;
   return <Prototype initialLens="today" skipOnboarding={hasEvent} ownerId={session.user.id} />;
 }

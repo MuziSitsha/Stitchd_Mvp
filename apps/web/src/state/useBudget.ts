@@ -2,8 +2,15 @@ import { useMemo } from "react";
 import { catsFor } from "../components/proto/readiness";
 import { BUDGET_SEED } from "../components/proto/data";
 import { useProtoState } from "./ProtoState";
+import { useBudgetPayments } from "./useBudgetPayments";
 
-export type BudgetItem = (typeof BUDGET_SEED)[number] & { boosted?: true };
+export type BudgetItem = (typeof BUDGET_SEED)[number] & { boosted?: true; reallyPaid?: true };
+
+// Matches checkoutBudgetPayment's own correlation key (Payments.tsx strips
+// everything up to "Supplier — " before sending it) — the only thing tying
+// a static BUDGET_ITEM back to the real budget_payments row a webhook
+// actually marked paid.
+const paymentLabel = (label: string) => label.replace(/^[^—]*—\s*/, "");
 
 // Shared by Squad/Budget/useReadiness (stitchd-v9.jsx lines 1078, 1093-1102):
 // the source computes BUDGET_ITEMS and the optimizer's `budget` exactly once
@@ -14,11 +21,19 @@ export type BudgetItem = (typeof BUDGET_SEED)[number] & { boosted?: true };
 // useReadiness's copy ignored both) — pulling the calculation back into one
 // hook is what keeps them from re-diverging.
 export function useBudget() {
-  const { budgetCap, pinned, extraBudgetItems, bundleApplied, profile } = useProtoState();
+  const { budgetCap, pinned, extraBudgetItems, bundleApplied, profile, eventId } = useProtoState();
+  const paidLabels = useBudgetPayments(eventId);
   const pCats = useMemo(() => catsFor(profile.prior), [profile.prior]);
   const BUDGET_ITEMS: BudgetItem[] = useMemo(
-    () => [...BUDGET_SEED, ...extraBudgetItems].map((b) => (pCats.has(b.cat) ? { ...b, need: Math.min(10, b.need + 2), boosted: true as const } : b)),
-    [pCats, extraBudgetItems],
+    () => [...BUDGET_SEED, ...extraBudgetItems].map((b) => {
+      const reallyPaid = paidLabels.has(paymentLabel(b.label));
+      return {
+        ...b,
+        ...(pCats.has(b.cat) ? { need: Math.min(10, b.need + 2), boosted: true as const } : null),
+        ...(reallyPaid ? { paid: true, reallyPaid: true as const } : null),
+      };
+    }),
+    [pCats, extraBudgetItems, paidLabels],
   );
 
   const budget = useMemo(() => {

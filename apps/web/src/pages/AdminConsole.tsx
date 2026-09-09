@@ -1,16 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { ShieldCheck, ShieldOff, AlertTriangle, MessageCircle, Sparkles, Ban, Search, History, LifeBuoy, Percent, Receipt, Send } from "lucide-react";
+import { ShieldCheck, ShieldOff, AlertTriangle, MessageCircle, Sparkles, Ban, Search, History, LifeBuoy, Percent, Receipt, Send, Check, X, LayoutGrid, Inbox, Store, ShoppingBag, TrendingUp } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
-import { adminToggleBoost, adminSuspendSupplier, unpublishPromotion, refundOrder } from "../lib/functions";
+import { adminToggleBoost, adminSuspendSupplier, adminReviewSupplier, unpublishPromotion, refundOrder } from "../lib/functions";
 import { computeWeeklyEarnings, type OrderItemRow } from "../lib/supplierStats";
-import { PortalShell, PortalCard, StatTile, StatusChip, ConfirmDialog } from "../components/PortalShell";
+import { PortalShell, PortalCard, StatusChip, ConfirmDialog } from "../components/PortalShell";
+import { AdminShell, AdminPanel, KpiTile, type AdminNavItem } from "../components/AdminShell";
 import { TicketThread } from "../components/proto/TicketThread";
 import { LeadThreadPanel } from "../components/proto/LeadThreadPanel";
 import { TicketV2Card, TICKET_STATUS_LABEL, TICKET_STATUS_TONE } from "../components/proto/TicketV2Card";
+
+type AdminSection = "overview" | "requests" | "tickets" | "suppliers" | "quotes" | "orders" | "finance" | "system";
 
 interface AdminSupplier {
   id: string;
@@ -190,6 +193,7 @@ export function AdminConsole() {
   const [openTicketConvoId, setOpenTicketConvoId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const navigate = useNavigate();
 
   const loadSuppliers = useCallback(async () => {
@@ -490,6 +494,18 @@ export function AdminConsole() {
     }
   }
 
+  async function reviewSupplier(supplierId: string, decision: "approve" | "decline") {
+    setBusyId(supplierId);
+    setError(null);
+    try {
+      await adminReviewSupplier(supplierId, decision);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to review this application");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function confirmTicket(ticketRef: string) {
     setBusyId(ticketRef);
     setError(null);
@@ -575,6 +591,32 @@ export function AdminConsole() {
     return [...byTicket.values()].sort((a, b) => b.lastAt.localeCompare(a.lastAt));
   }, [ticketMessages]);
 
+  const pendingSupplierCount = suppliers.filter((s) => s.status === "pending").length;
+  const newLeadCount = leads.filter((l) => l.status === "new").length;
+  const failedWebhookCount = webhookDeliveries.filter((d) => d.status === "failed" || d.status === "invalid_signature").length;
+
+  const NAV: AdminNavItem[] = [
+    { key: "overview", label: "Overview", icon: LayoutGrid },
+    { key: "requests", label: "Supplier requests", icon: Inbox, badge: sla.overdue.length + doubleBookings.length },
+    { key: "tickets", label: "Tickets", icon: LifeBuoy, badge: supportTickets.length },
+    { key: "suppliers", label: "Suppliers", icon: Store, badge: pendingSupplierCount },
+    { key: "quotes", label: "Quotes", icon: Receipt },
+    { key: "orders", label: "Orders & promos", icon: ShoppingBag },
+    { key: "finance", label: "Finance", icon: TrendingUp },
+    { key: "system", label: "System", icon: History, badge: failedWebhookCount },
+  ];
+
+  const SECTION_TITLE: Record<AdminSection, string> = {
+    overview: "Overview",
+    requests: "Supplier requests",
+    tickets: "Tickets",
+    suppliers: "Suppliers",
+    quotes: "Quotes",
+    orders: "Orders & promotions",
+    finance: "Finance",
+    system: "System",
+  };
+
   if (authorized === null) {
     return (
       <PortalShell title="Checking access…">
@@ -591,415 +633,486 @@ export function AdminConsole() {
     );
   }
 
+  const td = "px-3 py-2 align-top";
+  const th = "px-3 py-2 text-left text-[10px] font-bold uppercase tracking-wide";
+
   return (
-    <PortalShell eyebrow="Ops / Admin" title="Console">
+    <AdminShell nav={NAV} active={activeSection} onNavigate={(k) => setActiveSection(k as AdminSection)} title={SECTION_TITLE[activeSection]}>
       {error && (
-        <div className="rounded-xl px-3 py-2.5 text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>
+        <div className="rounded-lg px-3 py-2.5 text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>
       )}
 
-      {doubleBookings.length > 0 && (
-        <PortalCard T={T}>
-          <div className="flex items-center gap-1.5 text-sm font-bold" style={{ color: T.bad }}><AlertTriangle size={14} />Double-booking risk ({doubleBookings.length})</div>
-          <div className="mt-2.5 space-y-2">
-            {doubleBookings.map(({ date, tickets: group }) => (
-              <div key={`${group[0].supplier_id}-${date}`} className="rounded-xl border p-2.5" style={{ borderColor: rgba(T.bad, 0.4), background: rgba(T.bad, 0.06) }}>
-                <div className="text-xs font-bold">{group[0].suppliers?.name ?? "unknown supplier"}</div>
-                <div className="mt-0.5 text-[11px]" style={{ color: T.sub }}>
-                  {new Date(`${date}T00:00:00`).toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
-                  {" — "}{group.map((t) => `${t.ref} (${t.status})`).join(", ")}
-                </div>
-              </div>
-            ))}
+      {activeSection === "overview" && (
+        <>
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4">
+            <KpiTile T={T} value={pendingSupplierCount} label="Pending applications" tone={pendingSupplierCount > 0 ? "warn" : "neutral"} onClick={() => setActiveSection("suppliers")} />
+            <KpiTile T={T} value={sla.overdue.length} label="Overdue requests" tone={sla.overdue.length > 0 ? "bad" : "neutral"} onClick={() => setActiveSection("requests")} />
+            <KpiTile T={T} value={doubleBookings.length} label="Double-booking risk" tone={doubleBookings.length > 0 ? "bad" : "neutral"} onClick={() => setActiveSection("requests")} />
+            <KpiTile T={T} value={newLeadCount} label="New leads" tone={newLeadCount > 0 ? "warn" : "neutral"} onClick={() => setActiveSection("requests")} />
+            <KpiTile T={T} value={supportTickets.length} label="Active support tickets" onClick={() => setActiveSection("tickets")} />
+            <KpiTile T={T} value={failedWebhookCount} label="Failed webhooks" tone={failedWebhookCount > 0 ? "bad" : "neutral"} onClick={() => setActiveSection("system")} />
+            <KpiTile T={T} value={quotes.filter((q) => q.status === "sent" || q.status === "change_requested").length} label="Quotes awaiting reply" onClick={() => setActiveSection("quotes")} />
+            <KpiTile T={T} value={gmvFmt(weeklyGmv.reduce((s, w) => s + w.totalCents, 0))} label="GMV, last 8 weeks" onClick={() => setActiveSection("finance")} />
           </div>
-        </PortalCard>
+
+          {doubleBookings.length > 0 && (
+            <AdminPanel T={T} title={<span className="flex items-center gap-1.5" style={{ color: T.bad }}><AlertTriangle size={13} />Double-booking risk</span>}>
+              <div className="space-y-2">
+                {doubleBookings.map(({ date, tickets: group }) => (
+                  <div key={`${group[0].supplier_id}-${date}`} className="rounded-lg border p-2.5" style={{ borderColor: rgba(T.bad, 0.4), background: rgba(T.bad, 0.06) }}>
+                    <div className="text-xs font-bold">{group[0].suppliers?.name ?? "unknown supplier"}</div>
+                    <div className="mt-0.5 text-[11px]" style={{ color: T.sub }}>
+                      {new Date(`${date}T00:00:00`).toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                      {" — "}{group.map((t) => `${t.ref} (${t.status})`).join(", ")}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </AdminPanel>
+          )}
+        </>
       )}
 
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Ticket SLA</div>
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
-          <StatTile T={T} value={sla.open.length} label="Open (< 4 days)" />
-          <StatTile T={T} value={sla.overdue.length} label="Overdue (4+ days)" color={sla.overdue.length > 0 ? T.bad : undefined} />
-          <StatTile T={T} value={sla.closed} label="Closed" />
-        </div>
-        {sla.overdue.length > 0 && (
-          <div className="mt-2.5 space-y-2">
-            {sla.overdue.map((t) => {
-              const days = Math.floor((Date.now() - new Date(t.created_at).getTime()) / (24 * 60 * 60 * 1000));
-              return (
-                <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: rgba(T.bad, 0.4), background: rgba(T.bad, 0.06) }}>
-                  <div className="min-w-0">
-                    <div className="text-xs font-bold">{t.suppliers?.name ?? "unknown supplier"} <span className="font-normal" style={{ color: T.sub }}>· {t.suppliers?.category}</span></div>
-                    <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{t.ref}</div>
-                  </div>
-                  <StatusChip T={T} tone="bad">{days}d unanswered</StatusChip>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center gap-1.5 text-sm font-bold"><Search size={14} style={{ color: T.gold }} />Transaction inspector</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Paste any ref (ST-SUP-, ST-LEAD-, ST-BKG-, ST-BST-, ST-BPY-…) to trace it across every actor.</div>
-        <form onSubmit={(e) => { e.preventDefault(); traceRef(); }} className="mt-2.5 flex gap-2">
-          <input
-            value={traceInput}
-            onChange={(e) => setTraceInput(e.target.value)}
-            placeholder="e.g. ST-SUP-00003"
-            className="min-w-0 flex-1 rounded-xl px-3 py-2 text-xs outline-none"
-            style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
-          />
-          <button type="submit" disabled={tracing} className="press rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-60" style={btnA}>
-            {tracing ? "Tracing…" : "Trace"}
-          </button>
-        </form>
-        {traceError && <div className="mt-2.5 text-xs font-semibold" style={{ color: T.bad }}>{traceError}</div>}
-        {traceRows && (
-          <div className="mt-2.5 space-y-2">
-            {traceRows.map((r) => (
-              <details key={r.id} className="rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-                <summary className="cursor-pointer text-xs">
-                  <span className="font-bold">{r.entity_type}</span>
-                  <span style={{ color: T.sub }}> · {r.from_state ? `${r.from_state} → ${r.to_state}` : r.to_state}</span>
-                  <span className="ml-1.5" style={{ color: T.faint }}>{new Date(r.at).toLocaleString()}</span>
-                </summary>
-                <div className="mt-2 overflow-x-auto rounded-lg p-2" style={{ background: T.panel2 }}>
-                  <pre className="text-[10px]" style={{ color: T.sub }}>{JSON.stringify(r.payload, null, 2)}</pre>
-                </div>
-              </details>
-            ))}
-          </div>
-        )}
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-sm font-bold"><History size={14} style={{ color: T.gold }} />Audit explorer</div>
-          <select
-            value={auditFilter}
-            onChange={(e) => setAuditFilter(e.target.value)}
-            className="rounded-lg px-2 py-1 text-[11px] font-semibold outline-none"
-            style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
-          >
-            {["all", "boosts", "orders", "leads", "supplier_tickets", "verifications", "role_assignments", "budget_payments"].map((t) => (
-              <option key={t} value={t}>{t === "all" ? "All entities" : t}</option>
-            ))}
-          </select>
-        </div>
-        <div className="mt-2.5 space-y-1.5">
-          {auditRows.map((r) => (
-            <div key={r.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs" style={{ background: T.panel2 }}>
-              <div className="min-w-0">
-                <span className="font-bold">{r.entity_type}</span>
-                <span style={{ color: T.sub }}> · {r.ref}</span>
-                <span style={{ color: T.faint }}> · {r.from_state ? `${r.from_state} → ${r.to_state}` : r.to_state}</span>
-              </div>
-              <span className="shrink-0" style={{ color: T.faint }}>{new Date(r.at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+      {activeSection === "requests" && (
+        <>
+          <AdminPanel T={T} title="Ticket SLA">
+            <div className="grid grid-cols-3 gap-2">
+              <KpiTile T={T} value={sla.open.length} label="Open (< 4 days)" />
+              <KpiTile T={T} value={sla.overdue.length} label="Overdue (4+ days)" tone={sla.overdue.length > 0 ? "bad" : "neutral"} />
+              <KpiTile T={T} value={sla.closed} label="Closed" />
             </div>
-          ))}
-          {auditRows.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No activity recorded yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Integration health</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Paystack webhook deliveries — failures and invalid signatures highlighted.</div>
-        <div className="mt-2.5 space-y-1.5">
-          {webhookDeliveries.map((d) => {
-            const bad = d.status === "failed" || d.status === "invalid_signature";
-            return (
-              <div
-                key={d.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs"
-                style={bad ? { background: rgba(T.bad, 0.08) } : { background: T.panel2 }}
-              >
-                <div className="min-w-0">
-                  <span className="font-bold">{d.event_type ?? "unknown event"}</span>
-                  {d.reference && <span style={{ color: T.sub }}> · {d.reference}</span>}
-                  {d.error_message && <span style={{ color: bad ? T.bad : T.faint }}> · {d.error_message}</span>}
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <StatusChip T={T} tone={bad ? "bad" : d.status === "processed" ? "good" : "faint"}>{d.status}</StatusChip>
-                  <span style={{ color: T.faint }}>{new Date(d.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-                </div>
-              </div>
-            );
-          })}
-          {webhookDeliveries.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No webhook deliveries recorded yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center gap-1.5 text-sm font-bold"><Send size={14} style={{ color: T.gold }} />Message log</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>WhatsApp/SMS lead alerts, quote and dispute updates — real sends when a provider is configured, logged either way.</div>
-        <div className="mt-2.5 space-y-1.5">
-          {messageLog.map((m) => (
-            <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs" style={{ background: T.panel2 }}>
-              <div className="min-w-0">
-                <span className="font-bold">{m.ref}</span>
-                <span style={{ color: T.sub }}> · {m.template.replace(/_/g, " ")} · {m.channel}</span>
-                {m.to_phone && <span style={{ color: T.faint }}> · {m.to_phone}</span>}
-                <div className="mt-0.5 truncate" style={{ color: T.faint, maxWidth: 480 }}>{m.payload?.message ?? m.payload?.reason}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <StatusChip T={T} tone={m.status === "sent" ? "good" : m.status === "failed" ? "bad" : "faint"}>{m.status}</StatusChip>
-                <span style={{ color: T.faint }}>{new Date(m.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
-              </div>
-            </div>
-          ))}
-          {messageLog.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No notifications sent yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Platform GMV</div>
-        <div style={{ height: 160 }} className="mt-2.5">
-          <ResponsiveContainer>
-            <BarChart data={weeklyGmv} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-              <XAxis dataKey="label" tick={{ fill: T.faint, fontSize: 10 }} axisLine={{ stroke: T.border }} tickLine={false} />
-              <YAxis hide />
-              <Tooltip
-                cursor={{ fill: rgba(T.accent, 0.08) }}
-                formatter={(v) => gmvFmt(Number(v))}
-                contentStyle={{ background: T.tipBg, border: `1px solid ${T.border}`, borderRadius: 10, color: T.ink, fontSize: 12 }}
-              />
-              <Bar dataKey="totalCents" name="GMV" radius={[6, 6, 0, 0]} fill={T.accent} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Ticket conversations ({ticketConvos.length})</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Read-only — client↔supplier chats on wedding-squad tickets, for accountability.</div>
-        <div className="mt-2.5 space-y-2">
-          {ticketConvos.map((c) => (
-            <div key={c.ticketId} className="rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <button onClick={() => setOpenTicketConvoId(openTicketConvoId === c.ticketId ? null : c.ticketId)} className="press flex w-full flex-wrap items-center justify-between gap-2 text-left">
-                <div className="min-w-0">
-                  <div className="text-xs font-bold">{c.supplierName} <span className="font-normal" style={{ color: T.sub }}>· {c.ref}</span></div>
-                  <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{c.count} message{c.count > 1 ? "s" : ""} · last {new Date(c.lastAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
-                </div>
-                <MessageCircle size={13} style={{ color: T.faint }} />
-              </button>
-              {openTicketConvoId === c.ticketId && (
-                <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: T.border }}>
-                  <TicketThread T={T} ticketId={c.ticketId} readOnly />
-                </div>
-              )}
-            </div>
-          ))}
-          {ticketConvos.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No ticket conversations yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-sm font-bold"><LifeBuoy size={14} style={{ color: T.gold }} />Tickets ({supportTickets.length})</div>
-          <select
-            value={supportFilter}
-            onChange={(e) => setSupportFilter(e.target.value)}
-            className="rounded-lg px-2 py-1 text-[11px] font-semibold outline-none"
-            style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
-          >
-            <option value="active">Active</option>
-            <option value="all">All</option>
-            {["open", "assigned", "accepted", "in_progress", "waiting_client", "waiting_supplier", "resolved", "closed", "reopened"].map((s) => (
-              <option key={s} value={s}>{TICKET_STATUS_LABEL[s]}</option>
-            ))}
-          </select>
-        </div>
-        <div className="mt-2.5 space-y-2">
-          {supportTickets.map((t) => (
-            <div key={t.id} className="rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <button onClick={() => setOpenSupportId(openSupportId === t.id ? null : t.id)} className="press flex w-full flex-wrap items-center justify-between gap-2 text-left">
-                <div className="min-w-0 text-xs font-bold">
-                  {t.ref} <span className="font-normal" style={{ color: T.sub }}>· {t.suppliers?.name ?? "no supplier"} · {t.events ? `${t.events.type}${t.events.event_date ? " " + new Date(`${t.events.event_date}T00:00:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : ""}` : "general"} · {t.category.replace("_", " ")} · {t.priority}</span>
-                </div>
-                <StatusChip T={T} tone={TICKET_STATUS_TONE[t.status]}>{TICKET_STATUS_LABEL[t.status]}</StatusChip>
-              </button>
-              {openSupportId === t.id && (
-                <TicketV2Card T={T} ticketId={t.id} ticketRef={t.ref} status={t.status} viewerRole="admin" onChanged={() => setOpenSupportId(t.id)} />
-              )}
-            </div>
-          ))}
-          {supportTickets.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No tickets match this filter.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center gap-1.5 text-sm font-bold"><Receipt size={14} style={{ color: T.gold }} />Quotes ({quotes.length})</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Every quote sent across every supplier, latest version first.</div>
-        <div className="mt-2.5 space-y-2">
-          {quotes.map((q) => {
-            const latest = q.quote_versions.find((v) => v.version === q.current_version) ?? q.quote_versions[q.quote_versions.length - 1];
-            return (
-              <div key={q.id} className="rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-                <button onClick={() => setOpenQuoteId(openQuoteId === q.id ? null : q.id)} className="press flex w-full flex-wrap items-center justify-between gap-2 text-left">
-                  <div className="min-w-0 text-xs font-bold">
-                    {q.ref} <span className="font-normal" style={{ color: T.sub }}>· {q.supplier_tickets?.suppliers?.name ?? "unknown supplier"} · {q.supplier_tickets?.ref} · v{q.current_version}{latest ? ` · ${gmvFmt(latest.total_cents)}` : ""}</span>
-                  </div>
-                  <StatusChip T={T} tone={q.status === "accepted" ? "good" : q.status === "declined" ? "bad" : q.status === "change_requested" ? "warn" : "accent"}>{q.status.replace("_", " ")}</StatusChip>
-                </button>
-                {openQuoteId === q.id && latest && (
-                  <div className="mt-2.5 space-y-1 border-t pt-2.5" style={{ borderColor: T.border }}>
-                    {latest.quote_items.map((it, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <span style={{ color: T.sub }}>{it.label} × {it.qty}</span>
-                        <span className="tnum font-bold">{gmvFmt(it.line_total_cents)}</span>
+            {sla.overdue.length > 0 && (
+              <div className="mt-3 space-y-2">
+                {sla.overdue.map((t) => {
+                  const days = Math.floor((Date.now() - new Date(t.created_at).getTime()) / (24 * 60 * 60 * 1000));
+                  return (
+                    <div key={t.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5" style={{ borderColor: rgba(T.bad, 0.4), background: rgba(T.bad, 0.06) }}>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold">{t.suppliers?.name ?? "unknown supplier"} <span className="font-normal" style={{ color: T.sub }}>· {t.suppliers?.category}</span></div>
+                        <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{t.ref}</div>
                       </div>
-                    ))}
-                    {latest.note && <div className="mt-1 text-xs" style={{ color: T.faint }}>Note: {latest.note}</div>}
+                      <StatusChip T={T} tone="bad">{days}d unanswered</StatusChip>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </AdminPanel>
+
+          <AdminPanel T={T} title={`Supplier tickets (${tickets.length} pending)`} subtitle="Wedding-squad confirmation requests awaiting a yes/no.">
+            <div className="space-y-2">
+              {tickets.map((ticket) => (
+                <div key={ticket.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5" style={{ borderColor: rgba(T.warn, 0.4), background: rgba(T.warn, 0.06) }}>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold">{ticket.suppliers?.name ?? "unknown supplier"} <span className="font-normal" style={{ color: T.sub }}>· {ticket.suppliers?.category}</span></div>
+                    <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{ticket.ref}</div>
                   </div>
-                )}
-              </div>
-            );
-          })}
-          {quotes.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No quotes sent yet.</div>}
-        </div>
-      </PortalCard>
+                  <div className="flex shrink-0 gap-1.5">
+                    <button disabled={busyId === ticket.ref} onClick={() => confirmTicket(ticket.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnA}>
+                      {busyId === ticket.ref ? "Working…" : "Yes, confirm"}
+                    </button>
+                    <button disabled={busyId === ticket.ref} onClick={() => declineTicket(ticket.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnG}>
+                      {busyId === ticket.ref ? "Working…" : "No"}
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {tickets.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No pending tickets.</div>}
+            </div>
+          </AdminPanel>
 
-      <PortalCard T={T}>
-        <div className="flex items-center gap-1.5 text-sm font-bold"><Receipt size={14} style={{ color: T.gold }} />Orders ({orders.length})</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Paid Stitch-It bookings — refund moves real money back via Paystack.</div>
-        <div className="mt-2.5 space-y-2">
-          {orders.map((o) => (
-            <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <div className="min-w-0 text-xs font-bold">
-                {o.ref} <span className="font-normal" style={{ color: T.sub }}>· {o.customer_name} · {o.customer_phone} · {gmvFmt(o.total_cents)}</span>
+          <AdminPanel T={T} title={`Lead board (${newLeadCount} new)`}>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr style={{ color: T.faint }}>
+                  <th className={th}>Requester</th><th className={th}>Supplier</th><th className={th}>Ref</th><th className={th}>Status</th><th className={th}></th>
+                </tr></thead>
+                <tbody>
+                  {leads.map((lead) => (
+                    <Fragment key={lead.id}>
+                      <tr className="border-t" style={{ borderColor: T.border }}>
+                        <td className={td}><div className="font-bold">{lead.requester_name}</div><div style={{ color: T.faint }}>{lead.requester_phone}</div></td>
+                        <td className={td}>{lead.suppliers?.name ?? "unknown"}<div style={{ color: T.faint }}>{lead.suppliers?.category}</div></td>
+                        <td className={td} style={{ color: T.faint }}>{lead.ref}</td>
+                        <td className={td}><StatusChip T={T} tone={lead.status === "new" ? "warn" : lead.status === "accepted" ? "good" : "bad"}>{lead.status}</StatusChip></td>
+                        <td className={td}>
+                          <button onClick={() => setOpenLeadThreadId(openLeadThreadId === lead.id ? null : lead.id)} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold" style={btnG}>
+                            <MessageCircle size={11} />{openLeadThreadId === lead.id ? "Hide" : "Conversation"}
+                          </button>
+                        </td>
+                      </tr>
+                      {openLeadThreadId === lead.id && (
+                        <tr className="border-t" style={{ borderColor: T.border }}>
+                          <td colSpan={5} className="px-3 pb-3" style={{ background: T.panel2 }}>
+                            <LeadThreadPanel T={T} leadRef={lead.ref} withSession />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+              {leads.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No leads yet.</div>}
+            </div>
+          </AdminPanel>
+        </>
+      )}
+
+      {activeSection === "tickets" && (
+        <>
+          <AdminPanel
+            T={T}
+            title={`Support tickets (${supportTickets.length})`}
+            right={
+              <select
+                value={supportFilter}
+                onChange={(e) => setSupportFilter(e.target.value)}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold outline-none"
+                style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+              >
+                <option value="active">Active</option>
+                <option value="all">All</option>
+                {["open", "assigned", "accepted", "in_progress", "waiting_client", "waiting_supplier", "resolved", "closed", "reopened"].map((s) => (
+                  <option key={s} value={s}>{TICKET_STATUS_LABEL[s]}</option>
+                ))}
+              </select>
+            }
+          >
+            <div className="space-y-2">
+              {supportTickets.map((t) => (
+                <div key={t.id} className="rounded-lg border p-2.5" style={{ borderColor: T.border }}>
+                  <button onClick={() => setOpenSupportId(openSupportId === t.id ? null : t.id)} className="press flex w-full flex-wrap items-center justify-between gap-2 text-left">
+                    <div className="min-w-0 text-xs font-bold">
+                      {t.ref} <span className="font-normal" style={{ color: T.sub }}>· {t.suppliers?.name ?? "no supplier"} · {t.events ? `${t.events.type}${t.events.event_date ? " " + new Date(`${t.events.event_date}T00:00:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : ""}` : "general"} · {t.category.replace("_", " ")} · {t.priority}</span>
+                    </div>
+                    <StatusChip T={T} tone={TICKET_STATUS_TONE[t.status]}>{TICKET_STATUS_LABEL[t.status]}</StatusChip>
+                  </button>
+                  {openSupportId === t.id && (
+                    <TicketV2Card T={T} ticketId={t.id} ticketRef={t.ref} status={t.status} viewerRole="admin" onChanged={() => setOpenSupportId(t.id)} />
+                  )}
+                </div>
+              ))}
+              {supportTickets.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No tickets match this filter.</div>}
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title={`Ticket conversations (${ticketConvos.length})`} subtitle="Read-only — client↔supplier chats on wedding-squad tickets, for accountability.">
+            <div className="space-y-2">
+              {ticketConvos.map((c) => (
+                <div key={c.ticketId} className="rounded-lg border p-2.5" style={{ borderColor: T.border }}>
+                  <button onClick={() => setOpenTicketConvoId(openTicketConvoId === c.ticketId ? null : c.ticketId)} className="press flex w-full flex-wrap items-center justify-between gap-2 text-left">
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold">{c.supplierName} <span className="font-normal" style={{ color: T.sub }}>· {c.ref}</span></div>
+                      <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{c.count} message{c.count > 1 ? "s" : ""} · last {new Date(c.lastAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                    <MessageCircle size={13} style={{ color: T.faint }} />
+                  </button>
+                  {openTicketConvoId === c.ticketId && (
+                    <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: T.border }}>
+                      <TicketThread T={T} ticketId={c.ticketId} readOnly />
+                    </div>
+                  )}
+                </div>
+              ))}
+              {ticketConvos.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No ticket conversations yet.</div>}
+            </div>
+          </AdminPanel>
+        </>
+      )}
+
+      {activeSection === "suppliers" && (
+        <AdminPanel T={T} title={`Suppliers (${suppliers.length})`}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead><tr style={{ color: T.faint }}>
+                <th className={th}>Name</th><th className={th}>Category</th><th className={th}>Status</th><th className={th}>Verified</th><th className={th}></th>
+              </tr></thead>
+              <tbody>
+                {[...suppliers].sort((a, b) => (a.status === "pending" ? 0 : 1) - (b.status === "pending" ? 0 : 1)).map((s) => (
+                  <tr key={s.id} className="border-t" style={s.status === "pending" ? { borderColor: rgba(T.warn, 0.3), background: rgba(T.warn, 0.05) } : { borderColor: T.border }}>
+                    <td className={`${td} font-bold`}>{s.name}{featuredIds.has(s.id) && <StatusChip T={T} tone="accent"><Sparkles size={9} />Featured</StatusChip>}</td>
+                    <td className={td} style={{ color: T.sub }}>{s.category}</td>
+                    <td className={td}><StatusChip T={T} tone={s.status === "active" ? "good" : s.status === "suspended" || s.status === "declined" ? "bad" : "warn"}>{s.status}</StatusChip></td>
+                    <td className={td}><StatusChip T={T} tone={s.verified ? "good" : "faint"}>{s.verified ? "Verified" : "Unverified"}</StatusChip></td>
+                    <td className={td}>
+                      {s.status === "pending" ? (
+                        <div className="flex shrink-0 flex-wrap gap-1.5">
+                          <button disabled={busyId === s.id} onClick={() => reviewSupplier(s.id, "approve")} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50" style={btnA}>
+                            <Check size={11} />{busyId === s.id ? "Working…" : "Approve"}
+                          </button>
+                          <button disabled={busyId === s.id} onClick={() => reviewSupplier(s.id, "decline")} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50" style={{ background: rgba(T.bad, 0.12), color: T.bad, border: `1px solid ${rgba(T.bad, 0.4)}` }}>
+                            <X size={11} />Decline
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex shrink-0 flex-wrap gap-1.5">
+                          <button disabled={busyId === s.id || s.verified} onClick={() => setVerification(s.id, "verified")} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50" style={btnA}>
+                            <ShieldCheck size={11} />{busyId === s.id ? "Working…" : "Verify"}
+                          </button>
+                          <button disabled={busyId === s.id || !s.verified} onClick={() => setVerification(s.id, "rejected")} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50" style={btnG}>
+                            <ShieldOff size={11} />Reject
+                          </button>
+                          <button disabled={busyId === s.id} onClick={() => toggleFeatured(s.id)} className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50" style={btnG}>
+                            <Sparkles size={11} />{featuredIds.has(s.id) ? "Unfeature" : "Feature"}
+                          </button>
+                          <button
+                            disabled={busyId === s.id}
+                            onClick={() => toggleSuspend(s.id, s.status !== "suspended")}
+                            className="press flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-50"
+                            style={s.status === "suspended" ? btnA : { background: rgba(T.bad, 0.12), color: T.bad, border: `1px solid ${rgba(T.bad, 0.4)}` }}
+                          >
+                            <Ban size={11} />{s.status === "suspended" ? "Reinstate" : "Suspend"}
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </AdminPanel>
+      )}
+
+      {activeSection === "quotes" && (
+        <AdminPanel T={T} title={`Quotes (${quotes.length})`} subtitle="Every quote sent across every supplier, latest version first.">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead><tr style={{ color: T.faint }}>
+                <th className={th}>Ref</th><th className={th}>Supplier</th><th className={th}>Ticket</th><th className={th}>Total</th><th className={th}>Status</th>
+              </tr></thead>
+              <tbody>
+                {quotes.map((q) => {
+                  const latest = q.quote_versions.find((v) => v.version === q.current_version) ?? q.quote_versions[q.quote_versions.length - 1];
+                  return (
+                    <Fragment key={q.id}>
+                      <tr className="cursor-pointer border-t" style={{ borderColor: T.border }} onClick={() => setOpenQuoteId(openQuoteId === q.id ? null : q.id)}>
+                        <td className={`${td} font-bold`}>{q.ref}<div style={{ color: T.faint, fontWeight: 400 }}>v{q.current_version}</div></td>
+                        <td className={td}>{q.supplier_tickets?.suppliers?.name ?? "unknown"}</td>
+                        <td className={td} style={{ color: T.sub }}>{q.supplier_tickets?.ref}</td>
+                        <td className={`${td} tnum`}>{latest ? gmvFmt(latest.total_cents) : "—"}</td>
+                        <td className={td}><StatusChip T={T} tone={q.status === "accepted" ? "good" : q.status === "declined" ? "bad" : q.status === "change_requested" ? "warn" : "accent"}>{q.status.replace("_", " ")}</StatusChip></td>
+                      </tr>
+                      {openQuoteId === q.id && latest && (
+                        <tr className="border-t" style={{ borderColor: T.border }}>
+                          <td colSpan={5} className="px-3 pb-3 pt-1" style={{ background: T.panel2 }}>
+                            <div className="space-y-1">
+                              {latest.quote_items.map((it, i) => (
+                                <div key={i} className="flex items-center justify-between text-xs">
+                                  <span style={{ color: T.sub }}>{it.label} × {it.qty}</span>
+                                  <span className="tnum font-bold">{gmvFmt(it.line_total_cents)}</span>
+                                </div>
+                              ))}
+                              {latest.note && <div className="mt-1 text-xs" style={{ color: T.faint }}>Note: {latest.note}</div>}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+            {quotes.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No quotes sent yet.</div>}
+          </div>
+        </AdminPanel>
+      )}
+
+      {activeSection === "orders" && (
+        <>
+          <AdminPanel T={T} title={`Orders (${orders.length})`} subtitle="Paid Stitch-It bookings — refund moves real money back via Paystack.">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr style={{ color: T.faint }}>
+                  <th className={th}>Ref</th><th className={th}>Customer</th><th className={th}>Total</th><th className={th}>Status</th><th className={th}></th>
+                </tr></thead>
+                <tbody>
+                  {orders.map((o) => (
+                    <tr key={o.id} className="border-t" style={{ borderColor: T.border }}>
+                      <td className={`${td} font-bold`}>{o.ref}</td>
+                      <td className={td}>{o.customer_name}<div style={{ color: T.faint }}>{o.customer_phone}</div></td>
+                      <td className={`${td} tnum`}>{gmvFmt(o.total_cents)}</td>
+                      <td className={td}><StatusChip T={T} tone={o.status === "refunded" ? "faint" : "good"}>{o.status}</StatusChip></td>
+                      <td className={td}>
+                        {o.status === "paid" && (
+                          <button
+                            disabled={refundingRef === o.ref}
+                            onClick={() => setRefundDialogRef(o.ref)}
+                            className="press rounded-lg px-2 py-1 text-[11px] font-bold disabled:opacity-60"
+                            style={{ background: rgba(T.bad, 0.12), color: T.bad }}
+                          >
+                            {refundingRef === o.ref ? "Refunding…" : "Refund"}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {orders.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No paid orders yet.</div>}
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title={<span className="flex items-center gap-1.5"><Percent size={13} style={{ color: T.gold }} />Promotions ({promotions.filter((p) => p.status === "published").length} live)</span>} subtitle="Moderation — unpublish anything inappropriate.">
+            <div className="space-y-2">
+              {promotions.map((p) => (
+                <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5" style={{ borderColor: T.border }}>
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold">{p.title} <span className="font-normal" style={{ color: T.sub }}>· {p.suppliers?.name ?? "unknown supplier"}</span>{p.discount_label && <span style={{ color: T.gold }}> · {p.discount_label}</span>}</div>
+                    <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{p.ref}{p.applicable_date && ` · ${new Date(`${p.applicable_date}T00:00:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "long" })}`}</div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <StatusChip T={T} tone={p.status === "published" ? "good" : "faint"}>{p.status}</StatusChip>
+                    {p.status === "published" && (
+                      <button disabled={busyId === p.ref} onClick={() => moderatePromotion(p.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnG}>
+                        {busyId === p.ref ? "Working…" : "Unpublish"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {promotions.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No promotions yet.</div>}
+            </div>
+          </AdminPanel>
+        </>
+      )}
+
+      {activeSection === "finance" && (
+        <>
+          <AdminPanel T={T} title="Platform GMV">
+            <div style={{ height: 180 }}>
+              <ResponsiveContainer>
+                <BarChart data={weeklyGmv} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fill: T.faint, fontSize: 10 }} axisLine={{ stroke: T.border }} tickLine={false} />
+                  <YAxis hide />
+                  <Tooltip
+                    cursor={{ fill: rgba(T.accent, 0.08) }}
+                    formatter={(v) => gmvFmt(Number(v))}
+                    contentStyle={{ background: T.tipBg, border: `1px solid ${T.border}`, borderRadius: 10, color: T.ink, fontSize: 12 }}
+                  />
+                  <Bar dataKey="totalCents" name="GMV" radius={[4, 4, 0, 0]} fill={T.accent} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title={<span className="flex items-center gap-1.5"><Search size={13} style={{ color: T.gold }} />Transaction inspector</span>} subtitle="Paste any ref (ST-SUP-, ST-LEAD-, ST-BKG-, ST-BST-, ST-BPY-…) to trace it across every actor.">
+            <form onSubmit={(e) => { e.preventDefault(); traceRef(); }} className="flex gap-2">
+              <input
+                value={traceInput}
+                onChange={(e) => setTraceInput(e.target.value)}
+                placeholder="e.g. ST-SUP-00003"
+                className="min-w-0 flex-1 rounded-lg px-3 py-2 text-xs outline-none"
+                style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+              />
+              <button type="submit" disabled={tracing} className="press rounded-lg px-4 py-2 text-xs font-bold disabled:opacity-60" style={btnA}>
+                {tracing ? "Tracing…" : "Trace"}
+              </button>
+            </form>
+            {traceError && <div className="mt-2.5 text-xs font-semibold" style={{ color: T.bad }}>{traceError}</div>}
+            {traceRows && (
+              <div className="mt-2.5 space-y-2">
+                {traceRows.map((r) => (
+                  <details key={r.id} className="rounded-lg border p-2.5" style={{ borderColor: T.border }}>
+                    <summary className="cursor-pointer text-xs">
+                      <span className="font-bold">{r.entity_type}</span>
+                      <span style={{ color: T.sub }}> · {r.from_state ? `${r.from_state} → ${r.to_state}` : r.to_state}</span>
+                      <span className="ml-1.5" style={{ color: T.faint }}>{new Date(r.at).toLocaleString()}</span>
+                    </summary>
+                    <div className="mt-2 overflow-x-auto rounded-lg p-2" style={{ background: T.panel2 }}>
+                      <pre className="text-[10px]" style={{ color: T.sub }}>{JSON.stringify(r.payload, null, 2)}</pre>
+                    </div>
+                  </details>
+                ))}
               </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <StatusChip T={T} tone={o.status === "refunded" ? "faint" : "good"}>{o.status}</StatusChip>
-                {o.status === "paid" && (
-                  <button
-                    disabled={refundingRef === o.ref}
-                    onClick={() => setRefundDialogRef(o.ref)}
-                    className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60"
-                    style={{ background: rgba(T.bad, 0.12), color: T.bad }}
+            )}
+          </AdminPanel>
+        </>
+      )}
+
+      {activeSection === "system" && (
+        <>
+          <AdminPanel
+            T={T}
+            title={<span className="flex items-center gap-1.5"><History size={13} style={{ color: T.gold }} />Audit explorer</span>}
+            right={
+              <select
+                value={auditFilter}
+                onChange={(e) => setAuditFilter(e.target.value)}
+                className="rounded-lg px-2 py-1 text-[11px] font-semibold outline-none"
+                style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+              >
+                {["all", "boosts", "orders", "leads", "supplier_tickets", "verifications", "role_assignments", "budget_payments"].map((t) => (
+                  <option key={t} value={t}>{t === "all" ? "All entities" : t}</option>
+                ))}
+              </select>
+            }
+          >
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead><tr style={{ color: T.faint }}><th className={th}>Entity</th><th className={th}>Ref</th><th className={th}>Transition</th><th className={th}>At</th></tr></thead>
+                <tbody>
+                  {auditRows.map((r) => (
+                    <tr key={r.id} className="border-t" style={{ borderColor: T.border }}>
+                      <td className={`${td} font-bold`}>{r.entity_type}</td>
+                      <td className={td} style={{ color: T.sub }}>{r.ref}</td>
+                      <td className={td} style={{ color: T.faint }}>{r.from_state ? `${r.from_state} → ${r.to_state}` : r.to_state}</td>
+                      <td className={td} style={{ color: T.faint }}>{new Date(r.at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {auditRows.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No activity recorded yet.</div>}
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title={<span className="flex items-center gap-1.5"><Send size={13} style={{ color: T.gold }} />Message log</span>} subtitle="WhatsApp/SMS lead alerts, quote and dispute updates — real sends when a provider is configured, logged either way.">
+            <div className="space-y-1.5">
+              {messageLog.map((m) => (
+                <div key={m.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs" style={{ background: T.panel2 }}>
+                  <div className="min-w-0">
+                    <span className="font-bold">{m.ref}</span>
+                    <span style={{ color: T.sub }}> · {m.template.replace(/_/g, " ")} · {m.channel}</span>
+                    {m.to_phone && <span style={{ color: T.faint }}> · {m.to_phone}</span>}
+                    <div className="mt-0.5 truncate" style={{ color: T.faint, maxWidth: 480 }}>{m.payload?.message ?? m.payload?.reason}</div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <StatusChip T={T} tone={m.status === "sent" ? "good" : m.status === "failed" ? "bad" : "faint"}>{m.status}</StatusChip>
+                    <span style={{ color: T.faint }}>{new Date(m.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                  </div>
+                </div>
+              ))}
+              {messageLog.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No notifications sent yet.</div>}
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title="Integration health" subtitle="Paystack webhook deliveries — failures and invalid signatures highlighted.">
+            <div className="space-y-1.5">
+              {webhookDeliveries.map((d) => {
+                const bad = d.status === "failed" || d.status === "invalid_signature";
+                return (
+                  <div
+                    key={d.id}
+                    className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-xs"
+                    style={bad ? { background: rgba(T.bad, 0.08) } : { background: T.panel2 }}
                   >
-                    {refundingRef === o.ref ? "Refunding…" : "Refund"}
-                  </button>
-                )}
-              </div>
+                    <div className="min-w-0">
+                      <span className="font-bold">{d.event_type ?? "unknown event"}</span>
+                      {d.reference && <span style={{ color: T.sub }}> · {d.reference}</span>}
+                      {d.error_message && <span style={{ color: bad ? T.bad : T.faint }}> · {d.error_message}</span>}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <StatusChip T={T} tone={bad ? "bad" : d.status === "processed" ? "good" : "faint"}>{d.status}</StatusChip>
+                      <span style={{ color: T.faint }}>{new Date(d.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {webhookDeliveries.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No webhook deliveries recorded yet.</div>}
             </div>
-          ))}
-          {orders.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No paid orders yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="flex items-center gap-1.5 text-sm font-bold"><Percent size={14} style={{ color: T.gold }} />Promotions ({promotions.filter((p) => p.status === "published").length} live)</div>
-        <div className="mt-0.5 text-xs" style={{ color: T.faint }}>Moderation — unpublish anything inappropriate.</div>
-        <div className="mt-2.5 space-y-2">
-          {promotions.map((p) => (
-            <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <div className="min-w-0">
-                <div className="text-xs font-bold">{p.title} <span className="font-normal" style={{ color: T.sub }}>· {p.suppliers?.name ?? "unknown supplier"}</span>{p.discount_label && <span style={{ color: T.gold }}> · {p.discount_label}</span>}</div>
-                <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{p.ref}{p.applicable_date && ` · ${new Date(`${p.applicable_date}T00:00:00`).toLocaleDateString("en-ZA", { day: "numeric", month: "long" })}`}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-1.5">
-                <StatusChip T={T} tone={p.status === "published" ? "good" : "faint"}>{p.status}</StatusChip>
-                {p.status === "published" && (
-                  <button disabled={busyId === p.ref} onClick={() => moderatePromotion(p.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnG}>
-                    {busyId === p.ref ? "Working…" : "Unpublish"}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-          {promotions.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No promotions yet.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Suppliers ({suppliers.length})</div>
-        <div className="mt-2.5 space-y-2">
-          {suppliers.map((s) => (
-            <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <div className="min-w-0">
-                <div className="text-xs font-bold">{s.name} <span className="font-normal" style={{ color: T.sub }}>· {s.category}</span></div>
-                <div className="mt-1 flex flex-wrap gap-1.5">
-                  <StatusChip T={T} tone={s.verified ? "good" : "faint"}>{s.verified ? "Verified" : "Unverified"}</StatusChip>
-                  <StatusChip T={T} tone={s.status === "active" ? "good" : s.status === "suspended" ? "bad" : "warn"}>{s.status}</StatusChip>
-                  {featuredIds.has(s.id) && <StatusChip T={T} tone="accent"><Sparkles size={10} />Featured</StatusChip>}
-                </div>
-              </div>
-              <div className="flex shrink-0 flex-wrap gap-1.5">
-                <button disabled={busyId === s.id || s.verified} onClick={() => setVerification(s.id, "verified")} className="press flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-50" style={btnA}>
-                  <ShieldCheck size={11} />{busyId === s.id ? "Working…" : "Verify"}
-                </button>
-                <button disabled={busyId === s.id || !s.verified} onClick={() => setVerification(s.id, "rejected")} className="press flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-50" style={btnG}>
-                  <ShieldOff size={11} />Reject
-                </button>
-                <button disabled={busyId === s.id} onClick={() => toggleFeatured(s.id)} className="press flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-50" style={btnG}>
-                  <Sparkles size={11} />{featuredIds.has(s.id) ? "Unfeature" : "Feature"}
-                </button>
-                <button
-                  disabled={busyId === s.id}
-                  onClick={() => toggleSuspend(s.id, s.status !== "suspended")}
-                  className="press flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-50"
-                  style={s.status === "suspended" ? btnA : { background: rgba(T.bad, 0.12), color: T.bad, border: `1px solid ${rgba(T.bad, 0.4)}` }}
-                >
-                  <Ban size={11} />{s.status === "suspended" ? "Reinstate" : "Suspend"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Supplier tickets ({tickets.length} pending)</div>
-        <div className="mt-2.5 space-y-2">
-          {tickets.map((ticket) => (
-            <div key={ticket.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-2.5" style={{ borderColor: rgba(T.warn, 0.4), background: rgba(T.warn, 0.06) }}>
-              <div className="min-w-0">
-                <div className="text-xs font-bold">{ticket.suppliers?.name ?? "unknown supplier"} <span className="font-normal" style={{ color: T.sub }}>· {ticket.suppliers?.category}</span></div>
-                <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{ticket.ref}</div>
-              </div>
-              <div className="flex shrink-0 gap-1.5">
-                <button disabled={busyId === ticket.ref} onClick={() => confirmTicket(ticket.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnA}>
-                  {busyId === ticket.ref ? "Working…" : "Yes, confirm"}
-                </button>
-                <button disabled={busyId === ticket.ref} onClick={() => declineTicket(ticket.ref)} className="press rounded-lg px-2.5 py-1.5 text-[11px] font-bold disabled:opacity-60" style={btnG}>
-                  {busyId === ticket.ref ? "Working…" : "No"}
-                </button>
-              </div>
-            </div>
-          ))}
-          {tickets.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No pending tickets.</div>}
-        </div>
-      </PortalCard>
-
-      <PortalCard T={T}>
-        <div className="text-sm font-bold">Lead board ({leads.filter((l) => l.status === "new").length} new)</div>
-        <div className="mt-2.5 space-y-2">
-          {leads.map((lead) => (
-            <div key={lead.id} className="rounded-xl border p-2.5" style={{ borderColor: T.border }}>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="min-w-0">
-                  <div className="text-xs font-bold">{lead.requester_name} <span className="font-normal" style={{ color: T.sub }}>· {lead.requester_phone}</span></div>
-                  <div className="mt-0.5 text-[11px]" style={{ color: T.sub }}>{lead.suppliers?.name ?? "unknown supplier"} · {lead.suppliers?.category}</div>
-                  <div className="mt-0.5 text-[10px]" style={{ color: T.faint }}>{lead.ref}</div>
-                </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button onClick={() => setOpenLeadThreadId(openLeadThreadId === lead.id ? null : lead.id)} className="press flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold" style={btnG}>
-                    <MessageCircle size={11} />Conversation
-                  </button>
-                  <StatusChip T={T} tone={lead.status === "new" ? "warn" : lead.status === "accepted" ? "good" : "bad"}>{lead.status}</StatusChip>
-                </div>
-              </div>
-              {openLeadThreadId === lead.id && (
-                <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: T.border }}>
-                  <LeadThreadPanel T={T} leadRef={lead.ref} withSession />
-                </div>
-              )}
-            </div>
-          ))}
-          {leads.length === 0 && <div className="text-xs" style={{ color: T.faint }}>No leads yet.</div>}
-        </div>
-      </PortalCard>
+          </AdminPanel>
+        </>
+      )}
 
       <ConfirmDialog
         T={T}
@@ -1013,6 +1126,6 @@ export function AdminConsole() {
         onConfirm={confirmRefund}
         onCancel={() => setRefundDialogRef(null)}
       />
-    </PortalShell>
+    </AdminShell>
   );
 }

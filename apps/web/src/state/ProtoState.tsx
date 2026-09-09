@@ -53,6 +53,7 @@ interface ProtoStateValue {
   resolveChange: (id: string, ok: boolean) => void;
   guests: number; setGuests: (n: number) => void;
   profile: Profile;
+  eventId: string | null;
   showOnb: boolean; setShowOnb: (b: boolean) => void;
   finishOnboarding: (p: OnboardingResult) => void;
   // Lifted out of Stitch It so the nav tab badge (cart item count) can read
@@ -104,6 +105,19 @@ export function ProtoStateProvider({
   const [guests, setGuests] = useState(140);
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [showOnb, setShowOnb] = useState(initialShowOnb);
+  // The one real per-account row this app has (written once by
+  // finishOnboarding below) — exposed so real backend-scoped features
+  // (budget payment reconciliation, anything else keyed to "this account's
+  // actual event") have something real to key off, without pulling the
+  // rest of the client experience (guests/tasks/squad) off the shared demo
+  // data those still deliberately run on.
+  const [eventId, setEventId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ownerId) return;
+    supabase.from("events").select("id").eq("owner_id", ownerId).maybeSingle().then(({ data }) => {
+      if (data) setEventId(data.id);
+    });
+  }, [ownerId]);
   const [basket, setBasket] = useState<Basket>({});
   const [selSup, setSelSup] = useState<string | null>(null);
   const [readyOpen, setReadyOpen] = useState(false);
@@ -305,8 +319,11 @@ export function ProtoStateProvider({
           support_level: p.supp,
           comm_channel: p.comm,
         })
-        .then(({ error }) => {
+        .select("id")
+        .single()
+        .then(({ data, error }) => {
           if (error) console.error("finishOnboarding: events insert failed", error);
+          else setEventId(data.id);
         });
     } else {
       console.error("finishOnboarding: no ownerId — events row not created");
@@ -330,7 +347,7 @@ export function ProtoStateProvider({
     msgs, setMsgs, chased, toasts, toast,
     secure, swapCandidate, moveZone, applyBundle, setRsvp, toggleGuestNeed, markReminded, chaseRsvp, channelLink,
     changeReqs, headcountBase, raiseChangeReqs, resolveChange,
-    guests, setGuests, profile, showOnb, setShowOnb, finishOnboarding,
+    guests, setGuests, profile, eventId, showOnb, setShowOnb, finishOnboarding,
     basket, setBasket,
     selSup, setSelSup, readyOpen, setReadyOpen, coachSel, setCoachSel,
   };

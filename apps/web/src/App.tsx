@@ -3,6 +3,7 @@ import { ThemeProvider } from './theme/ThemeContext'
 import { Entry } from './pages/Entry'
 import { SupplierAuth } from './pages/SupplierAuth'
 import { SupplierClaim } from './pages/SupplierClaim'
+import { SupplierOnboarding } from './pages/SupplierOnboarding'
 import { SupplierPortal } from './pages/SupplierPortal'
 import { RequestSupplier } from './pages/RequestSupplier'
 import { LeadThread } from './pages/LeadThread'
@@ -19,6 +20,7 @@ function App() {
           <Route path="/thread/:ref" element={<LeadThread />} />
           <Route path="/supplier/login" element={<SupplierAuth />} />
           <Route path="/supplier/claim" element={<SupplierClaim />} />
+          <Route path="/supplier/onboarding" element={<SupplierOnboarding />} />
           <Route path="/supplier" element={<SupplierPortal />} />
           <Route path="/admin/login" element={<AdminAuth />} />
           <Route path="/admin" element={<AdminConsole />} />

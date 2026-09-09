@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Check } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
@@ -13,7 +13,9 @@ interface UnclaimedSupplier {
   headline: string | null;
 }
 
-const CATEGORIES = [
+// Shared with SupplierOnboarding.tsx — one real taxonomy, not two lists that
+// can quietly drift apart.
+export const CATEGORIES = [
   "Cake", "Catering", "Décor Supplier", "Entertainment", "Flower Specialist",
   "Hair & Makeup", "MC", "Photography", "Planner", "Tailor",
   "Tent & Weather", "Transport", "Venue", "Videography",
@@ -25,20 +27,6 @@ export function SupplierClaim() {
   const [query, setQuery] = useState("");
   const [claiming, setClaiming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newCategories, setNewCategories] = useState<Set<string>>(new Set());
-  const [newHeadline, setNewHeadline] = useState("");
-
-  function toggleCategory(cat: string) {
-    setNewCategories((prev) => {
-      const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat);
-      else next.add(cat);
-      return next;
-    });
-  }
-  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -52,6 +40,26 @@ export function SupplierClaim() {
         else setSuppliers(data ?? []);
       });
   }, []);
+
+  // A signed-in supplier who already claimed a listing has no business
+  // being on this page at all — claiming or creating a second one is
+  // exactly the double-claim bug that silently broke .maybeSingle() lookups
+  // twice already this session, now also structurally blocked by a real DB
+  // constraint (suppliers_profile_id_unique), but there's no reason to let
+  // someone walk into that error in the first place.
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      supabase
+        .from("suppliers")
+        .select("id")
+        .eq("profile_id", data.user.id)
+        .maybeSingle()
+        .then(({ data: existing }) => {
+          if (existing) navigate("/supplier", { replace: true });
+        });
+    });
+  }, [navigate]);
 
   async function claim(id: string) {
     setClaiming(id);
@@ -71,56 +79,15 @@ export function SupplierClaim() {
     navigate("/supplier");
   }
 
-  async function createListing(e: FormEvent) {
-    e.preventDefault();
-    if (newCategories.size === 0) {
-      setError("Pick at least one category.");
-      return;
-    }
-    setSubmitting(true);
-    setError(null);
-    const { data: userRes } = await supabase.auth.getUser();
-    const categories = [...newCategories];
-    const { data: created, error: createError } = await supabase
-      .from("suppliers")
-      .insert({
-        profile_id: userRes.user?.id,
-        name: newName.trim(),
-        category: categories[0],
-        headline: newHeadline.trim() || null,
-        status: "active",
-      })
-      .select("id")
-      .single();
-
-    if (createError) {
-      setError(createError.code === "23505" ? "A listing with that name already exists — try searching for it above." : createError.message);
-      setSubmitting(false);
-      return;
-    }
-
-    const { error: catError } = await supabase
-      .from("supplier_categories")
-      .insert(categories.map((category) => ({ supplier_id: created.id, category })));
-    if (catError) {
-      setError(`Listing created, but categories failed to save: ${catError.message}`);
-      setSubmitting(false);
-      return;
-    }
-
-    navigate("/supplier");
-  }
-
   const filtered = suppliers.filter((s) => s.name.toLowerCase().includes(query.toLowerCase()));
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
   const btnA = { background: T.accent, color: T.onAccent };
-  const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
 
   return (
     <PortalShell eyebrow="Supplier" title="Is your business already listed?">
       <PortalCard T={T}>
         <div className="mb-3 text-xs" style={{ color: T.sub }}>
-          Search for your business below and claim it, or skip to create a new listing.
+          Search for your business below and claim it, or set up a brand new listing.
         </div>
         <div className="relative">
           <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.faint }} />
@@ -158,44 +125,9 @@ export function SupplierClaim() {
         </div>
       </PortalCard>
 
-      {!creating ? (
-        <button type="button" onClick={() => setCreating(true)} className="w-full text-center text-xs font-bold" style={{ color: T.accent }}>
-          Skip — create a new listing
-        </button>
-      ) : (
-        <PortalCard T={T}>
-          <form onSubmit={createListing} className="space-y-3">
-            <div className="text-sm font-bold">Create a new listing</div>
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Business name</div>
-              <input required value={newName} onChange={(e) => setNewName(e.target.value)} className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
-            </label>
-            <div>
-              <div className="mb-1.5 text-xs font-semibold" style={{ color: T.sub }}>Categories — pick all that apply</div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                {CATEGORIES.map((c) => (
-                  <label key={c} className="flex items-center gap-1.5 text-xs" style={{ color: T.ink }}>
-                    <input type="checkbox" checked={newCategories.has(c)} onChange={() => toggleCategory(c)} className="h-3.5 w-3.5" />
-                    {c}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <label className="block">
-              <div className="mb-1 text-xs font-semibold" style={{ color: T.sub }}>Headline (optional)</div>
-              <input value={newHeadline} onChange={(e) => setNewHeadline(e.target.value)} placeholder="One line about what you do" className="w-full rounded-xl px-3.5 py-2.5 text-sm outline-none" style={inputS} />
-            </label>
-            <div className="flex gap-2">
-              <button type="submit" disabled={submitting || !newName.trim()} className="press flex-1 rounded-xl py-2.5 text-sm font-bold disabled:opacity-60" style={btnA}>
-                {submitting ? "Creating…" : "Create listing"}
-              </button>
-              <button type="button" onClick={() => setCreating(false)} className="press rounded-xl px-4 py-2.5 text-sm font-bold" style={btnG}>
-                Back to search
-              </button>
-            </div>
-          </form>
-        </PortalCard>
-      )}
+      <button type="button" onClick={() => navigate("/supplier/onboarding")} className="w-full text-center text-xs font-bold" style={{ color: T.accent }}>
+        Not listed yet? Set up your business →
+      </button>
     </PortalShell>
   );
 }
