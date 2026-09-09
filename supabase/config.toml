@@ -449,6 +449,17 @@ enabled = true
 # Paystack calls this directly with its own signature, not a Supabase JWT.
 verify_jwt = false
 
+[functions.rsvp-exchange-token]
+enabled = true
+# A wedding guest has no Supabase Auth account at all — same reasoning as
+# lead-messages above, hash-checked token instead of a JWT.
+verify_jwt = false
+
+[functions.rsvp-submit-response]
+enabled = true
+# Session-scoped (minted by rsvp-exchange-token), not a Supabase Auth JWT.
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327
