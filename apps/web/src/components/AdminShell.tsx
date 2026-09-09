@@ -49,7 +49,7 @@ export function AdminShell({
       {/* SIDEBAR — desktop only */}
       <div className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r px-3 py-4 md:flex" style={{ background: SIDEBAR_BG, borderColor: SIDEBAR_BORDER }}>
         <div className="px-2 pb-4">
-          <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 15, color: "#fff", letterSpacing: 0.5 }}>STITCH—D</div>
+          <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 15, color: "#fff", letterSpacing: 0.5 }}>STITCH<span className="mx-0.5 inline-block h-1 w-3 rounded-sm align-middle" style={{ background: T.accent }} />D</div>
           <div className="mt-0.5 text-[10px] font-bold" style={{ color: "rgba(255,255,255,0.4)", letterSpacing: 1.5 }}>OPS CONSOLE</div>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto">
@@ -80,7 +80,7 @@ export function AdminShell({
       <div className="sticky top-0 z-30 border-b md:hidden" style={{ background: SIDEBAR_BG, borderColor: SIDEBAR_BORDER }}>
         <div className="flex items-center justify-between px-4 py-2.5">
           <div>
-            <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 14, color: "#fff" }}>STITCH—D</div>
+            <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 14, color: "#fff" }}>STITCH<span className="mx-0.5 inline-block h-1 w-3 rounded-sm align-middle" style={{ background: T.accent }} />D</div>
             <div className="text-[9px] font-bold" style={{ color: "rgba(255,255,255,0.4)", letterSpacing: 1.5 }}>OPS CONSOLE</div>
           </div>
           <div className="flex items-center gap-1">
