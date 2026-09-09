@@ -64,6 +64,18 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "this invitation has changed since you opened it — please reopen your link" }, 401);
   }
 
+  // Part K1: "RSVP writes — 30 per 10 minutes per invitation + IP." Keyed
+  // by household_id alone (this project's stand-in for "the invitation") —
+  // combining it with a caller IP would need Deno's forwarded-header
+  // handling to be reliable across every deployment topology this runs
+  // under, which isn't attempted in this pass; stated as a real
+  // simplification, not silently narrowed.
+  const { data: withinLimit, error: rateErr } = await admin.rpc("check_rate_limit", {
+    p_bucket: "rsvp_write", p_key: session.household_id, p_max_count: 30, p_window_seconds: 600,
+  });
+  if (rateErr) return jsonResponse({ error: rateErr.message }, 500);
+  if (!withinLimit) return jsonResponse({ error: "too many attempts — please wait a few minutes and try again" }, 429);
+
   // Every guest_id in the payload must actually belong to this session's
   // household — the household_id in the session is the only thing this
   // request is allowed to touch, regardless of what guest_id a tampered

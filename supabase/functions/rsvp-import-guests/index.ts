@@ -70,6 +70,15 @@ Deno.serve(async (req) => {
     return jsonResponse({ imported: false, already_imported: true, household_count: existingBatch.household_count, guest_count: existingBatch.guest_count });
   }
 
+  // Part K1: "Guest import — 5 per hour per event." Checked after the
+  // idempotency lookup above — a retried identical batch is a no-op and
+  // shouldn't burn rate-limit budget.
+  const { data: withinLimit, error: rateErr } = await admin.rpc("check_rate_limit", {
+    p_bucket: "guest_import", p_key: eventId, p_max_count: 5, p_window_seconds: 3600,
+  });
+  if (rateErr) return jsonResponse({ error: rateErr.message }, 500);
+  if (!withinLimit) return jsonResponse({ error: "too many imports for this event recently — please try again later" }, 429);
+
   const { count: existingGuestCount, error: countErr } = await admin
     .from("guests")
     .select("id, households!inner(event_id)", { count: "exact", head: true })

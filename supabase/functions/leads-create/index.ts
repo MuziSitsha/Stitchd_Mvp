@@ -35,6 +35,14 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: "supplier not found or not accepting leads" }, 404);
   }
 
+  // Part K1: "Lead creation — 20 per hour per actor." An anonymous form has
+  // no account to key off, so requester_phone is the actor.
+  const { data: withinLimit, error: rateErr } = await admin.rpc("check_rate_limit", {
+    p_bucket: "lead_creation", p_key: requester_phone, p_max_count: 20, p_window_seconds: 3600,
+  });
+  if (rateErr) return jsonResponse({ error: rateErr.message }, 500);
+  if (!withinLimit) return jsonResponse({ error: "too many requests from this number recently — please try again later" }, 429);
+
   const { data: lead, error: leadErr } = await admin
     .from("leads")
     .insert({ supplier_id, requester_name, requester_phone, requester_email, details })

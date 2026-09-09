@@ -78,8 +78,15 @@ afterAll(async () => {
     const { data: households } = await admin.from("households").select("id").eq("event_id", id);
     for (const h of households ?? []) {
       await admin.from("guest_sessions").delete().eq("household_id", h.id);
+      // WBS-K's rate limiter (added after this file) writes a real
+      // rsvp_write hit on every real submit — found as genuine residue
+      // (11 orphaned rows) when that migration's own test suite ran the
+      // full project for the first time, traced back to every existing
+      // caller of rsvp-submit-response, not just its own new tests.
+      await admin.from("rate_limit_hits").delete().eq("bucket", "rsvp_write").eq("key", h.id);
     }
     await admin.from("households").delete().eq("event_id", id);
+    await admin.from("rate_limit_hits").delete().eq("bucket", "guest_import").eq("key", id);
     await admin.from("functions").delete().eq("event_id", id);
     await admin.from("events").delete().eq("id", id);
   }
