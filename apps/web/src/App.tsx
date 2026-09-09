@@ -11,6 +11,7 @@ import { AdminAuth } from './pages/AdminAuth'
 import { AdminConsole } from './pages/AdminConsole'
 import { RsvpInvite, RsvpGuestForm, RsvpConfirmed } from './pages/RsvpGuest'
 import { RsvpHostManager } from './pages/RsvpHostManager'
+import { ReadinessHostManager } from './pages/ReadinessHostManager'
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
           <Route path="/rsvp" element={<RsvpGuestForm />} />
           <Route path="/rsvp/confirmed" element={<RsvpConfirmed />} />
           <Route path="/rsvp-manager" element={<RsvpHostManager />} />
+          <Route path="/readiness-manager" element={<ReadinessHostManager />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
