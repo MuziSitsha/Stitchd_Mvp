@@ -42,7 +42,7 @@ function parseGuestCsv(text: string, functionsByName: Map<string, string>) {
 // investors on; gutting it to run on a brand-new, mostly-empty real backend
 // would break a working demo to half-build a different one in its place.
 // This is the actual production feature, reachable in its own right.
-interface FunctionRow { id: string; name: string; starts_at: string | null }
+interface FunctionRow { id: string; name: string; starts_at: string | null; rsvp_cutoff_at: string | null }
 interface EntitlementRow { function_id: string; plus_one_allowed: boolean }
 interface ResponseRow { function_id: string; state: string; answer: string | null; meal: string | null; pending_change: { answer?: string | null; meal?: string | null } | null }
 interface GuestRow { id: string; display_name: string; person_type: string; guest_entitlements: EntitlementRow[]; guest_responses: ResponseRow[] }
@@ -77,7 +77,7 @@ export function RsvpHostManager() {
     setEventId(event?.id ?? null);
     if (!event) { setLoading(false); return; }
 
-    const { data: fns } = await supabase.from("functions").select("id, name, starts_at").eq("event_id", event.id).order("starts_at");
+    const { data: fns } = await supabase.from("functions").select("id, name, starts_at, rsvp_cutoff_at").eq("event_id", event.id).order("starts_at");
     setFunctions(fns ?? []);
 
     const { data: hh, error: hhErr } = await supabase
@@ -207,6 +207,21 @@ export function RsvpHostManager() {
     ),
   );
 
+  // Per-function cutoff + outstanding households — the same picture the
+  // 7-day / 2-day reminder nudge is built from (rsvp_enqueue_reminders()).
+  const cutoffRows = functions
+    .filter((fn) => fn.rsvp_cutoff_at)
+    .map((fn) => {
+      const outstanding = households.filter((h) =>
+        h.guests.some((g) =>
+          g.guest_entitlements.some((e) => e.function_id === fn.id) &&
+          !g.guest_responses.find((r) => r.function_id === fn.id && r.state === "submitted"),
+        ),
+      ).length;
+      const days = Math.ceil((new Date(fn.rsvp_cutoff_at as string).getTime() - Date.now()) / 86_400_000);
+      return { fn, outstanding, days };
+    });
+
   return (
     <PortalShell eyebrow="Real RSVP" title="Guests & RSVPs" signOutTo="/">
       <div className="grid grid-cols-3 gap-2">
@@ -262,6 +277,35 @@ export function RsvpHostManager() {
 
       {functions.length === 0 && (
         <PortalCard T={T}><div className="text-xs" style={{ color: T.sub }}>No functions set up on this event yet — add one before inviting guests.</div></PortalCard>
+      )}
+
+      {cutoffRows.length > 0 && (
+        <PortalCard T={T}>
+          <div className="mb-2 text-xs font-bold" style={{ color: T.ink }}>RSVP cutoffs</div>
+          <div className="space-y-1.5">
+            {cutoffRows.map(({ fn, outstanding, days }) => {
+              const overdue = days < 0;
+              const soon = !overdue && days <= 7 && outstanding > 0;
+              const tone = overdue ? T.bad : soon ? T.warn : T.sub;
+              return (
+                <div key={fn.id} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-2 text-xs" style={{ background: T.panel2 }}>
+                  <span className="font-semibold" style={{ color: T.ink }}>{fn.name}</span>
+                  <span style={{ color: tone }}>
+                    {overdue ? "closed " : "closes "}
+                    {new Date(fn.rsvp_cutoff_at as string).toLocaleDateString([], { day: "numeric", month: "short" })}
+                    {!overdue && ` · ${days} day${days === 1 ? "" : "s"} left`}
+                  </span>
+                  <span className="ml-auto" style={{ color: outstanding > 0 ? T.warn : T.good }}>
+                    {outstanding > 0 ? `${outstanding} household${outstanding === 1 ? "" : "s"} still to reply` : "all replied"}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-[11px]" style={{ color: T.faint }}>
+            Reminders go to your phone 7 days and 2 days before each cutoff while households are still outstanding.
+          </div>
+        </PortalCard>
       )}
 
       {households.map((h) => (

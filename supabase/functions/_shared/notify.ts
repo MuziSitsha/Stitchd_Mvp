@@ -18,6 +18,7 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
   supplier_approved: (v) => `STITCHD: your listing "${v.supplierName}" is approved and live — clients can now find and request you.`,
   supplier_declined: (v) => `STITCHD: your listing "${v.supplierName}" wasn't approved this time. Log in to your Supplier Portal for details.`,
   ticket_escalated: (v) => `STITCHD: ticket ${v.ref} breached its ${v.clock} clock (severity ${v.priority}) and has been escalated to level ${v.level}. Log in to review.`,
+  rsvp_reminder: (v) => `STITCHD: RSVPs for ${v.function} close in ${v.days} ${v.days === "1" ? "day" : "days"} and ${v.outstanding} ${v.outstanding === "1" ? "household hasn't" : "households haven't"} replied yet. Chase them from your RSVP manager.`,
 };
 
 async function sendWhatsApp(to: string, message: string): Promise<{ ok: boolean; error?: string }> {
