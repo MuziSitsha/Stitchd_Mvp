@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Heart, Palette, Sun, Moon, MessageCircle, Store, X, Check, LogOut, Search } from "lucide-react";
+import { Heart, Palette, Sun, Moon, MessageCircle, Store, X, Check, LogOut, Search, ShieldCheck } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
 import { supabase } from "../../lib/supabase";
@@ -117,13 +117,22 @@ export function AppShell({
               {mode === "dark" ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             {isStaff && (
-              <button
-                onClick={() => setLens("portal")}
-                className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold sm:flex"
-                style={lens === "portal" ? btnA : { color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` }}
-              >
-                <Store size={13} />Supplier Portal
-              </button>
+              <>
+                <a
+                  href="/admin"
+                  className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold sm:flex"
+                  style={{ color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` }}
+                >
+                  <ShieldCheck size={13} />Ops Console
+                </a>
+                <button
+                  onClick={() => setLens("portal")}
+                  className="hidden items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-bold sm:flex"
+                  style={lens === "portal" ? btnA : { color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` }}
+                >
+                  <Store size={13} />Supplier Portal
+                </button>
+              </>
             )}
             <button
               onClick={() => setSearchOpen(true)}

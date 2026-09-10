@@ -28,6 +28,19 @@ export function useResolvedRole(session: Session | null) {
     setLoading(true);
 
     (async () => {
+      // Resolve an owned event up front — it's needed whether the person is
+      // a plain client (onboarding vs. app) or a staff member who also has
+      // their own wedding on the platform (Entry lands them in it rather
+      // than the Ops Console).
+      const { data: eventRow } = await supabase
+        .from("events")
+        .select("id")
+        .eq("owner_id", session.user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      setHasEvent(!!eventRow);
+      setEventId(eventRow?.id ?? null);
+
       const { data: staffRows } = await supabase
         .from("role_assignments")
         .select("role")
@@ -53,15 +66,7 @@ export function useResolvedRole(session: Session | null) {
         return;
       }
 
-      const { data: eventRow } = await supabase
-        .from("events")
-        .select("id")
-        .eq("owner_id", session.user.id)
-        .maybeSingle();
-      if (cancelled) return;
       setRole("client");
-      setHasEvent(!!eventRow);
-      setEventId(eventRow?.id ?? null);
       setLoading(false);
     })();
 

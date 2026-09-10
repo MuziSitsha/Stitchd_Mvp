@@ -96,9 +96,13 @@ export function ClientAuth({
             setBusy(false);
             return;
           }
+          // They asked for the Ops Console specifically — send them straight
+          // there, even if this same account also owns an event (which "/"
+          // would open into instead).
+          navigate("/admin");
+          return;
         }
-        // Customer or confirmed admin: hand off to "/", where Entry.tsx does
-        // the role-based routing (Prototype for a client, /admin for staff).
+        // Customer: hand off to "/", where Entry.tsx routes by who they are.
         // This page lives at /login now, so unlike when the form was mounted
         // at "/" itself, a session appearing here doesn't redirect on its
         // own — the navigate() is what completes the sign-in.
