@@ -205,7 +205,11 @@ anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
 token_refresh = 150
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+# Bumped from the 30 default — the RLS/integration test suite signs a lot of
+# fixture accounts in per run, and login-lockout.test.ts deliberately fails
+# sign-in dozens of times; GoTrue's own IP limiter would otherwise mask the
+# per-account lockout under test. Local only — hosted keeps its own config.
+sign_in_sign_ups = 400
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
 token_verifications = 30
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
@@ -288,6 +292,12 @@ uri = "pg-functions://postgres/public/before_user_created_hook"
 [auth.hook.custom_access_token]
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token_hook"
+
+# This hook runs after every password check. Part K1: account-specific
+# login lockout — 5 failed attempts per 15 minutes locks the account.
+[auth.hook.password_verification_attempt]
+enabled = true
+uri = "pg-functions://postgres/public/password_verification_attempt_hook"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
 [auth.sms.twilio]
