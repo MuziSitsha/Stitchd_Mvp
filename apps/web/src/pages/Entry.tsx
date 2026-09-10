@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
 import { useAuth } from "../lib/useAuth";
 import { useResolvedRole } from "../lib/useResolvedRole";
-import { ClientAuth } from "./ClientAuth";
+import { Landing } from "./Landing";
 import { Prototype } from "./Prototype";
 
 function Loading() {
@@ -28,15 +27,11 @@ function Loading() {
 export function Entry() {
   const { session, loading: authLoading } = useAuth();
   const { role, hasEvent, loading: roleLoading } = useResolvedRole(session);
-  // Lifted up here rather than left local to ClientAuth: picking "Admin/Ops"
-  // with a non-staff account briefly creates a real session (to check
-  // role_assignments) before signing back out — that transition unmounts
-  // and later remounts ClientAuth, which would silently wipe a
-  // component-local error state before the person ever saw it.
-  const [authError, setAuthError] = useState<string | null>(null);
 
   if (authLoading) return <Loading />;
-  if (!session) return <ClientAuth authError={authError} setAuthError={setAuthError} />;
+  // "/" is the public Part C1 landing page for anyone not signed in; the
+  // front-door auth form lives at /login now.
+  if (!session) return <Landing />;
   if (roleLoading || !role) return <Loading />;
 
   if (role === "supplier") return <Navigate to="/supplier" replace />;

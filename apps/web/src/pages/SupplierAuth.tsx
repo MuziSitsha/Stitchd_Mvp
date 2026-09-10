@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
@@ -14,7 +14,18 @@ export function SupplierAuth() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
   const navigate = useNavigate();
+
+  // Part C1: the launch gate applies to supplier signup too — reflect it
+  // up front, not just via the server-side rejection.
+  useEffect(() => {
+    supabase.from("platform_settings").select("signup_open").eq("id", 1).single()
+      .then(({ data }) => {
+        setSignupOpen(data?.signup_open ?? false);
+        if (data?.signup_open === false) setMode("signin");
+      });
+  }, []);
 
   const btnA = { background: T.accent, color: T.onAccent };
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
@@ -83,14 +94,20 @@ export function SupplierAuth() {
             </button>
           </form>
 
-          <button
-            type="button"
-            onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-            className="mt-4 w-full text-center text-xs font-bold"
-            style={{ color: T.accent }}
-          >
-            {mode === "signup" ? "Already have an account? Sign in" : "New supplier? Create an account"}
-          </button>
+          {signupOpen === false ? (
+            <div className="mt-4 text-center text-xs" style={{ color: T.faint }}>
+              Pilot onboarding is not open yet — existing pilot accounts can sign in above.
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+              className="mt-4 w-full text-center text-xs font-bold"
+              style={{ color: T.accent }}
+            >
+              {mode === "signup" ? "Already have an account? Sign in" : "New supplier? Create an account"}
+            </button>
+          )}
         </Card>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Heart, Store, ShieldCheck, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../theme/ThemeContext";
@@ -43,6 +43,17 @@ export function ClientAuth({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  // Part C1: while the launch flag is closed, sign-up isn't just server-
+  // rejected — the form says so up front rather than after the user's
+  // filled it in.
+  const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
+  useEffect(() => {
+    supabase.from("platform_settings").select("signup_open").eq("id", 1).single()
+      .then(({ data }) => {
+        setSignupOpen(data?.signup_open ?? false);
+        if (data?.signup_open === false) setMode("signin");
+      });
+  }, []);
 
   const btnA = { background: T.accent, color: T.onAccent };
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
@@ -166,9 +177,15 @@ export function ClientAuth({
               </button>
             </form>
 
-            <button onClick={toggleMode} className="mt-4 w-full text-center text-xs font-bold" style={{ color: T.accent }}>
-              {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
-            </button>
+            {signupOpen === false ? (
+              <div className="mt-4 text-center text-xs" style={{ color: T.faint }}>
+                Pilot onboarding is not open yet — existing pilot accounts can sign in above.
+              </div>
+            ) : (
+              <button onClick={toggleMode} className="mt-4 w-full text-center text-xs font-bold" style={{ color: T.accent }}>
+                {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
+              </button>
+            )}
         </Card>
       </div>
     </div>

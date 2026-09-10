@@ -194,7 +194,27 @@ export function AdminConsole() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
+  const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
+  const [togglingLaunch, setTogglingLaunch] = useState(false);
   const navigate = useNavigate();
+
+  const loadLaunchFlag = useCallback(async () => {
+    const { data } = await supabase.from("platform_settings").select("signup_open").eq("id", 1).single();
+    setSignupOpen(data?.signup_open ?? false);
+  }, []);
+
+  async function toggleLaunchFlag() {
+    if (signupOpen === null || togglingLaunch) return;
+    setTogglingLaunch(true);
+    setError(null);
+    const { error: updateErr } = await supabase
+      .from("platform_settings")
+      .update({ signup_open: !signupOpen, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (updateErr) setError(updateErr.message);
+    else setSignupOpen(!signupOpen);
+    setTogglingLaunch(false);
+  }
 
   const loadSuppliers = useCallback(async () => {
     const { data, error: fetchError } = await supabase
@@ -426,6 +446,7 @@ export function AdminConsole() {
     loadQuotes();
     loadMessageLog();
     loadOrders();
+    loadLaunchFlag();
 
     const channel = supabase
       .channel("admin-console")
@@ -448,7 +469,7 @@ export function AdminConsole() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authorized, loadSuppliers, loadLeads, loadTickets, loadDatedTickets, loadAllTickets, loadGmvItems, loadTicketMessages, loadFeatured, loadAudit, auditFilter, loadWebhookDeliveries, loadSupportTickets, supportFilter, loadPromotions, loadQuotes, loadMessageLog, loadOrders]);
+  }, [authorized, loadSuppliers, loadLeads, loadTickets, loadDatedTickets, loadAllTickets, loadGmvItems, loadTicketMessages, loadFeatured, loadAudit, auditFilter, loadWebhookDeliveries, loadSupportTickets, supportFilter, loadPromotions, loadQuotes, loadMessageLog, loadOrders, loadLaunchFlag]);
 
   useEffect(() => {
     if (!authorized) return;
@@ -1032,6 +1053,27 @@ export function AdminConsole() {
 
       {activeSection === "system" && (
         <>
+          <AdminPanel T={T} title="Launch controls" subtitle="Part C1 / M3: keep signup disabled until G1. The server enforces this — a direct API call can't get past it either.">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold" style={{ color: T.ink }}>
+                  Public signup: {signupOpen === null ? "…" : signupOpen ? "OPEN" : "CLOSED"}
+                </div>
+                <div className="text-[11px]" style={{ color: T.faint }}>
+                  {signupOpen ? "Anyone can create a supplier or couple account." : "New accounts are staff-provisioned only. The landing page shows “Pilot onboarding is not open yet.”"}
+                </div>
+              </div>
+              <button
+                onClick={toggleLaunchFlag}
+                disabled={signupOpen === null || togglingLaunch}
+                className="rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
+                style={signupOpen ? { background: rgba(T.bad, 0.14), color: T.bad } : { background: T.accent, color: T.onAccent }}
+              >
+                {togglingLaunch ? "…" : signupOpen ? "Close signup" : "Open signup"}
+              </button>
+            </div>
+          </AdminPanel>
+
           <AdminPanel
             T={T}
             title={<span className="flex items-center gap-1.5"><History size={13} style={{ color: T.gold }} />Audit explorer</span>}

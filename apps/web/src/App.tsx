@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './theme/ThemeContext'
 import { Entry } from './pages/Entry'
+import { Login } from './pages/Login'
 import { SupplierAuth } from './pages/SupplierAuth'
 import { SupplierClaim } from './pages/SupplierClaim'
 import { SupplierOnboarding } from './pages/SupplierOnboarding'
@@ -19,6 +20,7 @@ function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Entry />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/request" element={<RequestSupplier />} />
           <Route path="/thread/:ref" element={<LeadThread />} />
           <Route path="/supplier/login" element={<SupplierAuth />} />
