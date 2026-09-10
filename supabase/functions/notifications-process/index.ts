@@ -15,14 +15,22 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return jsonResponse({ error: "missing Authorization header" }, 401);
-  const caller = callerClient(authHeader);
-  const { data: userRes, error: userErr } = await caller.auth.getUser();
-  if (userErr || !userRes.user) return jsonResponse({ error: "invalid session" }, 401);
 
   const admin = adminClient();
-  const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", { p_user_id: userRes.user.id, p_roles: ["admin", "super"] });
-  if (roleErr) return jsonResponse({ error: roleErr.message }, 500);
-  if (!isAdmin) return jsonResponse({ error: "admin or super role required" }, 403);
+
+  // Two callers: the scheduled pg_cron drain (bearer = service role key —
+  // it's the one process that legitimately has no user identity), or an
+  // admin/super hitting "process now" from Admin Console.
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const isServiceCall = serviceKey ? authHeader === `Bearer ${serviceKey}` : false;
+  if (!isServiceCall) {
+    const caller = callerClient(authHeader);
+    const { data: userRes, error: userErr } = await caller.auth.getUser();
+    if (userErr || !userRes.user) return jsonResponse({ error: "invalid session" }, 401);
+    const { data: isAdmin, error: roleErr } = await admin.rpc("has_role", { p_user_id: userRes.user.id, p_roles: ["admin", "super"] });
+    if (roleErr) return jsonResponse({ error: roleErr.message }, 500);
+    if (!isAdmin) return jsonResponse({ error: "admin or super role required" }, 403);
+  }
 
   const body = await req.json().catch(() => ({}));
   const limit = Math.min(Math.max(Number(body?.limit) || 20, 1), 100);

@@ -58,9 +58,9 @@ beforeAll(async () => {
   supplierAttackerUser = await makeUser("supplier-attacker");
   userIds.push(clientA.id, supplierAUser.id, clientAttacker.id, supplierAttackerUser.id);
 
-  const { data: eventA } = await admin.from("events").insert({ owner_id: clientA.id, guest_count: 140 }).select("id").single();
-  const { data: eventAttacker } = await admin.from("events").insert({ owner_id: clientAttacker.id, guest_count: 40 }).select("id").single();
-  if (!eventA || !eventAttacker) throw new Error("fixture event creation failed");
+  const { data: eventA, error: eaErr } = await admin.from("events").insert({ owner_id: clientA.id, guest_count: 140 }).select("id").single();
+  const { data: eventAttacker, error: eatErr } = await admin.from("events").insert({ owner_id: clientAttacker.id, guest_count: 40 }).select("id").single();
+  if (!eventA || !eventAttacker) throw new Error(`fixture event creation failed: ${eaErr?.message ?? ""} | ${eatErr?.message ?? ""}`);
   eventAId = eventA.id;
   eventAttackerId = eventAttacker.id;
   eventIds.push(eventAId, eventAttackerId);
