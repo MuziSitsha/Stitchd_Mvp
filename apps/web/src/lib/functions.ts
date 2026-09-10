@@ -308,3 +308,18 @@ export function approveRsvpChange(guestId: string, functionId: string, decision:
     body: { guest_id: guestId, function_id: functionId, decision },
   });
 }
+
+// Part C1: the non-account contact-interest form. No auth — the function
+// itself gates on platform_settings.contact_interest_form_enabled and
+// rate-limits. Deliberately does NOT create an account, supplier profile
+// or onboarding message; a person in Ops follows up out of band.
+export function submitInterest(input: {
+  kind: "supplier" | "couple" | "other";
+  name: string;
+  email: string;
+  phone?: string;
+  org_name?: string;
+  message?: string;
+}) {
+  return callFunction<{ ok: true; ref: string }>("interest-submit", { body: input });
+}

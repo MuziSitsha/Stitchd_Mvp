@@ -463,6 +463,12 @@ enabled = true
 # Session-scoped (minted by rsvp-exchange-token), not a Supabase Auth JWT.
 verify_jwt = false
 
+[functions.interest-submit]
+enabled = true
+# Public non-account contact-interest form (Part C1). The function checks
+# platform_settings.contact_interest_form_enabled itself.
+verify_jwt = false
+
 [analytics]
 enabled = false
 port = 54327

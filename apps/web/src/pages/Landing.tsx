@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, ShieldCheck, ClipboardCheck, LifeBuoy, ChevronDown } from "lucide-react";
+import { ArrowRight, ShieldCheck, ClipboardCheck, LifeBuoy, ChevronDown, Check } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { Logo } from "../components/Logo";
 import { supabase } from "../lib/supabase";
+import { submitInterest } from "../lib/functions";
 
 // Part C1: the public, supplier-first landing page. Deliberately
 // informational only — "No invented counts, testimonials, earnings or
@@ -49,15 +50,109 @@ function Section({ children, style }: { children: React.ReactNode; style?: React
   return <section className="mx-auto w-full max-w-3xl px-5 py-10" style={style}>{children}</section>;
 }
 
+// Part C1: "A separate non-account contact-interest form is permitted only
+// when the Product Owner explicitly enables it. It must not create supplier
+// profiles or trigger onboarding messages." This is that form — it POSTs to
+// interest-submit, which just records a row for Ops to follow up. No
+// account, no supplier profile, nothing else.
+function InterestForm() {
+  const { T } = useTheme();
+  const [kind, setKind] = useState<"supplier" | "couple" | "other">("supplier");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [orgName, setOrgName] = useState("");
+  const [message, setMessage] = useState("");
+  const [state, setState] = useState<"idle" | "sending" | "done">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  const field = "w-full rounded-lg border px-3 py-2 text-sm outline-none";
+  const fieldStyle = { background: T.bg, borderColor: T.border, color: T.ink } as React.CSSProperties;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (state === "sending") return;
+    setState("sending");
+    setError(null);
+    try {
+      await submitInterest({
+        kind, name: name.trim(), email: email.trim(),
+        phone: phone.trim() || undefined,
+        org_name: orgName.trim() || undefined,
+        message: message.trim() || undefined,
+      });
+      setState("done");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong — please try again.");
+      setState("idle");
+    }
+  }
+
+  if (state === "done") {
+    return (
+      <div className="rounded-xl border p-4" style={{ borderColor: rgba(T.accent, 0.4), background: rgba(T.accent, 0.06) }}>
+        <div className="flex items-center gap-2 text-sm font-bold" style={{ color: T.ink }}>
+          <Check size={16} style={{ color: T.accent }} /> Thanks — we've got your details.
+        </div>
+        <p className="mt-1 text-xs leading-relaxed" style={{ color: T.sub }}>
+          This is an expression of interest, not an account. Someone from the team will be in touch when the next cohort
+          opens. Nothing has been created on your behalf.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3">
+      <div className="flex gap-2">
+        {(["supplier", "couple", "other"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setKind(k)}
+            className="rounded-lg border px-3 py-1.5 text-xs font-bold capitalize"
+            style={kind === k ? { background: T.accent, color: T.onAccent, borderColor: T.accent } : { borderColor: T.border, color: T.sub }}
+          >
+            {k === "supplier" ? "I'm a supplier" : k === "couple" ? "I'm planning a wedding" : "Something else"}
+          </button>
+        ))}
+      </div>
+      <input className={field} style={fieldStyle} placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={200} />
+      <input className={field} style={fieldStyle} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      <input className={field} style={fieldStyle} placeholder="Phone (optional)" value={phone} onChange={(e) => setPhone(e.target.value)} maxLength={40} />
+      {kind === "supplier" && (
+        <input className={field} style={fieldStyle} placeholder="Business name (optional)" value={orgName} onChange={(e) => setOrgName(e.target.value)} maxLength={200} />
+      )}
+      <textarea className={field} style={fieldStyle} rows={3} placeholder="Anything you'd like us to know (optional)" value={message} onChange={(e) => setMessage(e.target.value)} maxLength={2000} />
+      {error && <div className="text-xs font-semibold" style={{ color: T.bad }}>{error}</div>}
+      <button
+        type="submit"
+        disabled={state === "sending" || !name.trim() || !email.trim()}
+        className="rounded-xl px-5 py-2.5 text-sm font-bold disabled:opacity-50"
+        style={{ background: T.accent, color: T.onAccent }}
+      >
+        {state === "sending" ? "Sending…" : "Register interest"}
+      </button>
+      <p className="text-[11px] leading-relaxed" style={{ color: T.faint }}>
+        This does not create an account or a listing. It's a note to the team so we can reach you when onboarding opens.
+      </p>
+    </form>
+  );
+}
+
 export function Landing() {
   const { T } = useTheme();
   const navigate = useNavigate();
   const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
+  const [interestOpen, setInterestOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   useEffect(() => {
-    supabase.from("platform_settings").select("signup_open").eq("id", 1).single()
-      .then(({ data }) => setSignupOpen(data?.signup_open ?? false));
+    supabase.from("platform_settings").select("signup_open, contact_interest_form_enabled").eq("id", 1).single()
+      .then(({ data }) => {
+        setSignupOpen(data?.signup_open ?? false);
+        setInterestOpen(data?.contact_interest_form_enabled ?? false);
+      });
   }, []);
 
   const gated = signupOpen === false;
@@ -95,6 +190,7 @@ export function Landing() {
           <div className="mt-6 rounded-xl border p-3 text-xs" style={{ borderColor: rgba(T.warn, 0.5), background: rgba(T.warn, 0.08), color: T.ink }}>
             <b style={{ color: T.warn }}>Pilot onboarding is not open yet.</b> We're running a small, controlled group in
             Gauteng first. Existing pilot accounts can sign in above.
+            {interestOpen && <> To hear from us when the next cohort opens, <a href="#register-interest" className="font-bold underline" style={{ color: T.accent }}>register your interest</a>.</>}
           </div>
         )}
 
@@ -185,6 +281,22 @@ export function Landing() {
           Plan your wedding <ArrowRight size={13} />
         </button>
       </Section>
+
+      {/* Register interest — only when the Product Owner has enabled it */}
+      {interestOpen && (
+        <Section style={{ background: T.panel2 }}>
+          <div id="register-interest" className="scroll-mt-4">
+            <h2 className="text-lg font-black" style={{ fontFamily: "'Archivo Black',sans-serif" }}>Register your interest</h2>
+            <p className="mt-2 text-xs leading-relaxed" style={{ color: T.sub }}>
+              Onboarding opens in controlled cohorts. Leave your details and we'll reach out when there's a place for you —
+              no account is created and nothing is committed.
+            </p>
+            <div className="mt-4">
+              <InterestForm />
+            </div>
+          </div>
+        </Section>
+      )}
 
       {/* FAQ */}
       <Section>

@@ -158,6 +158,19 @@ interface AuditRow {
   at: string;
 }
 
+interface InterestRow {
+  id: string;
+  ref: string;
+  kind: "supplier" | "couple" | "other";
+  name: string;
+  email: string;
+  phone: string | null;
+  org_name: string | null;
+  message: string | null;
+  handled: boolean;
+  created_at: string;
+}
+
 // FR-ADMIN-01/02: a live cross-supplier lead board, and verify/feature
 // toggles. Both are read/write against real tables/functions that already
 // existed with zero UI — this page is the first face on them.
@@ -195,17 +208,29 @@ export function AdminConsole() {
   const [error, setError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
-  const [togglingLaunch, setTogglingLaunch] = useState(false);
+  const [interestFormOpen, setInterestFormOpen] = useState<boolean | null>(null);
+  const [togglingLaunch, setTogglingLaunch] = useState<null | "signup" | "interest">(null);
+  const [interestRows, setInterestRows] = useState<InterestRow[]>([]);
   const navigate = useNavigate();
 
   const loadLaunchFlag = useCallback(async () => {
-    const { data } = await supabase.from("platform_settings").select("signup_open").eq("id", 1).single();
+    const { data } = await supabase.from("platform_settings").select("signup_open, contact_interest_form_enabled").eq("id", 1).single();
     setSignupOpen(data?.signup_open ?? false);
+    setInterestFormOpen(data?.contact_interest_form_enabled ?? false);
+  }, []);
+
+  const loadInterest = useCallback(async () => {
+    const { data } = await supabase
+      .from("interest_submissions")
+      .select("id, ref, kind, name, email, phone, org_name, message, handled, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    setInterestRows(data ?? []);
   }, []);
 
   async function toggleLaunchFlag() {
     if (signupOpen === null || togglingLaunch) return;
-    setTogglingLaunch(true);
+    setTogglingLaunch("signup");
     setError(null);
     const { error: updateErr } = await supabase
       .from("platform_settings")
@@ -213,7 +238,29 @@ export function AdminConsole() {
       .eq("id", 1);
     if (updateErr) setError(updateErr.message);
     else setSignupOpen(!signupOpen);
-    setTogglingLaunch(false);
+    setTogglingLaunch(null);
+  }
+
+  async function toggleInterestForm() {
+    if (interestFormOpen === null || togglingLaunch) return;
+    setTogglingLaunch("interest");
+    setError(null);
+    const { error: updateErr } = await supabase
+      .from("platform_settings")
+      .update({ contact_interest_form_enabled: !interestFormOpen, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (updateErr) setError(updateErr.message);
+    else setInterestFormOpen(!interestFormOpen);
+    setTogglingLaunch(null);
+  }
+
+  async function markInterestHandled(id: string, handled: boolean) {
+    const { error: updateErr } = await supabase
+      .from("interest_submissions")
+      .update({ handled, handled_at: handled ? new Date().toISOString() : null })
+      .eq("id", id);
+    if (updateErr) setError(updateErr.message);
+    else setInterestRows((rows) => rows.map((r) => (r.id === id ? { ...r, handled } : r)));
   }
 
   const loadSuppliers = useCallback(async () => {
@@ -447,6 +494,7 @@ export function AdminConsole() {
     loadMessageLog();
     loadOrders();
     loadLaunchFlag();
+    loadInterest();
 
     const channel = supabase
       .channel("admin-console")
@@ -464,12 +512,13 @@ export function AdminConsole() {
       .on("postgres_changes", { event: "*", schema: "public", table: "quote_versions" }, loadQuotes)
       .on("postgres_changes", { event: "*", schema: "public", table: "message_log" }, loadMessageLog)
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, loadOrders)
+      .on("postgres_changes", { event: "*", schema: "public", table: "interest_submissions" }, loadInterest)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [authorized, loadSuppliers, loadLeads, loadTickets, loadDatedTickets, loadAllTickets, loadGmvItems, loadTicketMessages, loadFeatured, loadAudit, auditFilter, loadWebhookDeliveries, loadSupportTickets, supportFilter, loadPromotions, loadQuotes, loadMessageLog, loadOrders, loadLaunchFlag]);
+  }, [authorized, loadSuppliers, loadLeads, loadTickets, loadDatedTickets, loadAllTickets, loadGmvItems, loadTicketMessages, loadFeatured, loadAudit, auditFilter, loadWebhookDeliveries, loadSupportTickets, supportFilter, loadPromotions, loadQuotes, loadMessageLog, loadOrders, loadLaunchFlag, loadInterest]);
 
   useEffect(() => {
     if (!authorized) return;
@@ -1065,13 +1114,62 @@ export function AdminConsole() {
               </div>
               <button
                 onClick={toggleLaunchFlag}
-                disabled={signupOpen === null || togglingLaunch}
+                disabled={signupOpen === null || togglingLaunch !== null}
                 className="rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
                 style={signupOpen ? { background: rgba(T.bad, 0.14), color: T.bad } : { background: T.accent, color: T.onAccent }}
               >
-                {togglingLaunch ? "…" : signupOpen ? "Close signup" : "Open signup"}
+                {togglingLaunch === "signup" ? "…" : signupOpen ? "Close signup" : "Open signup"}
               </button>
             </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t pt-3" style={{ borderColor: T.border }}>
+              <div>
+                <div className="text-xs font-bold" style={{ color: T.ink }}>
+                  Contact-interest form: {interestFormOpen === null ? "…" : interestFormOpen ? "ON" : "OFF"}
+                </div>
+                <div className="text-[11px]" style={{ color: T.faint }}>
+                  {interestFormOpen
+                    ? "The landing page shows a “register your interest” form. It only records a note — no account, supplier profile or onboarding message."
+                    : "Off by default (Part C1). Turn on only if you want expressions of interest collected while signup is closed."}
+                </div>
+              </div>
+              <button
+                onClick={toggleInterestForm}
+                disabled={interestFormOpen === null || togglingLaunch !== null}
+                className="rounded-lg px-3 py-2 text-xs font-bold disabled:opacity-50"
+                style={interestFormOpen ? { background: rgba(T.bad, 0.14), color: T.bad } : { background: T.accent, color: T.onAccent }}
+              >
+                {togglingLaunch === "interest" ? "…" : interestFormOpen ? "Turn off" : "Turn on"}
+              </button>
+            </div>
+          </AdminPanel>
+
+          <AdminPanel T={T} title="Interest submissions" subtitle="Non-account expressions of interest from the landing page. Follow up out of band — nothing here has created an account or a listing.">
+            {interestRows.length === 0 ? (
+              <div className="text-xs" style={{ color: T.faint }}>No submissions yet.</div>
+            ) : (
+              <div className="space-y-2">
+                {interestRows.map((r) => (
+                  <div key={r.id} className="rounded-lg border p-3" style={{ borderColor: T.border, opacity: r.handled ? 0.55 : 1 }}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="text-xs font-bold" style={{ color: T.ink }}>
+                        {r.name} <span style={{ color: T.faint }}>· {r.kind}{r.org_name ? ` · ${r.org_name}` : ""}</span>
+                      </div>
+                      <button
+                        onClick={() => markInterestHandled(r.id, !r.handled)}
+                        className="rounded px-2 py-1 text-[11px] font-bold"
+                        style={{ background: r.handled ? rgba(T.faint, 0.14) : rgba(T.good, 0.16), color: r.handled ? T.faint : T.good }}
+                      >
+                        {r.handled ? "Reopen" : "Mark handled"}
+                      </button>
+                    </div>
+                    <div className="mt-1 text-[11px]" style={{ color: T.sub }}>
+                      {r.email}{r.phone ? ` · ${r.phone}` : ""} · {new Date(r.created_at).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })} · {r.ref}
+                    </div>
+                    {r.message && <div className="mt-1.5 text-[11px] leading-relaxed" style={{ color: T.ink }}>{r.message}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
           </AdminPanel>
 
           <AdminPanel
