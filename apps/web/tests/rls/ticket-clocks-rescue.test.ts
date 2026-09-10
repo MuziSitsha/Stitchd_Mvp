@@ -92,11 +92,29 @@ describe("ticket clocks — computed from priority, anchored to created_at", () 
     expect(new Date(t.next_update_due_at).getTime() - created).toBe(10 * 60000);
   });
 
-  it("low: 1 day ack / 5 days resolution / 2 days next-update", async () => {
-    const t = await makeTicket("low");
+  it("high: 15min ack / 60min resolution / 30min next-update (wall clock)", async () => {
+    const t = await makeTicket("high");
     const created = new Date(t.created_at).getTime();
-    expect(new Date(t.response_due_at).getTime() - created).toBe(1440 * 60000);
-    expect(new Date(t.resolution_due_at).getTime() - created).toBe(7200 * 60000);
+    expect(new Date(t.response_due_at).getTime() - created).toBe(15 * 60000);
+    expect(new Date(t.resolution_due_at).getTime() - created).toBe(60 * 60000);
+    expect(new Date(t.next_update_due_at).getTime() - created).toBe(30 * 60000);
+  });
+
+  it("low/medium clocks run in business hours, not wall clock (Part H2)", async () => {
+    // Pin created_at to a Wednesday noon SAST so the assertion is stable
+    // regardless of when the suite runs.
+    const wedNoon = "2026-09-09T12:00:00+02:00";
+    const t = await makeTicket("low", { created_at: wedNoon });
+
+    const { data: ack } = await admin.rpc("business_hours_add", { p_from: wedNoon, p_minutes: 540 });   // 1 business day
+    const { data: plan } = await admin.rpc("business_hours_add", { p_from: wedNoon, p_minutes: 2700 }); // 5 business days
+    expect(new Date(t.response_due_at).getTime()).toBe(new Date(ack as string).getTime());
+    expect(new Date(t.resolution_due_at).getTime()).toBe(new Date(plan as string).getTime());
+
+    // and it is NOT the old wall-clock value (24h) — 540 business minutes
+    // from Wed noon lands next day, but 5 business days is well past 5×24h.
+    const created = new Date(t.created_at).getTime();
+    expect(new Date(t.resolution_due_at).getTime() - created).toBeGreaterThan(7200 * 60000);
   });
 
   it("escalating priority on an existing ticket recomputes clocks from the ORIGINAL created_at, not now — no reset to hide a breach", async () => {
