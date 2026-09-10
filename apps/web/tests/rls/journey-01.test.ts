@@ -228,6 +228,10 @@ describe("T-JOURNEY-01", () => {
     expect(bBk).toEqual([]);
   });
 
+  // Steps 3-5 each make several sequential Edge Function round trips
+  // (publish -> exchange -> submit, some with 4+ responses). The default
+  // 15s test timeout is tight when the rsvp-* functions cold-start on their
+  // first invocation of a full-suite run, so these three get headroom.
   it("3. guest import: 3 households / 5 guests, 1 permitted plus-one; attacker client B sees none of it", async () => {
     const imp = await call("rsvp-import-guests", await jwt(clientA), {
       event_id: eventA,
@@ -263,7 +267,7 @@ describe("T-JOURNEY-01", () => {
 
     const { data: bSees } = await clientB.client.from("households").select("id").eq("id", adebayoHhId);
     expect(bSees).toEqual([]);
-  });
+  }, 30_000);
 
   it("4. mixed RSVP: the Adebayo household submits per-function answers; some attending, one declined", async () => {
     const { data: guests } = await admin.from("guests").select("id, display_name").eq("household_id", adebayoHhId);
@@ -291,7 +295,7 @@ describe("T-JOURNEY-01", () => {
     // a declined answer never carries a meal through to storage
     const { data: amaCeremony } = await admin.from("guest_responses").select("answer, meal").eq("guest_id", ama).eq("function_id", fnCeremony).single();
     expect(amaCeremony).toMatchObject({ answer: "declined", meal: null });
-  });
+  }, 30_000);
 
   it("5. headcount change approval: after the reception cutoff, a guest's edit only moves the count once the host approves", async () => {
     await admin.from("functions").update({ rsvp_cutoff_at: new Date(Date.now() - 3600_000).toISOString() }).eq("id", fnReception);
@@ -334,7 +338,7 @@ describe("T-JOURNEY-01", () => {
     const { data: applied } = await admin.from("guest_responses").select("state, answer, meal, pending_change").eq("guest_id", ama).eq("function_id", fnReception).single();
     expect(applied).toMatchObject({ state: "submitted", answer: "declined", meal: null, pending_change: null });
     expect(await receptionAttending()).toBe(1); // moved on approval
-  });
+  }, 30_000);
 
   it("6. fee payment: a STITCHD service fee is recorded on event A — visible to client A, not to client B", async () => {
     const { data: pay, error } = await admin
