@@ -71,8 +71,9 @@ export function ClientAuth({
           navigate("/supplier");
           return;
         }
-        // Client: no manual redirect needed — Entry.tsx watches the session
-        // reactively and moves on once useAuth() picks up the new session.
+        // Client: hand off to "/" — Entry.tsx resolves the fresh session and
+        // shows the onboarding wizard.
+        navigate("/");
       } else {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
@@ -95,10 +96,13 @@ export function ClientAuth({
             setBusy(false);
             return;
           }
-          // Staff confirmed — Entry.tsx resolves the same session the same
-          // way and lands on the Supplier Portal tab; nothing more to do.
         }
-        // Customer (or a just-confirmed admin): no manual redirect — Entry.tsx takes over.
+        // Customer or confirmed admin: hand off to "/", where Entry.tsx does
+        // the role-based routing (Prototype for a client, /admin for staff).
+        // This page lives at /login now, so unlike when the form was mounted
+        // at "/" itself, a session appearing here doesn't redirect on its
+        // own — the navigate() is what completes the sign-in.
+        navigate("/");
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
