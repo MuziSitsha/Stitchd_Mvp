@@ -292,11 +292,19 @@ export interface RsvpSubmitInput {
   expected_revision: number;
 }
 export interface RsvpSubmitResult {
-  results: Array<{ guest_id: string; function_id: string; state?: string; revision?: number; conflict?: boolean }>;
+  results: Array<{ guest_id: string; function_id: string; state?: string; revision?: number; conflict?: boolean; change_requested?: boolean }>;
   counts: Record<string, number>;
 }
 export function submitRsvpResponses(sessionToken: string, responses: RsvpSubmitInput[]) {
   return callFunction<RsvpSubmitResult>("rsvp-submit-response", {
     body: { session_token: sessionToken, responses },
+  });
+}
+
+// Host approves/declines a guest's post-cutoff change request (Part F2).
+export function approveRsvpChange(guestId: string, functionId: string, decision: "approve" | "decline") {
+  return callFunction<{ guest_id: string; function_id: string; decision: string }>("rsvp-approve-change", {
+    auth: true,
+    body: { guest_id: guestId, function_id: functionId, decision },
   });
 }

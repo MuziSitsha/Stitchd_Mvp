@@ -86,7 +86,20 @@ Deno.serve(async (req) => {
   const forgedGuestId = responses.find((r) => !validGuestIds.has(r.guest_id));
   if (forgedGuestId) return jsonResponse({ error: "one or more guests in this request don't belong to your household" }, 403);
 
-  const results: Array<{ guest_id: string; function_id: string; state: string; revision: number } | { guest_id: string; function_id: string; conflict: true; current: unknown }> = [];
+  // Which of the touched functions are already past their RSVP cutoff — a
+  // response for one of those becomes a change request for host approval,
+  // not a direct edit. "Only approval changes counts."
+  const touchedFunctionIds = [...new Set(responses.map((r) => r.function_id))];
+  const { data: fnRows } = await admin.from("functions").select("id, rsvp_cutoff_at").in("id", touchedFunctionIds);
+  const pastCutoff = new Set(
+    (fnRows ?? []).filter((f) => f.rsvp_cutoff_at && new Date(f.rsvp_cutoff_at).getTime() < Date.now()).map((f) => f.id),
+  );
+
+  const results: Array<
+    | { guest_id: string; function_id: string; state: string; revision: number }
+    | { guest_id: string; function_id: string; conflict: true; current: unknown }
+    | { guest_id: string; function_id: string; change_requested: true }
+  > = [];
 
   for (const r of responses) {
     const { data: entitlement } = await admin
@@ -97,20 +110,47 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (!entitlement) return jsonResponse({ error: `guest ${r.guest_id} is not entitled to function ${r.function_id}` }, 403);
 
+    const attending = r.answer === "attending";
+    const proposed = {
+      answer: r.answer ?? null,
+      meal: attending ? r.meal ?? null : null,
+      dietary_note: attending ? r.dietary_note ?? null : null,
+      plus_one_name: attending && entitlement.plus_one_allowed ? r.plus_one_name ?? null : null,
+    };
+
+    // Past cutoff: park the proposal, leave the counted answer alone.
+    if (pastCutoff.has(r.function_id) && !r.draft) {
+      const { data: reqd, error: reqErr } = await admin
+        .from("guest_responses")
+        .update({ state: "change_requested", pending_change: proposed, updated_at: new Date().toISOString() })
+        .eq("guest_id", r.guest_id)
+        .eq("function_id", r.function_id)
+        .eq("state", "submitted") // only a previously-submitted answer can enter change-request; a never-answered one after cutoff is just late
+        .select("guest_id")
+        .maybeSingle();
+      if (reqErr) return jsonResponse({ error: reqErr.message }, 500);
+      if (!reqd) {
+        results.push({ guest_id: r.guest_id, function_id: r.function_id, conflict: true, current: { reason: "RSVP has closed for this function and there's no submitted answer to amend" } });
+        continue;
+      }
+      results.push({ guest_id: r.guest_id, function_id: r.function_id, change_requested: true });
+      continue;
+    }
+
     const nextState = r.draft ? "draft" : "submitted";
     // "Attending guests see meal questions; declined guests skip them" —
     // enforced here too, not just hidden by the UI: a declined answer
     // never carries a meal choice through to storage.
-    const attending = r.answer === "attending";
 
     const { data: updated, error: updateErr } = await admin
       .from("guest_responses")
       .update({
         state: nextState,
-        answer: r.answer ?? null,
-        meal: attending ? r.meal ?? null : null,
-        dietary_note: attending ? r.dietary_note ?? null : null,
-        plus_one_name: attending && entitlement.plus_one_allowed ? r.plus_one_name ?? null : null,
+        answer: proposed.answer,
+        meal: proposed.meal,
+        dietary_note: proposed.dietary_note,
+        plus_one_name: proposed.plus_one_name,
+        pending_change: null,
         revision: r.expected_revision + 1,
         updated_at: new Date().toISOString(),
       })

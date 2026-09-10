@@ -1,11 +1,40 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, X, Link2, Copy, Check } from "lucide-react";
+import { Plus, X, Link2, Copy, Check, Upload, Clock } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { useAuth } from "../lib/useAuth";
 import { supabase } from "../lib/supabase";
 import { PortalShell, PortalCard, StatTile, StatusChip } from "../components/PortalShell";
-import { importRsvpGuests, publishRsvpInvitation } from "../lib/functions";
+import { importRsvpGuests, publishRsvpInvitation, approveRsvpChange } from "../lib/functions";
+
+// household label, guest name, adult|child, function names (| or ; separated)
+// — Part F1's stated CSV columns. Header row optional. Parsed client-side
+// into the same structured payload the manual form produces.
+function parseGuestCsv(text: string, functionsByName: Map<string, string>) {
+  const rows = text.trim().split(/\r?\n/).map((l) => l.split(",").map((c) => c.trim()));
+  const start = rows[0]?.[0]?.toLowerCase().includes("household") ? 1 : 0;
+  const byHousehold = new Map<string, { display_name: string; person_type: "adult" | "child"; function_ids: string[] }[]>();
+  const errors: string[] = [];
+  for (let i = start; i < rows.length; i++) {
+    const [label, name, type, fnList] = rows[i];
+    if (!label || !name) { errors.push(`Row ${i + 1}: needs a household and a guest name`); continue; }
+    const fnNames = (fnList ?? "").split(/[|;]/).map((s) => s.trim()).filter(Boolean);
+    const fnIds: string[] = [];
+    for (const fn of fnNames) {
+      const id = functionsByName.get(fn.toLowerCase());
+      if (!id) { errors.push(`Row ${i + 1}: unknown function “${fn}”`); continue; }
+      fnIds.push(id);
+    }
+    if (fnIds.length === 0) { errors.push(`Row ${i + 1}: no valid function for ${name}`); continue; }
+    const arr = byHousehold.get(label) ?? [];
+    arr.push({ display_name: name, person_type: type?.toLowerCase() === "child" ? "child" : "adult", function_ids: fnIds });
+    byHousehold.set(label, arr);
+  }
+  return {
+    households: [...byHousehold.entries()].map(([label, guests]) => ({ label, guests })),
+    errors,
+  };
+}
 
 // The real, additive RSVP host manager — deliberately a separate page from
 // pages/lenses/Rsvp.tsx, not a rewrite of it. That lens is the polished
@@ -15,7 +44,7 @@ import { importRsvpGuests, publishRsvpInvitation } from "../lib/functions";
 // This is the actual production feature, reachable in its own right.
 interface FunctionRow { id: string; name: string; starts_at: string | null }
 interface EntitlementRow { function_id: string; plus_one_allowed: boolean }
-interface ResponseRow { function_id: string; state: string; answer: string | null; meal: string | null }
+interface ResponseRow { function_id: string; state: string; answer: string | null; meal: string | null; pending_change: { answer?: string | null; meal?: string | null } | null }
 interface GuestRow { id: string; display_name: string; person_type: string; guest_entitlements: EntitlementRow[]; guest_responses: ResponseRow[] }
 interface HouseholdRow { id: string; label: string; guests: GuestRow[] }
 
@@ -38,6 +67,10 @@ export function RsvpHostManager() {
   const [publishedLink, setPublishedLink] = useState<{ householdId: string; url: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const [csvOpen, setCsvOpen] = useState(false);
+  const [csvText, setCsvText] = useState("");
+  const [csvBusy, setCsvBusy] = useState(false);
+
   const load = useCallback(async () => {
     if (!session) return;
     const { data: event } = await supabase.from("events").select("id").eq("owner_id", session.user.id).maybeSingle();
@@ -49,7 +82,7 @@ export function RsvpHostManager() {
 
     const { data: hh, error: hhErr } = await supabase
       .from("households")
-      .select("id, label, guests(id, display_name, person_type, guest_entitlements(function_id, plus_one_allowed), guest_responses(function_id, state, answer, meal))")
+      .select("id, label, guests(id, display_name, person_type, guest_entitlements(function_id, plus_one_allowed), guest_responses(function_id, state, answer, meal, pending_change))")
       .eq("event_id", event.id)
       .order("created_at");
     if (hhErr) setError(hhErr.message);
@@ -110,6 +143,40 @@ export function RsvpHostManager() {
     }
   }
 
+  async function handleCsvImport() {
+    if (!eventId || !csvText.trim()) return;
+    setCsvBusy(true);
+    setError(null);
+    const byName = new Map(functions.map((f) => [f.name.toLowerCase(), f.id]));
+    const { households: parsed, errors } = parseGuestCsv(csvText, byName);
+    if (errors.length) { setError(errors.slice(0, 5).join(" · ")); setCsvBusy(false); return; }
+    if (parsed.length === 0) { setError("No valid rows found."); setCsvBusy(false); return; }
+    try {
+      // Fingerprint is the CSV content itself — re-pasting the same list is
+      // a safe no-op (the endpoint's own idempotency), matching Part F1.
+      const fp = `csv:${Array.from(csvText.trim()).reduce((h, c) => ((h << 5) - h + c.charCodeAt(0)) | 0, 0)}`;
+      const res = await importRsvpGuests(eventId, fp, parsed);
+      setCsvText("");
+      setCsvOpen(false);
+      if (res.already_imported) setError("That exact list was already imported — nothing added.");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "CSV import failed.");
+    } finally {
+      setCsvBusy(false);
+    }
+  }
+
+  async function handleApproveChange(guestId: string, functionId: string, decision: "approve" | "decline") {
+    setError(null);
+    try {
+      await approveRsvpChange(guestId, functionId, decision);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't process that change.");
+    }
+  }
+
   async function handlePublish(householdId: string) {
     setError(null);
     try {
@@ -134,6 +201,11 @@ export function RsvpHostManager() {
   const totalGuests = households.reduce((s, h) => s + h.guests.length, 0);
   const attending = households.reduce((s, h) => s + h.guests.reduce((s2, g) => s2 + g.guest_responses.filter((r) => r.answer === "attending").length, 0), 0);
   const pending = households.reduce((s, h) => s + h.guests.reduce((s2, g) => s2 + g.guest_entitlements.filter((e) => !g.guest_responses.find((r) => r.function_id === e.function_id && r.state === "submitted")).length, 0), 0);
+  const changeRequests = households.flatMap((h) =>
+    h.guests.flatMap((g) =>
+      g.guest_responses.filter((r) => r.state === "change_requested").map((r) => ({ household: h.label, guest: g, resp: r })),
+    ),
+  );
 
   return (
     <PortalShell eyebrow="Real RSVP" title="Guests & RSVPs" signOutTo="/">
@@ -144,6 +216,33 @@ export function RsvpHostManager() {
       </div>
 
       {error && <div className="rounded-xl p-2.5 text-center text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>}
+
+      {changeRequests.length > 0 && (
+        <PortalCard T={T} style={{ borderColor: T.warn }}>
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-bold" style={{ color: T.warn }}>
+            <Clock size={13} />{changeRequests.length} change request{changeRequests.length === 1 ? "" : "s"} after cutoff — your call
+          </div>
+          <div className="space-y-1.5">
+            {changeRequests.map(({ household, guest, resp }) => {
+              const fn = functions.find((f) => f.id === resp.function_id);
+              return (
+                <div key={`${guest.id}:${resp.function_id}`} className="flex flex-wrap items-center gap-2 rounded-lg px-2.5 py-2 text-xs" style={{ background: T.panel2 }}>
+                  <span className="font-semibold" style={{ color: T.ink }}>{guest.display_name}</span>
+                  <span style={{ color: T.faint }}>{household} · {fn?.name}</span>
+                  <span style={{ color: T.sub }}>
+                    {resp.answer ?? "—"} → <b style={{ color: T.ink }}>{resp.pending_change?.answer ?? "—"}</b>
+                    {resp.pending_change?.meal ? ` (${resp.pending_change.meal})` : ""}
+                  </span>
+                  <div className="ml-auto flex gap-1.5">
+                    <button onClick={() => handleApproveChange(guest.id, resp.function_id, "approve")} className="rounded-lg px-2.5 py-1 text-[11px] font-bold" style={{ background: rgba(T.good, 0.14), color: T.good }}>Approve</button>
+                    <button onClick={() => handleApproveChange(guest.id, resp.function_id, "decline")} className="rounded-lg px-2.5 py-1 text-[11px] font-bold" style={{ background: rgba(T.bad, 0.14), color: T.bad }}>Decline</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </PortalCard>
+      )}
 
       {publishedLink && (
         <PortalCard T={T} style={{ borderColor: T.accent }}>
@@ -225,10 +324,36 @@ export function RsvpHostManager() {
             {saving ? "Saving…" : "Add household"}
           </button>
         </PortalCard>
+      ) : csvOpen ? (
+        <PortalCard T={T}>
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-sm font-bold" style={{ color: T.ink }}>Import a CSV</span>
+            <button onClick={() => setCsvOpen(false)} className="rounded-lg p-1.5" style={{ color: T.faint }}><X size={16} /></button>
+          </div>
+          <div className="mb-2 text-[11px]" style={{ color: T.faint }}>
+            Columns: household, guest name, adult/child, functions (separate multiple with | ). Header row optional. Function names: {functions.map((f) => f.name).join(", ") || "add a function first"}.
+          </div>
+          <textarea
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            rows={6}
+            placeholder={"The Dlaminis,Thabo Dlamini,adult,Reception|Ceremony\nThe Dlaminis,Nomsa Dlamini,adult,Reception"}
+            className="w-full rounded-lg px-3 py-2 font-mono text-[11px]"
+            style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+          />
+          <button onClick={handleCsvImport} disabled={csvBusy} className="mt-3 w-full rounded-xl py-2.5 text-xs font-bold disabled:opacity-50" style={{ background: T.accent, color: T.onAccent }}>
+            {csvBusy ? "Importing…" : "Import"}
+          </button>
+        </PortalCard>
       ) : (
-        <button onClick={() => setAdding(true)} className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-dashed py-3 text-xs font-bold press" style={{ borderColor: T.border, color: T.accent }}>
-          <Plus size={14} />Add a household
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setAdding(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-dashed py-3 text-xs font-bold press" style={{ borderColor: T.border, color: T.accent }}>
+            <Plus size={14} />Add a household
+          </button>
+          <button onClick={() => setCsvOpen(true)} className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed px-4 py-3 text-xs font-bold press" style={{ borderColor: T.border, color: T.sub }}>
+            <Upload size={14} />CSV
+          </button>
+        </div>
       )}
     </PortalShell>
   );
