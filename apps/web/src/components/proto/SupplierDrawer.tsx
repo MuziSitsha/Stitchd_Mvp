@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Star, BadgeCheck, AlertTriangle, Gift, Zap, CheckCircle2, Palette, Check, ArrowLeftRight, Phone, Sparkles, Ticket, Clock } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Star, BadgeCheck, AlertTriangle, Gift, Zap, CheckCircle2, Palette, Check, ArrowLeftRight, Phone, Sparkles, Ticket, Clock, Receipt, MessageCircle } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
 import { PALETTES, PALETTE_ROLES } from "../../theme/palettes";
@@ -12,6 +12,7 @@ import { useProtoState } from "../../state/ProtoState";
 import { useLiveSupplierTickets } from "../../state/useLiveSupplierTickets";
 import { useLiveSupplierAvailability } from "../../state/useLiveSupplierAvailability";
 import { createSupplierTicket } from "../../lib/functions";
+import { supabase } from "../../lib/supabase";
 import { TicketThread } from "./TicketThread";
 import { QuoteReceivedCard } from "./QuoteReceivedCard";
 import { ReportIssueCard } from "./ReportIssueCard";
@@ -31,11 +32,48 @@ function catAvg(sup: Supplier[], role: string) {
 // Ported exactly from stitchd-v9.jsx lines 2719-2768.
 export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onClose: () => void; onOpenPalette: () => void }) {
   const { T, pal } = useTheme();
-  const { sup, guests, bundleApplied, secure, moveZone, applyBundle, toast } = useProtoState();
+  const { sup, guests, bundleApplied, secure, moveZone, applyBundle, toast, eventId } = useProtoState();
   const tickets = useLiveSupplierTickets();
   const availability = useLiveSupplierAvailability(WEDDING.dateISO);
   const [requesting, setRequesting] = useState(false);
   const s = sup.find((x) => x.id === id);
+  const ticket = s ? tickets.get(s.name) : undefined;
+
+  // Merc's own testing feedback: "when I click a supplier I'd like to see
+  // what has transpired with them, ie we have paid deposit, and last
+  // conversation etc." budget_payments has no supplier_id column — it
+  // correlates by label, same idiom useBudgetPayments.ts already uses —
+  // so this matches the same way: any paid line item whose label mentions
+  // this supplier by name.
+  const [payments, setPayments] = useState<{ amount_cents: number; paid_at: string | null; label: string }[]>([]);
+  useEffect(() => {
+    if (!eventId || !s) { setPayments([]); return; }
+    supabase
+      .from("budget_payments")
+      .select("amount_cents, paid_at, label")
+      .eq("event_id", eventId)
+      .eq("status", "paid")
+      .ilike("label", `%${s.name}%`)
+      .order("paid_at", { ascending: false })
+      .then(({ data, error }) => {
+        if (error) { console.error("SupplierDrawer: failed to load payment history", error.message); return; }
+        setPayments(data ?? []);
+      });
+  }, [eventId, s?.name]);
+
+  const [lastMessageAt, setLastMessageAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!ticket) { setLastMessageAt(null); return; }
+    supabase
+      .from("ticket_messages")
+      .select("created_at")
+      .eq("ticket_id", ticket.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setLastMessageAt(data?.created_at ?? null));
+  }, [ticket?.id]);
+
   if (!s) return null;
 
   const availabilityStatus = availability.get(s.name);
@@ -45,7 +83,6 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
   const sc = STATUS_C(T)[s.status];
   const btnA = { background: T.accent, color: T.onAccent };
   const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
-  const ticket = tickets.get(s.name);
   const supplierName = s.name;
 
   async function requestConfirmation() {
@@ -210,6 +247,32 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
 
           {ticket && <QuoteReceivedCard T={T} ticketId={ticket.id} />}
 
+          <Card T={T}>
+            <div className="mb-2 flex items-center gap-2 text-sm font-bold"><Receipt size={15} style={{ color: T.gold }} />What's transpired</div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2">
+                <MessageCircle size={13} style={{ color: T.faint }} />
+                <span style={{ color: T.sub }}>Last conversation:</span>
+                <span className="font-semibold" style={{ color: T.ink }}>{lastMessageAt ? new Date(lastMessageAt).toLocaleString([], { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ticket ? "No messages yet" : "No ticket open with them yet"}</span>
+              </div>
+              {payments.length === 0 ? (
+                <div className="flex items-center gap-2">
+                  <Receipt size={13} style={{ color: T.faint }} />
+                  <span style={{ color: T.faint }}>No payments recorded against {s.name} yet.</span>
+                </div>
+              ) : (
+                payments.map((p, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <Check size={13} style={{ color: T.good }} />
+                    <span style={{ color: T.sub }}>Paid</span>
+                    <span className="font-semibold" style={{ color: T.ink }}>{fmtR(p.amount_cents / 100)}</span>
+                    <span style={{ color: T.faint }}>· {p.label}{p.paid_at ? ` · ${new Date(p.paid_at).toLocaleDateString([], { day: "numeric", month: "short" })}` : ""}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+
           {ticket && (
             <Card T={T}>
               <div className="mb-2 text-sm font-bold">Message {s.name}</div>
@@ -223,11 +286,6 @@ export function SupplierDrawer({ id, onClose, onOpenPalette }: { id: string; onC
             <Shot seed={s.id + "a"} T={T} pal={pal} h={92} radius={10}><span className="absolute bottom-1 left-1.5 rounded px-1 text-xs" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>Portfolio</span></Shot>
             <Shot seed={s.id + "b"} T={T} pal={pal} h={92} radius={10}><span className="absolute bottom-1 left-1.5 rounded px-1 text-xs" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>Recent event</span></Shot>
           </div>
-
-          <Card T={T}>
-            <div className="mb-1 text-sm font-bold">What couples say</div>
-            <div className="text-sm" style={{ color: T.sub }}>"Effortless communication and everything landed exactly on time — worth every rand." · <span style={{ color: T.faint }}>Boitumelo &amp; Andile, June 2026</span></div>
-          </Card>
 
           <div className="flex gap-2">
             <button
