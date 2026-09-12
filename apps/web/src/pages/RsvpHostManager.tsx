@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
-import { Plus, X, Link2, Copy, Check, Upload, Clock } from "lucide-react";
+import { Plus, X, Link2, Copy, Check, Upload, Clock, Pencil } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { useAuth } from "../lib/useAuth";
 import { supabase } from "../lib/supabase";
 import { PortalShell, PortalCard, StatTile, StatusChip } from "../components/PortalShell";
 import { importRsvpGuests, publishRsvpInvitation, approveRsvpChange } from "../lib/functions";
+import { REL_GROUPS } from "../components/proto/data";
 
 // household label, guest name, adult|child, function names (| or ; separated)
 // — Part F1's stated CSV columns. Header row optional. Parsed client-side
@@ -44,8 +45,8 @@ function parseGuestCsv(text: string, functionsByName: Map<string, string>) {
 // This is the actual production feature, reachable in its own right.
 interface FunctionRow { id: string; name: string; starts_at: string | null; rsvp_cutoff_at: string | null }
 interface EntitlementRow { function_id: string; plus_one_allowed: boolean }
-interface ResponseRow { function_id: string; state: string; answer: string | null; meal: string | null; pending_change: { answer?: string | null; meal?: string | null } | null }
-interface GuestRow { id: string; display_name: string; person_type: string; guest_entitlements: EntitlementRow[]; guest_responses: ResponseRow[] }
+interface ResponseRow { function_id: string; state: string; answer: string | null; meal: string | null; dietary_note: string | null; plus_one_name: string | null; pending_change: { answer?: string | null; meal?: string | null } | null }
+interface GuestRow { id: string; display_name: string; person_type: string; relationship: string | null; guest_entitlements: EntitlementRow[]; guest_responses: ResponseRow[] }
 interface HouseholdRow { id: string; label: string; guests: GuestRow[] }
 
 interface NewGuestDraft { display_name: string; person_type: "adult" | "child"; function_ids: Set<string> }
@@ -71,6 +72,21 @@ export function RsvpHostManager() {
   const [csvText, setCsvText] = useState("");
   const [csvBusy, setCsvBusy] = useState(false);
 
+  const [editingGuestId, setEditingGuestId] = useState<string | null>(null);
+  const [editRelationship, setEditRelationship] = useState("");
+  const [editPrefs, setEditPrefs] = useState<Record<string, { meal: string; dietary_note: string; plus_one_name: string }>>({});
+
+  function startEditingGuest(g: GuestRow) {
+    setEditingGuestId(g.id);
+    setEditRelationship(g.relationship ?? "");
+    const prefs: Record<string, { meal: string; dietary_note: string; plus_one_name: string }> = {};
+    for (const ent of g.guest_entitlements) {
+      const resp = g.guest_responses.find((r) => r.function_id === ent.function_id);
+      prefs[ent.function_id] = { meal: resp?.meal ?? "", dietary_note: resp?.dietary_note ?? "", plus_one_name: resp?.plus_one_name ?? "" };
+    }
+    setEditPrefs(prefs);
+  }
+
   const load = useCallback(async () => {
     if (!session) return;
     const { data: event } = await supabase.from("events").select("id").eq("owner_id", session.user.id).maybeSingle();
@@ -82,7 +98,7 @@ export function RsvpHostManager() {
 
     const { data: hh, error: hhErr } = await supabase
       .from("households")
-      .select("id, label, guests(id, display_name, person_type, guest_entitlements(function_id, plus_one_allowed), guest_responses(function_id, state, answer, meal, pending_change))")
+      .select("id, label, guests(id, display_name, person_type, relationship, guest_entitlements(function_id, plus_one_allowed), guest_responses(function_id, state, answer, meal, dietary_note, plus_one_name, pending_change))")
       .eq("event_id", event.id)
       .order("created_at");
     if (hhErr) setError(hhErr.message);
@@ -175,6 +191,33 @@ export function RsvpHostManager() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't process that change.");
     }
+  }
+
+  // Merc's own testing feedback: "its missing editing guest Preferences or
+  // Relationship." relationship is host-only categorisation, always safe
+  // to overwrite directly. Preferences (meal/dietary/plus-one) are
+  // normally guest-submitted via rsvp-submit-response — the RLS policy
+  // backing this update is column-guarded (guest_responses_guard_host_
+  // columns) so a host editing them here can never touch the guest's own
+  // answer/state/revision.
+  async function handleSaveGuestDetails(
+    guestId: string,
+    relationship: string,
+    prefs: { functionId: string; meal: string; dietary_note: string; plus_one_name: string }[],
+  ) {
+    setError(null);
+    const { error: relErr } = await supabase.from("guests").update({ relationship: relationship || null }).eq("id", guestId);
+    if (relErr) { setError(relErr.message); return; }
+    for (const p of prefs) {
+      const { error: prefErr } = await supabase
+        .from("guest_responses")
+        .update({ meal: p.meal || null, dietary_note: p.dietary_note || null, plus_one_name: p.plus_one_name || null })
+        .eq("guest_id", guestId)
+        .eq("function_id", p.functionId);
+      if (prefErr) { setError(prefErr.message); return; }
+    }
+    setEditingGuestId(null);
+    await load();
   }
 
   async function handlePublish(householdId: string) {
@@ -318,18 +361,94 @@ export function RsvpHostManager() {
           </div>
           <div className="space-y-1.5">
             {h.guests.map((g) => (
-              <div key={g.id} className="flex flex-wrap items-center gap-1.5 rounded-lg px-2.5 py-1.5" style={{ background: T.panel2 }}>
-                <span className="text-xs font-semibold" style={{ color: T.ink }}>{g.display_name}</span>
-                {g.person_type === "child" && <span className="text-[10px]" style={{ color: T.faint }}>(child)</span>}
-                <div className="ml-auto flex flex-wrap gap-1">
-                  {g.guest_entitlements.map((ent) => {
-                    const resp = g.guest_responses.find((r) => r.function_id === ent.function_id);
-                    const fn = functions.find((f) => f.id === ent.function_id);
-                    if (!resp || resp.state !== "submitted") return <StatusChip key={ent.function_id} T={T} tone="warn">{fn?.name ?? "?"}: pending</StatusChip>;
-                    if (resp.answer === "attending") return <StatusChip key={ent.function_id} T={T} tone="good">{fn?.name ?? "?"}: attending{resp.meal ? ` (${resp.meal})` : ""}</StatusChip>;
-                    return <StatusChip key={ent.function_id} T={T} tone="bad">{fn?.name ?? "?"}: declined</StatusChip>;
-                  })}
+              <div key={g.id} className="rounded-lg px-2.5 py-1.5" style={{ background: T.panel2 }}>
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-xs font-semibold" style={{ color: T.ink }}>{g.display_name}</span>
+                  {g.person_type === "child" && <span className="text-[10px]" style={{ color: T.faint }}>(child)</span>}
+                  {g.relationship && <span className="rounded-full px-1.5 py-0.5 text-[10px]" style={{ background: T.panel, color: T.sub }}>{g.relationship}</span>}
+                  <button
+                    aria-label={`Edit ${g.display_name}'s relationship and preferences`}
+                    onClick={() => (editingGuestId === g.id ? setEditingGuestId(null) : startEditingGuest(g))}
+                    className="rounded p-0.5"
+                    style={{ color: editingGuestId === g.id ? T.accent : T.faint }}
+                  >
+                    <Pencil size={11} />
+                  </button>
+                  <div className="ml-auto flex flex-wrap gap-1">
+                    {g.guest_entitlements.map((ent) => {
+                      const resp = g.guest_responses.find((r) => r.function_id === ent.function_id);
+                      const fn = functions.find((f) => f.id === ent.function_id);
+                      if (!resp || resp.state !== "submitted") return <StatusChip key={ent.function_id} T={T} tone="warn">{fn?.name ?? "?"}: pending</StatusChip>;
+                      if (resp.answer === "attending") return <StatusChip key={ent.function_id} T={T} tone="good">{fn?.name ?? "?"}: attending{resp.meal ? ` (${resp.meal})` : ""}</StatusChip>;
+                      return <StatusChip key={ent.function_id} T={T} tone="bad">{fn?.name ?? "?"}: declined</StatusChip>;
+                    })}
+                  </div>
                 </div>
+
+                {editingGuestId === g.id && (
+                  <div className="mt-2 space-y-2 border-t pt-2" style={{ borderColor: T.border }}>
+                    <div>
+                      <label className="text-[10px] font-bold" style={{ color: T.faint }}>RELATIONSHIP</label>
+                      <select
+                        value={editRelationship}
+                        onChange={(e) => setEditRelationship(e.target.value)}
+                        className="mt-0.5 w-full rounded-lg px-2 py-1.5 text-xs"
+                        style={{ background: T.panel, color: T.ink, border: `1px solid ${T.border}` }}
+                      >
+                        <option value="">— not set —</option>
+                        {REL_GROUPS.map((r) => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    {g.guest_entitlements.map((ent) => {
+                      const fn = functions.find((f) => f.id === ent.function_id);
+                      const p = editPrefs[ent.function_id] ?? { meal: "", dietary_note: "", plus_one_name: "" };
+                      return (
+                        <div key={ent.function_id} className="rounded-lg p-2" style={{ background: T.panel }}>
+                          <div className="text-[10px] font-bold" style={{ color: T.faint }}>{(fn?.name ?? "?").toUpperCase()} PREFERENCES</div>
+                          <div className="mt-1 grid grid-cols-1 gap-1.5 sm:grid-cols-3">
+                            <input
+                              value={p.meal}
+                              onChange={(e) => setEditPrefs((s) => ({ ...s, [ent.function_id]: { ...p, meal: e.target.value } }))}
+                              placeholder="Meal"
+                              className="rounded-lg px-2 py-1.5 text-xs"
+                              style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+                            />
+                            <input
+                              value={p.dietary_note}
+                              onChange={(e) => setEditPrefs((s) => ({ ...s, [ent.function_id]: { ...p, dietary_note: e.target.value } }))}
+                              placeholder="Dietary note"
+                              className="rounded-lg px-2 py-1.5 text-xs"
+                              style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+                            />
+                            {ent.plus_one_allowed && (
+                              <input
+                                value={p.plus_one_name}
+                                onChange={(e) => setEditPrefs((s) => ({ ...s, [ent.function_id]: { ...p, plus_one_name: e.target.value } }))}
+                                placeholder="Plus-one name"
+                                className="rounded-lg px-2 py-1.5 text-xs"
+                                style={{ background: T.panel2, color: T.ink, border: `1px solid ${T.border}` }}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div className="flex justify-end gap-2">
+                      <button onClick={() => setEditingGuestId(null)} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold" style={{ color: T.sub }}>Cancel</button>
+                      <button
+                        onClick={() => handleSaveGuestDetails(
+                          g.id,
+                          editRelationship,
+                          g.guest_entitlements.map((ent) => ({ functionId: ent.function_id, ...(editPrefs[ent.function_id] ?? { meal: "", dietary_note: "", plus_one_name: "" }) })),
+                        )}
+                        className="rounded-lg px-3 py-1.5 text-xs font-bold"
+                        style={{ background: T.accent, color: T.onAccent }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

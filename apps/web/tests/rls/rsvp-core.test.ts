@@ -274,3 +274,52 @@ describe("the real guest loop through rsvp-exchange-token and rsvp-submit-respon
     expect(status).toBe(401);
   });
 });
+
+describe("host-editable relationship + preferences (Merc's own testing feedback)", () => {
+  it("the host can set a guest's relationship directly, no Edge Function needed", async () => {
+    const { error } = await host.client.from("guests").update({ relationship: "Bride's immediate family" }).eq("id", guestId);
+    expect(error).toBeNull();
+    const { data } = await admin.from("guests").select("relationship").eq("id", guestId).single();
+    expect(data?.relationship).toBe("Bride's immediate family");
+  });
+
+  it("an isolation attacker cannot edit another host's guest", async () => {
+    const { error } = await attacker.client.from("guests").update({ relationship: "Hijacked" }).eq("id", guestId);
+    // RLS silently matches zero rows rather than erroring — the real proof
+    // is that the value never moved.
+    void error;
+    const { data } = await admin.from("guests").select("relationship").eq("id", guestId).single();
+    expect(data?.relationship).toBe("Bride's immediate family");
+  });
+
+  it("the host can set meal/dietary_note/plus_one_name on a guest_responses row directly, but never the guest's own answer/state/revision", async () => {
+    const { data: before } = await admin.from("guest_responses").select("answer, state, revision").eq("guest_id", guestId).eq("function_id", functionId).single();
+
+    const { error } = await host.client
+      .from("guest_responses")
+      .update({ meal: "Vegetarian", dietary_note: "Nut allergy", plus_one_name: "Thabo", answer: "declined", state: "not_responded", revision: 999 })
+      .eq("guest_id", guestId)
+      .eq("function_id", functionId);
+    expect(error).toBeNull();
+
+    const { data: after } = await admin
+      .from("guest_responses")
+      .select("meal, dietary_note, plus_one_name, answer, state, revision")
+      .eq("guest_id", guestId)
+      .eq("function_id", functionId)
+      .single();
+    expect(after).toMatchObject({ meal: "Vegetarian", dietary_note: "Nut allergy", plus_one_name: "Thabo" });
+    // the column guard pinned these even though the same UPDATE tried to set them
+    expect(after?.answer).toBe(before?.answer);
+    expect(after?.state).toBe(before?.state);
+    expect(after?.revision).toBe(before?.revision);
+  });
+
+  it("an isolation attacker cannot touch another host's guest_responses row", async () => {
+    const { data: before } = await admin.from("guest_responses").select("meal").eq("guest_id", guestId).eq("function_id", functionId).single();
+    const { error } = await attacker.client.from("guest_responses").update({ meal: "Hijacked" }).eq("guest_id", guestId).eq("function_id", functionId);
+    void error;
+    const { data: after } = await admin.from("guest_responses").select("meal").eq("guest_id", guestId).eq("function_id", functionId).single();
+    expect(after?.meal).toBe(before?.meal);
+  });
+});
