@@ -73,10 +73,13 @@ afterAll(async () => {
   }
 });
 
+// category 'supplier_delay', not 'task' — this file is testing the general
+// support-ticket clock/escalation machinery, and 'task' (a client's own
+// personal to-do, added later) is deliberately excluded from escalation.
 async function makeTicket(priority: string, extra: Record<string, unknown> = {}) {
   const { data } = await admin
     .from("tickets")
-    .insert({ event_id: eventId, category: "task", priority, visibility: "client", created_by: owner.id, created_by_role: "client", status: "open", ...extra })
+    .insert({ event_id: eventId, category: "supplier_delay", priority, visibility: "client", created_by: owner.id, created_by_role: "client", status: "open", ...extra })
     .select("id, ref, created_at, response_due_at, resolution_due_at, next_update_due_at")
     .single();
   ticketIds.push(data!.id);

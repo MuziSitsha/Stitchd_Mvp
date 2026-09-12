@@ -5,6 +5,12 @@
 // own claimed supplier, an admin/super, or (reopen only) the ticket's own
 // client can move it; resolving or closing requires a resolution_summary
 // (passed as `reason` for that call).
+//
+// category = 'task' (Merc's own testing feedback: personal to-dos need to
+// be real, trackable tickets, not client-side state that vanishes) is a
+// short client-driven exception to all of that: no supplier is involved,
+// so the couple alone ticks it done and can un-tick it — see
+// TASK_TRANSITIONS and the client-role gate below.
 import { adminClient, callerClient, handlePreflight, jsonResponse } from "../_shared/clients.ts";
 import { notify } from "../_shared/notify.ts";
 
@@ -18,6 +24,12 @@ const TRANSITIONS: Record<string, string[]> = {
   resolved: ["closed", "reopened"],
   closed: ["reopened"],
   reopened: ["in_progress"],
+};
+
+const TASK_TRANSITIONS: Record<string, string[]> = {
+  open: ["resolved"],
+  resolved: ["open"],
+  reopened: ["resolved"],
 };
 
 const TERMINAL_REQUIRING_SUMMARY = new Set(["resolved", "closed"]);
@@ -51,7 +63,7 @@ Deno.serve(async (req) => {
 
   const { data: ticket, error: ticketErr } = await admin
     .from("tickets")
-    .select("id, ref, status, supplier_id, event_id")
+    .select("id, ref, status, category, supplier_id, event_id")
     .eq("ref", ticketRef)
     .maybeSingle();
   if (ticketErr) return jsonResponse({ error: ticketErr.message }, 500);
@@ -65,9 +77,21 @@ Deno.serve(async (req) => {
 
   let actorRole: "admin" | "supplier" | "client" = "admin";
   if (!isAdmin) {
-    const { data: owningSupplier, error: ownErr } = await admin
-      .from("suppliers").select("id").eq("id", ticket.supplier_id).eq("profile_id", userRes.user.id).maybeSingle();
-    if (ownErr) return jsonResponse({ error: ownErr.message }, 500);
+    // A pre-existing bug this fixture is what finally exercised: a
+    // supplier-less ticket (every 'task', and any other category raised
+    // without naming a supplier — 'venue', 'guest', 'platform_support',
+    // 'dispute', 'other' can all be) has ticket.supplier_id === null, and
+    // .eq("id", null) renders as the literal string "null" over PostgREST,
+    // which Postgres then refuses to cast to uuid — a 500 on every client
+    // trying to act on their own ticket, not just tasks. Skip the lookup
+    // entirely when there's no supplier to match.
+    let owningSupplier: { id: string } | null = null;
+    if (ticket.supplier_id) {
+      const { data, error: ownErr } = await admin
+        .from("suppliers").select("id").eq("id", ticket.supplier_id).eq("profile_id", userRes.user.id).maybeSingle();
+      if (ownErr) return jsonResponse({ error: ownErr.message }, 500);
+      owningSupplier = data;
+    }
     if (owningSupplier) {
       actorRole = "supplier";
     } else {
@@ -79,15 +103,15 @@ Deno.serve(async (req) => {
     }
   }
 
-  // A client can only ever reopen — driving the internal workflow forward
-  // (assign/accept/in-progress/resolve/close) is supplier/admin's job, and
-  // the UI already only offers this one button to a client viewer; this is
-  // the server-side half of that same restriction.
-  if (actorRole === "client" && toStatus !== "reopened") {
+  // A client can only ever reopen a support/dispute ticket — driving that
+  // internal workflow forward (assign/accept/in-progress/resolve/close) is
+  // supplier/admin's job. A 'task' ticket is the couple's own to-do, so
+  // they drive its whole (short) lifecycle themselves.
+  if (actorRole === "client" && ticket.category !== "task" && toStatus !== "reopened") {
     return jsonResponse({ error: "a client can only reopen a ticket" }, 403);
   }
 
-  const legalNext = TRANSITIONS[ticket.status] ?? [];
+  const legalNext = (ticket.category === "task" ? TASK_TRANSITIONS[ticket.status] : undefined) ?? TRANSITIONS[ticket.status] ?? [];
   if (!legalNext.includes(toStatus)) {
     return jsonResponse({ error: `cannot move a ${ticket.status} ticket to ${toStatus}` }, 400);
   }
@@ -123,7 +147,7 @@ Deno.serve(async (req) => {
   });
   if (transitionErr) console.error("failed to record ticket_transitions row", transitionErr.message);
 
-  if (toStatus === "resolved" || toStatus === "closed") {
+  if ((toStatus === "resolved" || toStatus === "closed") && ticket.category !== "task") {
     if (actorRole !== "client") {
       const { data: event } = await admin.from("events").select("owner_id").eq("id", ticket.event_id).maybeSingle();
       if (event) {

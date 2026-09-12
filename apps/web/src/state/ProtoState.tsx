@@ -3,13 +3,14 @@ import { useTheme } from "../theme/ThemeContext";
 import { SwipeToast } from "../components/proto/SwipeToast";
 import { PALETTES } from "../theme/palettes";
 import { rolesFor } from "../components/proto/readiness";
-import { SUPPLIERS_SEED, GUESTS_SEED, TABLES_SEED, TASKS_SEED, REGISTRY_SEED, WEDDING, PER_HEAD, fmtR, randR, type Supplier, type Candidate } from "../components/proto/data";
+import { SUPPLIERS_SEED, GUESTS_SEED, TABLES_SEED, REGISTRY_SEED, WEDDING, PER_HEAD, fmtR, randR, type Supplier, type Candidate } from "../components/proto/data";
 import { supabase } from "../lib/supabase";
 import { useLiveSupplierTickets, type TicketStatus } from "./useLiveSupplierTickets";
+import { useTasks, type Task } from "./useTasks";
 
 export type Guest = (typeof GUESTS_SEED)[number];
 export type Table = (typeof TABLES_SEED)[number];
-export type Task = (typeof TASKS_SEED)[number];
+export type { Task };
 export type RegistryItem = (typeof REGISTRY_SEED)[number];
 export type RsvpVal = "yes" | "no" | "pending";
 export type ChangeReq = { id: string; sup: string; role: string; delta: number; headcount: number; perHead: number; amount: number; status: "pending" | "approved" | "declined" };
@@ -27,7 +28,7 @@ interface ProtoStateValue {
   sup: Supplier[]; setSup: React.Dispatch<React.SetStateAction<Supplier[]>>;
   gList: Guest[]; setGList: React.Dispatch<React.SetStateAction<Guest[]>>;
   tables: Table[]; setTables: React.Dispatch<React.SetStateAction<Table[]>>;
-  tasks: Task[]; setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  tasks: Task[]; addTask: (title: string, owner?: string) => Promise<void>; completeTask: (id: string, currentSt: Task["st"]) => Promise<void>;
   registry: RegistryItem[]; setRegistry: React.Dispatch<React.SetStateAction<RegistryItem[]>>;
   budgetCap: number; setBudgetCap: (n: number) => void;
   pinned: Set<string>; setPinned: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -89,7 +90,6 @@ export function ProtoStateProvider({
   const [sup, setSup] = useState<Supplier[]>(SUPPLIERS_SEED);
   const [gList, setGList] = useState<Guest[]>(GUESTS_SEED);
   const [tables, setTables] = useState<Table[]>(TABLES_SEED);
-  const [tasks, setTasks] = useState<Task[]>(TASKS_SEED);
   const [registry, setRegistry] = useState<RegistryItem[]>(REGISTRY_SEED);
   const [budgetCap, setBudgetCap] = useState(400);
   const [pinned, setPinned] = useState<Set<string>>(new Set());
@@ -106,11 +106,11 @@ export function ProtoStateProvider({
   const [profile, setProfile] = useState<Profile>(DEFAULT_PROFILE);
   const [showOnb, setShowOnb] = useState(initialShowOnb);
   // The one real per-account row this app has (written once by
-  // finishOnboarding below) — exposed so real backend-scoped features
-  // (budget payment reconciliation, anything else keyed to "this account's
-  // actual event") have something real to key off, without pulling the
-  // rest of the client experience (guests/tasks/squad) off the shared demo
-  // data those still deliberately run on.
+  // finishOnboarding below) — exposed so real backend-scoped features have
+  // something real to key off. Budget payment reconciliation and tasks
+  // (below) are both real now; guests/squad still deliberately run on the
+  // shared demo data (the real guest/supplier backends live at
+  // /rsvp-manager and the Supplier Portal, not wired into these lenses).
   const [eventId, setEventId] = useState<string | null>(null);
   useEffect(() => {
     if (!ownerId) return;
@@ -118,6 +118,7 @@ export function ProtoStateProvider({
       if (data) setEventId(data.id);
     });
   }, [ownerId]);
+  const { tasks, addTask, completeTask } = useTasks(eventId);
   const [basket, setBasket] = useState<Basket>({});
   const [selSup, setSelSup] = useState<string | null>(null);
   const [readyOpen, setReadyOpen] = useState(false);
@@ -342,7 +343,7 @@ export function ProtoStateProvider({
   }
 
   const value: ProtoStateValue = {
-    sup, setSup, gList, setGList, tables, setTables, tasks, setTasks, registry, setRegistry,
+    sup, setSup, gList, setGList, tables, setTables, tasks, addTask, completeTask, registry, setRegistry,
     budgetCap, setBudgetCap, pinned, setPinned, extraBudgetItems, addBudgetItem, bundleApplied,
     msgs, setMsgs, chased, toasts, toast,
     secure, swapCandidate, moveZone, applyBundle, setRsvp, toggleGuestNeed, markReminded, chaseRsvp, channelLink,

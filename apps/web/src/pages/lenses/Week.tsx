@@ -18,10 +18,13 @@ const COLUMNS = [
 // the same `tasks` state/actions, restyled to match the reference's
 // checkbox-card pattern (empty circle -> tick, note line, date + owner chip)
 // instead of the earlier severity-dot/overdue-badge treatment.
+const ASSIGNEES = ["You", "Junior", "Nadine", "Both"];
+
 export function Week() {
   const { T } = useTheme();
-  const { tasks, setTasks, toast } = useProtoState();
+  const { tasks, addTask: addTaskReal, completeTask, toast } = useProtoState();
   const [newTask, setNewTask] = useState("");
+  const [newOwner, setNewOwner] = useState(ASSIGNEES[0]);
 
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
 
@@ -36,15 +39,15 @@ export function Week() {
   function addTask() {
     const title = newTask.trim();
     if (!title) return;
-    setTasks((ts) => [{ id: `t${Date.now()}`, title, note: "", owner: "You", due: new Date(TODAY.getTime() + 21 * 86400000).toISOString().slice(0, 10), pr: "medium", st: "todo" }, ...ts]);
+    addTaskReal(title, newOwner);
     setNewTask("");
-    toast("Task added · readiness recalculated");
+    toast(`Task added for ${newOwner} · a real ticket, not just a note`);
   }
   function complete(id: string) {
     const t = tasks.find((x) => x.id === id);
     if (!t) return;
     toast(t.st === "done" ? `"${t.title}" reopened` : `"${t.title}" done`, t.st === "done" ? "warn" : undefined);
-    setTasks((ts) => ts.map((x) => (x.id === id ? { ...x, st: x.st === "done" ? "todo" : "done" } : x)));
+    completeTask(id, t.st);
   }
 
   return (
@@ -63,6 +66,9 @@ export function Week() {
         {waiting > 0 && <span className="text-xs" style={{ color: T.sub }}>Waiting on suppliers <b style={{ color: T.warn }}>{waiting}</b></span>}
         <div className="ml-auto flex gap-2">
           <input value={newTask} onChange={(e) => setNewTask(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addTask()} placeholder="Add a task…" className="min-w-0 rounded-lg px-3 py-1.5 text-xs outline-none" style={inputS} />
+          <select value={newOwner} onChange={(e) => setNewOwner(e.target.value)} aria-label="Who's responsible" className="rounded-lg px-2 py-1.5 text-xs outline-none" style={inputS}>
+            {ASSIGNEES.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
           <button onClick={addTask} className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-bold" style={{ background: "#1A1726", color: "#fff" }}><Plus size={12} />Add</button>
         </div>
       </div>
