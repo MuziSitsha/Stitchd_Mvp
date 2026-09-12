@@ -1,6 +1,6 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LabelList } from "recharts";
 import { ShieldCheck, ShieldOff, AlertTriangle, MessageCircle, Sparkles, Ban, Search, History, LifeBuoy, Percent, Receipt, Send, Check, X, LayoutGrid, Inbox, Store, ShoppingBag, TrendingUp } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
@@ -1050,17 +1050,19 @@ export function AdminConsole() {
       {activeSection === "finance" && (
         <>
           <AdminPanel T={T} title="Platform GMV">
-            <div style={{ height: 180 }}>
+            <div style={{ height: 26 * weeklyGmv.length + 20 }}>
               <ResponsiveContainer>
-                <BarChart data={weeklyGmv} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fill: T.faint, fontSize: 10 }} axisLine={{ stroke: T.border }} tickLine={false} />
-                  <YAxis hide />
+                <BarChart data={weeklyGmv} layout="vertical" margin={{ top: 4, right: 56, left: 4, bottom: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis type="category" dataKey="label" tick={{ fill: T.faint, fontSize: 10 }} axisLine={{ stroke: T.border }} tickLine={false} width={54} />
                   <Tooltip
                     cursor={{ fill: rgba(T.accent, 0.08) }}
                     formatter={(v) => gmvFmt(Number(v))}
                     contentStyle={{ background: T.tipBg, border: `1px solid ${T.border}`, borderRadius: 10, color: T.ink, fontSize: 12 }}
                   />
-                  <Bar dataKey="totalCents" name="GMV" radius={[4, 4, 0, 0]} fill={T.accent} />
+                  <Bar dataKey="totalCents" name="GMV" radius={[0, 4, 4, 0]} fill={T.accent}>
+                    <LabelList dataKey="totalCents" position="right" formatter={(v: unknown) => gmvFmt(Number(v ?? 0))} style={{ fill: T.sub, fontSize: 10, fontWeight: 700 }} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
