@@ -859,14 +859,21 @@ export function SupplierPortal() {
   const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
   const inputS = { background: T.panel2, color: T.ink, border: `1px solid ${T.border}` };
 
-  if (supplier === undefined) {
+  // supplier stays undefined (never actually reaches null — loadSupplier
+  // navigates away instead of setting it) for every "not ready yet" case:
+  // still loading, no session (bouncing to /supplier/login), or no claimed
+  // listing (bouncing to /supplier/claim). All three get this same visible
+  // state rather than a bare `return null` — a signed-up-but-unconfirmed
+  // visitor landing here mid-redirect saw a blank dark screen before this
+  // fix (reported as "lands on a black page"), not a screen that says
+  // anything at all.
+  if (supplier === undefined || supplier === null) {
     return (
       <PortalShell title="Loading…">
         <PortalCard T={T}><span style={{ color: T.sub }}>Loading your listing…</span></PortalCard>
       </PortalShell>
     );
   }
-  if (supplier === null) return null;
 
   return (
     <PortalShell eyebrow={supplier.category} title={supplier.name} right={<StatusChip T={T} tone={LISTING_STATUS_TONE[supplier.status] ?? "faint"}>{LISTING_STATUS_LABEL[supplier.status] ?? supplier.status}</StatusChip>}>

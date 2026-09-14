@@ -15,6 +15,7 @@ export function SupplierAuth() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [signupOpen, setSignupOpen] = useState<boolean | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
   const navigate = useNavigate();
 
   // Part C1: the launch gate applies to supplier signup too — reflect it
@@ -35,11 +36,25 @@ export function SupplierAuth() {
     setError(null);
     setBusy(true);
     try {
-      const { error: authError } =
-        mode === "signup"
-          ? await supabase.auth.signUp({ email, password })
-          : await supabase.auth.signInWithPassword({ email, password });
-
+      if (mode === "signup") {
+        const { data, error: authError } = await supabase.auth.signUp({ email, password });
+        if (authError) throw authError;
+        // Same fix as ClientAuth.tsx: the hosted project requires email
+        // confirmation (local dev doesn't, which is why this never showed
+        // up testing locally) — signUp() succeeds but hands back no
+        // session until the link is clicked. Navigating to /supplier
+        // anyway put a signed-out visitor on a screen that immediately
+        // discovers it has no user and bounces — the reported "black
+        // page." Tell them to go confirm instead of pretending they're in.
+        if (!data.session) {
+          setPendingConfirmation(true);
+          setBusy(false);
+          return;
+        }
+        navigate("/supplier");
+        return;
+      }
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
       navigate("/supplier");
     } catch (err) {
@@ -56,6 +71,25 @@ export function SupplierAuth() {
           <Logo size={22} T={T} dashColor={T.accent} />
         </div>
         <Card T={T} className="!p-6" style={{ borderRadius: 24 }}>
+          {pendingConfirmation ? (
+            <>
+              <div className="mb-1 text-lg font-extrabold" style={{ color: T.ink, fontFamily: "'Archivo Black',sans-serif" }}>
+                Check your email
+              </div>
+              <div className="text-xs leading-relaxed" style={{ color: T.sub }}>
+                We've sent a confirmation link to <b style={{ color: T.ink }}>{email}</b>. Click it, then come back and
+                sign in below — the account isn't active until you do.
+              </div>
+              <button
+                onClick={() => { setPendingConfirmation(false); setMode("signin"); }}
+                className="mt-4 w-full text-center text-xs font-bold"
+                style={{ color: T.accent }}
+              >
+                Back to sign in
+              </button>
+            </>
+          ) : (
+          <>
           <div className="mb-1 text-lg font-extrabold" style={{ color: T.ink, fontFamily: "'Archivo Black',sans-serif" }}>
             Supplier Portal
           </div>
@@ -101,12 +135,14 @@ export function SupplierAuth() {
           ) : (
             <button
               type="button"
-              onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
+              onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setPendingConfirmation(false); }}
               className="mt-4 w-full text-center text-xs font-bold"
               style={{ color: T.accent }}
             >
               {mode === "signup" ? "Already have an account? Sign in" : "New supplier? Create an account"}
             </button>
+          )}
+          </>
           )}
         </Card>
       </div>

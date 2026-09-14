@@ -43,6 +43,7 @@ export function ClientAuth({
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pendingConfirmation, setPendingConfirmation] = useState(false);
   // Part C1: while the launch flag is closed, sign-up isn't just server-
   // rejected — the form says so up front rather than after the user's
   // filled it in.
@@ -65,8 +66,24 @@ export function ClientAuth({
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
         if (signUpError) throw signUpError;
+        // Local dev has email confirmation off, so signUp() hands back an
+        // active session immediately and the old navigate-straight-in below
+        // is exactly right there — which is exactly why this bug never
+        // showed up testing locally. The hosted project requires
+        // confirmation, so signUp() succeeds but data.session is null until
+        // the link is clicked; navigating in anyway landed on a screen with
+        // no session behind it — a supplier bounced through /supplier's own
+        // "no user, back to login" redirect (the reported "black page"),
+        // and a client just silently failed onboarding. This is that
+        // missing step: tell them to go confirm, don't pretend they're in.
+        if (!data.session) {
+          setError(null);
+          setPendingConfirmation(true);
+          setBusy(false);
+          return;
+        }
         if (role === "supplier") {
           navigate("/supplier");
           return;
@@ -119,6 +136,7 @@ export function ClientAuth({
     const next = mode === "signup" ? "signin" : "signup";
     setMode(next);
     setError(null);
+    setPendingConfirmation(false);
     if (next === "signup" && role === "admin") setRole("client");
   }
 
@@ -129,6 +147,25 @@ export function ClientAuth({
           <Logo size={22} T={T} dashColor={T.accent} />
         </div>
         <Card T={T} className="!p-6" style={{ borderRadius: 24 }}>
+          {pendingConfirmation ? (
+            <>
+              <div className="mb-1 text-lg font-extrabold" style={{ color: T.ink, fontFamily: "'Archivo Black',sans-serif" }}>
+                Check your email
+              </div>
+              <div className="text-xs leading-relaxed" style={{ color: T.sub }}>
+                We've sent a confirmation link to <b style={{ color: T.ink }}>{email}</b>. Click it, then come back and
+                sign in below — the account isn't active until you do.
+              </div>
+              <button
+                onClick={() => { setPendingConfirmation(false); setMode("signin"); }}
+                className="mt-4 w-full text-center text-xs font-bold"
+                style={{ color: T.accent }}
+              >
+                Back to sign in
+              </button>
+            </>
+          ) : (
+            <>
             <div className="mb-1 text-lg font-extrabold" style={{ color: T.ink, fontFamily: "'Archivo Black',sans-serif" }}>
               {mode === "signup" ? "Create your account" : "Welcome back"}
             </div>
@@ -194,6 +231,8 @@ export function ClientAuth({
                 {mode === "signup" ? "Already have an account? Sign in" : "New here? Create an account"}
               </button>
             )}
+            </>
+          )}
         </Card>
       </div>
     </div>
