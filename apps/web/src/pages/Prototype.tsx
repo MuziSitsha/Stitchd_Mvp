@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, startTransition } from "react";
 import { ShoppingBag } from "lucide-react";
 import { AppShell, type LensKey } from "../components/proto/AppShell";
 import { Onboarding } from "../components/proto/Onboarding";
@@ -63,7 +63,15 @@ function Lens({ lens, setLens }: { lens: LensKey; setLens: (l: LensKey) => void 
 }
 
 function PrototypeInner({ initialLens, isStaff }: { initialLens: LensKey; isStaff: boolean }) {
-  const [lens, setLens] = useState<LensKey>(initialLens);
+  const [lens, setLensState] = useState<LensKey>(initialLens);
+  // Every tab switch fully unmounts one lens component and mounts another
+  // (see the Lens switch below) — on heavier screens that synchronous
+  // remount was blocking the main thread for ~300ms right inside the
+  // click handler (a real INP hit flagged by the browser). startTransition
+  // marks the swap as interruptible: React keeps the outgoing screen
+  // painted and responsive to input while it prepares the new one instead
+  // of freezing the tab on click.
+  const setLens = (l: LensKey) => startTransition(() => setLensState(l));
   const { T, pal, setPal } = useTheme();
   const { guests, setGuests, profile, showOnb, finishOnboarding } = useProtoState();
 
