@@ -88,7 +88,10 @@ export function RsvpHostManager() {
   }
 
   const load = useCallback(async () => {
-    if (!session) return;
+    // Same fix as ReadinessHostManager.tsx's own version of this bug: a
+    // signed-out visitor must still fall out of "Loading…" rather than
+    // hang on it forever with the "Please sign in" fallback unreachable.
+    if (!session) { setLoading(false); return; }
     const { data: event } = await supabase.from("events").select("id").eq("owner_id", session.user.id).maybeSingle();
     setEventId(event?.id ?? null);
     if (!event) { setLoading(false); return; }
@@ -266,7 +269,7 @@ export function RsvpHostManager() {
     });
 
   return (
-    <PortalShell eyebrow="Real RSVP" title="Guests & RSVPs" signOutTo="/">
+    <PortalShell eyebrow="Real RSVP" title="Guests & RSVPs" backTo={{ href: "/", label: "Back to app" }} signOutTo="/">
       <div className="grid grid-cols-3 gap-2">
         <StatTile T={T} value={totalGuests} label="Guests" />
         <StatTile T={T} value={attending} label="Attending" color={T.good} />

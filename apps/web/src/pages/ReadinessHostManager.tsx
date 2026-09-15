@@ -44,7 +44,12 @@ export function ReadinessHostManager() {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!session) return;
+    // A signed-out visitor (or one whose session hasn't resolved yet) must
+    // still fall out of the "Loading…" state — without this, `loading`
+    // stays true forever and the "Please sign in" fallback below never
+    // actually becomes reachable, same class of bug as the black-page
+    // signup issue: a screen stuck showing nothing useful, silently.
+    if (!session) { setLoading(false); return; }
     const { data: event } = await supabase.from("events").select("id").eq("owner_id", session.user.id).maybeSingle();
     setEventId(event?.id ?? null);
     if (!event) { setLoading(false); return; }
@@ -107,7 +112,7 @@ export function ReadinessHostManager() {
   }
 
   return (
-    <PortalShell eyebrow="Real readiness" title="Are we ready?" signOutTo="/">
+    <PortalShell eyebrow="Real readiness" title="Are we ready?" backTo={{ href: "/", label: "Back to app" }} signOutTo="/">
       {eventReadiness && (
         <PortalCard T={T} style={{ borderColor: BAND_COLOR(T, eventReadiness.worst_band) }}>
           <div className="flex items-center gap-3">

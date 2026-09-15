@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Heart, Palette, Sun, Moon, MessageCircle, Store, X, Check, LogOut, Search, ShieldCheck } from "lucide-react";
+import { Heart, Palette, Sun, Moon, MessageCircle, Store, X, Check, LogOut, Search, ShieldCheck, ListChecks, Gauge } from "lucide-react";
 import { useTheme } from "../../theme/ThemeContext";
 import { rgba } from "../../theme/theme";
 import { supabase } from "../../lib/supabase";
@@ -163,6 +163,28 @@ export function AppShell({
                   )}
                 </button>
               ))}
+              {/* Real, backend-driven pages — separate routes outside the
+                  lens/Screen switch entirely (their own PortalShell, not
+                  this AppShell), previously reachable only by typing the
+                  URL. Full navigations (<a>, not setLens), same idiom as
+                  the Ops Console pill above. Gold-glow like Stitch It so
+                  they read as "the real, live thing" next to the RSVP
+                  invitations tab and Today's readiness ring, both of which
+                  still run on this prototype's own sample data. */}
+              <a
+                href="/rsvp-manager"
+                className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold"
+                style={{ color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` }}
+              >
+                <ListChecks size={13} />RSVP Manager
+              </a>
+              <a
+                href="/readiness-manager"
+                className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold"
+                style={{ color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` }}
+              >
+                <Gauge size={13} />Readiness
+              </a>
             </div>
           </div>
         </div>
