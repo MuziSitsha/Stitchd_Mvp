@@ -26,7 +26,9 @@ const HOW_IT_WORKS = [
   { n: "03", t: "Quote, confirm, deliver", d: "Send a quote the couple can compare like-for-like. Once it's accepted, you see exactly what you've agreed to, and reconfirm readiness at set checkpoints." },
 ];
 
-const VERIFICATION_POINTS = [
+// Exported so SupplierPortal's own onboarding-progress tracker quotes the
+// exact same four checks, rather than a second, driftable copy of them.
+export const VERIFICATION_POINTS = [
   "Contact email and phone confirmed.",
   "Authorised representative and trading identity checked. Company registration stays optional for sole traders — we look at the evidence that's actually there.",
   "Portfolio and source rights checked.",

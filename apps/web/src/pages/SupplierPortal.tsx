@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, LabelList } from "recharts";
-import { BadgeCheck, Star, Sparkles, TrendingUp, Plus, X, ShieldCheck, ArrowLeftRight, MessageCircle, Calendar, AlertTriangle, LifeBuoy, ChevronLeft, ChevronRight, Camera, CheckCircle2, Pencil } from "lucide-react";
+import { BadgeCheck, Star, Sparkles, TrendingUp, Plus, X, ShieldCheck, ArrowLeftRight, MessageCircle, Calendar, AlertTriangle, LifeBuoy, ChevronLeft, ChevronRight, Camera, CheckCircle2, Pencil, Circle, Clock3 } from "lucide-react";
 import { useTheme } from "../theme/ThemeContext";
 import { rgba } from "../theme/theme";
 import { supabase } from "../lib/supabase";
@@ -14,6 +14,7 @@ import { TicketV2Card, TICKET_STATUS_LABEL, TICKET_STATUS_TONE } from "../compon
 import { ImageUpload } from "../components/proto/ImageUpload";
 import { CATEGORIES } from "./SupplierClaim";
 import { PRICING_UNITS, pricePreview as pricePreviewFor, priceLabel, type PricingUnit } from "../lib/pricing";
+import { VERIFICATION_POINTS } from "./Landing";
 
 const TICKET_CATEGORIES = ["supplier_delay", "payment", "venue", "guest", "task", "platform_support", "dispute", "other"] as const;
 const TICKET_PRIORITIES = ["low", "medium", "high", "critical"] as const;
@@ -31,6 +32,7 @@ interface Supplier {
   review_count: number;
   verified: boolean;
   status: string;
+  created_at: string;
   price_from_cents: number | null;
   pricing_unit: string;
   photo_url: string | null;
@@ -202,7 +204,7 @@ export function SupplierPortal() {
     }
     const { data, error: fetchError } = await supabase
       .from("suppliers")
-      .select("id, category, name, headline, bio, rating, review_count, verified, status, price_from_cents, pricing_unit, photo_url, service_area, phone")
+      .select("id, category, name, headline, bio, rating, review_count, verified, status, created_at, price_from_cents, pricing_unit, photo_url, service_area, phone")
       .eq("profile_id", userRes.user.id)
       .maybeSingle();
 
@@ -922,6 +924,84 @@ export function SupplierPortal() {
 
       {error && (
         <div className="rounded-xl px-3 py-2.5 text-xs font-semibold" style={{ background: rgba(T.bad, 0.1), color: T.bad }}>{error}</div>
+      )}
+
+      {/* ONBOARDING PROGRESS — Merc's own ask: a supplier who's just signed
+          up couldn't see where they stood beyond one line in the hero card
+          ("with admin for review"). These are the spec's own four checks
+          (Part C1's "What verification actually means", the exact copy the
+          public landing page already uses) laid out as real, honestly-
+          derived steps — not four independently-tracked facts this app
+          doesn't actually have yet, just the two real signals it does have
+          (a verification request exists; the listing's own status) wrapped
+          around that explanatory copy so nobody's guessing what's next. */}
+      {(supplier.status === "pending" || supplier.status === "declined") && (
+        <PortalCard T={T} style={{ borderColor: rgba(T.accent, 0.35) }}>
+          <div className="mb-2.5 flex items-center gap-1.5 text-sm font-bold"><ShieldCheck size={15} style={{ color: T.accent }} />Getting you live on STITCHD</div>
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-2">
+              <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: T.good }} />
+              <div className="text-xs">
+                <div className="font-semibold" style={{ color: T.ink }}>Listing submitted</div>
+                <div style={{ color: T.faint }}>{new Date(supplier.created_at).toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" })}</div>
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              {supplier.phone ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: T.good }} /> : <Circle size={15} className="mt-0.5 shrink-0" style={{ color: T.faint }} />}
+              <div className="text-xs">
+                <div className="font-semibold" style={{ color: T.ink }}>Contact details on file</div>
+                {!supplier.phone && <div style={{ color: T.warn }}>Add a phone number below — we can't reach you without one.</div>}
+              </div>
+            </div>
+            <div className="flex items-start gap-2">
+              {verification ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: T.good }} /> : <Circle size={15} className="mt-0.5 shrink-0" style={{ color: T.faint }} />}
+              <div className="min-w-0 flex-1 text-xs">
+                <div className="font-semibold" style={{ color: T.ink }}>Verification requested</div>
+                {verification ? (
+                  <div style={{ color: T.faint }}>{verification.status === "verified" ? "Verified" : verification.status === "rejected" ? "Not approved — see below" : "Submitted — under review"}</div>
+                ) : supplier.status === "pending" ? (
+                  <button onClick={requestVerification} disabled={requestingVerification} className="press mt-1 rounded-lg px-2.5 py-1.5 text-xs font-bold disabled:opacity-60" style={btnDark}>
+                    {requestingVerification ? "Requesting…" : "Request verification — free"}
+                  </button>
+                ) : (
+                  <div style={{ color: T.faint }}>Not requested</div>
+                )}
+              </div>
+            </div>
+            {supplier.status === "declined" ? (
+              <div className="flex items-start gap-2">
+                <AlertTriangle size={15} className="mt-0.5 shrink-0" style={{ color: T.bad }} />
+                <div className="text-xs">
+                  <div className="font-semibold" style={{ color: T.bad }}>Not approved this time</div>
+                  <div style={{ color: T.sub }}>Raise a support ticket below if you'd like to know more, or update your listing and it'll be reviewed again.</div>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start gap-2">
+                  {verification?.status === "verified"
+                    ? <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: T.good }} />
+                    : verification
+                      ? <Clock3 size={15} className="mt-0.5 shrink-0" style={{ color: T.warn }} />
+                      : <Circle size={15} className="mt-0.5 shrink-0" style={{ color: T.faint }} />}
+                  <div className="min-w-0 flex-1 text-xs">
+                    <div className="font-semibold" style={{ color: T.ink }}>{verification?.status === "verified" ? "Reviewed by STITCHD" : "Under review by STITCHD"}</div>
+                    <ul className="mt-1 space-y-0.5" style={{ color: T.sub }}>
+                      {VERIFICATION_POINTS.map((p) => <li key={p}>— {p}</li>)}
+                    </ul>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Circle size={15} className="mt-0.5 shrink-0" style={{ color: T.faint }} />
+                  <div className="text-xs">
+                    <div className="font-semibold" style={{ color: T.ink }}>Approved and live to clients</div>
+                    <div style={{ color: T.faint }}>We'll message you the moment this flips.</div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </PortalCard>
       )}
 
       {/* YOUR NUMBERS */}
