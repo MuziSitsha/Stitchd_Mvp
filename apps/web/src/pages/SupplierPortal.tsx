@@ -1374,6 +1374,22 @@ export function SupplierPortal() {
                           </div>
                         </form>
                       )}
+
+                      {/* Real bug, found while checking client<->supplier
+                          communication end to end: TicketThread only ever
+                          rendered inside "Needs your attention", which
+                          itself only lists status='pending' tickets — the
+                          moment a supplier confirmed a request, they lost
+                          every way to see or reply to that client's
+                          messages, even though the client's own drawer
+                          keeps the same thread open indefinitely. Same
+                          thread, same ticket, now reachable for every
+                          booking here regardless of status, not just the
+                          still-pending ones. */}
+                      <div className="mt-3 border-t pt-2.5" style={{ borderColor: T.border }}>
+                        <div className="mb-2 flex items-center gap-1.5 text-xs font-bold"><MessageCircle size={13} />Message the client</div>
+                        <TicketThread T={T} ticketId={selectedQuoteRow.ticketId} senderRole="supplier" />
+                      </div>
                     </div>
                   );
                 })()}
