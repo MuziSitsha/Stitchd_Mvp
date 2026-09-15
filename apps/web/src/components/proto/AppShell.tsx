@@ -16,7 +16,7 @@ import { CoachBriefSheet } from "./CoachBriefSheet";
 import { SearchModal } from "./SearchModal";
 import { DAYS_LEFT, WEDDING } from "./data";
 import { useProtoState } from "../../state/ProtoState";
-import { TOP_TABS, SUBS_FOR, LUNGI_SUB, TAB_OF, firstScreenOf, type Screen } from "./nav";
+import { NAV_TABS, type Screen } from "./nav";
 
 // Alias kept so every existing lens component's `setLens: (l: LensKey) =>
 // void` prop keeps typechecking unchanged against the new, broader
@@ -59,9 +59,7 @@ export function AppShell({
 
   const rsvpPend = gList.filter((g) => g.rsvp === "pending").length;
   const cartN = Object.keys(basket).length;
-  const activeTab = TAB_OF[lens];
-  const subTabs = lens === "portal" ? [] : activeTab === "lungi" ? [LUNGI_SUB] : activeTab ? SUBS_FOR[activeTab] : [];
-  const activeTabLabel = activeTab === "lungi" ? "Ask Lungi" : TOP_TABS.find((t) => t.key === activeTab)?.label;
+  const activeTabLabel = lens === "portal" ? "Supplier Portal" : NAV_TABS.find((t) => t.key === lens)?.label;
 
   const btnA = { background: T.accent, color: T.onAccent };
   const btnG = { background: "transparent", color: T.sub, border: `1px solid ${T.border}` };
@@ -77,27 +75,6 @@ export function AppShell({
       >
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3">
           <Logo size={18} T={T} />
-          <div className="hidden min-w-0 flex-1 overflow-x-auto lg:block">
-            <div className="flex gap-1">
-              {TOP_TABS.map(({ key, label, icon: I }) => (
-                <button
-                  key={key}
-                  onClick={() => setLens(firstScreenOf(key))}
-                  className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold"
-                  style={activeTab === key ? btnA : { color: T.sub, background: T.panel2 }}
-                >
-                  <I size={13} />
-                  {label}
-                  {key === "guests" && rsvpPend > 0 && (
-                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: activeTab === key ? T.onAccent : T.bad, color: activeTab === key ? T.accent : "#fff" }}>{rsvpPend}</span>
-                  )}
-                  {key === "stitchit" && cartN > 0 && (
-                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: activeTab === key ? T.onAccent : T.gold, color: activeTab === key ? T.accent : T.onGold }}>{cartN}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
           <div className="ml-auto flex items-center gap-1.5">
             <span className="hidden sm:inline-flex">
               <Chip c={T.gold} T={T}>
@@ -154,69 +131,49 @@ export function AppShell({
             </button>
           </div>
         </div>
-        <div className="relative mx-auto max-w-[1400px] lg:hidden">
+        {/* FLAT NAV — reverted to stitchd-v9.jsx's own pattern (15 Sept,
+            Merc's direction): one horizontally-scrolling row of every
+            screen as a pill button, active = solid accent, "glow" ones
+            (Stitch It) = gold outline when not active, same as v9's own
+            LENSES row. Replaces what a later, separate redesign concept
+            had turned this into (6 grouped top tabs, each opening its own
+            second row of sub-tabs) — every screen that grouping held is
+            still here, just flattened into the one row. */}
+        <div className="relative mx-auto max-w-[1400px]">
           <div
             className="pointer-events-none absolute bottom-2 right-0 top-0 w-8"
             style={{ background: `linear-gradient(90deg, transparent, ${mode === "dark" ? "#0A0A0E" : "#F3F1ED"})` }}
           />
           <div className="overflow-x-auto px-4 pb-2">
-            <div className="flex gap-1">
-              {TOP_TABS.map(({ key, label, icon: I }) => (
+            <div className="flex gap-1.5">
+              {NAV_TABS.map(({ key, label, icon: I, glow }) => (
                 <button
                   key={key}
-                  onClick={() => setLens(firstScreenOf(key))}
-                  className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1.5 text-[13px] font-semibold"
-                  style={activeTab === key ? btnA : { color: T.sub, background: T.panel2 }}
+                  onClick={() => setLens(key)}
+                  className="relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-[13px] font-semibold"
+                  style={lens === key ? btnA : glow ? { color: T.gold, background: rgba(T.gold, 0.12), border: `1px solid ${rgba(T.gold, 0.4)}` } : { color: T.sub, background: T.panel2 }}
                 >
                   <I size={13} />
                   {label}
-                  {key === "guests" && rsvpPend > 0 && (
-                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: activeTab === key ? T.onAccent : T.bad, color: activeTab === key ? T.accent : "#fff" }}>{rsvpPend}</span>
+                  {key === "rsvp" && rsvpPend > 0 && (
+                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: lens === key ? T.onAccent : T.bad, color: lens === key ? T.accent : "#fff" }}>{rsvpPend}</span>
                   )}
                   {key === "stitchit" && cartN > 0 && (
-                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: activeTab === key ? T.onAccent : T.gold, color: activeTab === key ? T.accent : T.onGold }}>{cartN}</span>
+                    <span className="rounded-full px-1.5 text-xs font-bold" style={{ background: lens === key ? T.onAccent : T.gold, color: lens === key ? T.accent : T.onGold }}>{cartN}</span>
                   )}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        {subTabs.length > 0 && (
-          <div className="relative mx-auto max-w-[1400px] border-t" style={{ borderColor: T.border }}>
-            <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
-              <div className="min-w-0">
-                <div className="truncate text-xs" style={{ color: T.faint }}>
-                  {WEDDING.couple} · {WEDDING.dateLabel} · {WEDDING.venue}
-                </div>
-                <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 18, color: T.ink }}>{activeTabLabel}</div>
-              </div>
-              {/* A lone sub-tab is nothing to pick between — hide the pill
-                  row and let the title stand alone (e.g. "Suppliers" now
-                  that "Find someone" is gone, it's just "Your circle"). */}
-              {subTabs.length > 1 && (
-                <div className="flex gap-1">
-                  {subTabs.map(({ key, label, icon: I }) => (
-                    <button
-                      key={key}
-                      onClick={() => setLens(key)}
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold"
-                      style={lens === key ? { color: T.accent, background: rgba(T.accent, 0.12) } : { color: T.faint }}
-                    >
-                      <I size={12} />
-                      {label}
-                      {key === "rsvp" && rsvpPend > 0 && (
-                        <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.bad, color: "#fff" }}>{rsvpPend}</span>
-                      )}
-                      {key === "stitchit" && cartN > 0 && (
-                        <span className="rounded-full px-1.5 text-[10px] font-bold" style={{ background: T.gold, color: T.onGold }}>{cartN}</span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
+        <div className="relative mx-auto max-w-[1400px] border-t" style={{ borderColor: T.border }}>
+          <div className="min-w-0 px-4 py-2.5">
+            <div className="truncate text-xs" style={{ color: T.faint }}>
+              {WEDDING.couple} · {WEDDING.dateLabel} · {WEDDING.venue}
             </div>
+            <div style={{ fontFamily: "'Archivo Black',sans-serif", fontSize: 18, color: T.ink }}>{activeTabLabel}</div>
           </div>
-        )}
+        </div>
       </div>
 
       <div className="mx-auto max-w-[1400px] px-4 py-4">{children}</div>
